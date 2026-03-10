@@ -89,7 +89,7 @@ const CLIENT_TEMPLATE = `/**
  * Generated from protobuf definitions
  */
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { APIResponse } from '{{ts_out}}web';
+import { APIResponse } from 'protobuf-typescript-client-gen';
 
 // Import all required models
 {{#each model_imports}}
