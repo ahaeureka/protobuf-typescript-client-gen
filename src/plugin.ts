@@ -153,6 +153,19 @@ function preprocessRequest(obj: any): any {
   return result;
 }
 
+/**
+ * Type guard to check if a value is an APIResponse structure
+ */
+function isAPIResponse(data: any): data is APIResponse<unknown> {
+  return (
+    data !== null &&
+    typeof data === 'object' &&
+    typeof data.code === 'number' &&
+    'data' in data &&
+    'message' in data
+  );
+}
+
 export class {{class_name}} {
   private client: AxiosInstance;
   private baseUrl: string;
@@ -442,21 +455,19 @@ private getToken(): string | null {
     const contentType = response.headers['content-type'] || response.headers['Content-Type'] || '';
     const isJsonResponse = contentType.includes('application/json');
     
-    if (isJsonResponse && response.data && typeof response.data === 'object') {
-      if ('data' in response.data && 'code' in response.data) {
-        // Response is wrapped in HttpResponse
-        if (response.data.code >= 200 && response.data.code < 400) {
-          // Success redirect - extract actual data from HttpResponse.data
-          if (response.data.data !== undefined && response.data.data !== null) {
-            return {{output_type}}.fromJSON(response.data.data);
-          }
-          // Empty successful redirect response
-          return {{output_type}}.fromJSON({});
-        } else {
-          // Error response - extract message from HttpResponse.message
-          const errorMessage = response.data.message || 'Unknown redirect error';
-          throw new Error(\`Redirect failed with code \${response.data.code}: \${errorMessage}\`);
+    if (isJsonResponse && isAPIResponse(response.data)) {
+      // Response is wrapped in HttpResponse
+      if (response.data.code >= 200 && response.data.code < 400) {
+        // Success redirect - extract actual data from HttpResponse.data
+        if (response.data.data !== undefined && response.data.data !== null) {
+          return {{output_type}}.fromJSON(response.data.data);
         }
+        // Empty successful redirect response
+        return {{output_type}}.fromJSON({});
+      } else {
+        // Error response - extract message from HttpResponse.message
+        const errorMessage = response.data.message || 'Unknown redirect error';
+        throw new Error(\`Redirect failed with code \${response.data.code}: \${errorMessage}\`);
       }
     }
     // Fallback: treat as direct response for non-JSON or non-HttpResponse format
@@ -493,30 +504,28 @@ private getToken(): string | null {
     const contentType = response.headers['content-type'] || response.headers['Content-Type'] || '';
     const isJsonResponse = contentType.includes('application/json');
     
-    if (isJsonResponse && response.data && typeof response.data === 'object') {
-      if ('data' in response.data && 'code' in response.data) {
-        // Response is wrapped in HttpResponse
-        if (response.data.code >= 200 && response.data.code < 300) {
-          // Success response - extract actual data from HttpResponse.data
-          if (response.data.data !== undefined && response.data.data !== null) {
-            return {{output_type}}.fromJSON(response.data.data);
-          }
-          // Empty successful response
-          return {{output_type}}.fromJSON({});
-        } else {
-          // Error response - extract message from HttpResponse.message
-          const errorMessage = response.data.message || 'Unknown error';
-          throw new Error(\`Request failed with code \${response.data.code}: \${errorMessage}\`);
+    if (isJsonResponse && isAPIResponse(response.data)) {
+      // Response is wrapped in HttpResponse
+      if (response.data.code >= 200 && response.data.code < 300) {
+        // Success response - extract actual data from HttpResponse.data
+        if (response.data.data !== undefined && response.data.data !== null) {
+          return {{output_type}}.fromJSON(response.data.data);
         }
+        // Empty successful response
+        return {{output_type}}.fromJSON({});
+      } else {
+        // Error response - extract message from HttpResponse.message
+        const errorMessage = response.data.message || 'Unknown error';
+        throw new Error(\`Request failed with code \${response.data.code}: \${errorMessage}\`);
       }
     }
     // Fallback: treat as direct response for non-JSON or non-HttpResponse format
     return {{output_type}}.fromJSON(response.data);
     {{else}}
     // Handle direct response format (no HttpResponse wrapper)
-    if (response.data && typeof response.data === 'object') {
+    if (isAPIResponse(response.data)) {
       // Check if wrapped in APIResponse format
-      if ('data' in response.data && response.data.data !== undefined) {
+      if (response.data.data !== undefined) {
         // API response format: { code: 2000, data: { user: {...}, session_id: "...", expires_at: ... }, message: "..." }
         const userData = response.data.data;
         
