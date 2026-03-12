@@ -5,7 +5,7 @@
 //   protoc               v3.21.12
 // source: service_discovery.proto
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ServiceDiscoveryServiceClientImpl = exports.ServiceDiscoveryServiceServiceName = exports.ProtobufDescriptorInfo = exports.ListProtobufDescriptorsResponse = exports.ListProtobufDescriptorsRequest = exports.GetProtobufDescriptorResponse = exports.GetProtobufDescriptorRequest = exports.UploadProtobufDescriptorResponse = exports.UploadProtobufDescriptorRequest = exports.GetServiceConfigResponse = exports.GetServiceConfigRequest = exports.UploadServiceConfigResponse = exports.UploadServiceConfigRequest = exports.ServiceInstanceHealth = exports.ServiceHealthCheckResponse = exports.ServiceHealthCheckRequest = exports.UpdateServiceHealthResponse = exports.UpdateServiceHealthRequest = exports.ServiceSummary = exports.ListServicesResponse = exports.ListServicesRequest_TagFiltersEntry = exports.ListServicesRequest = exports.GetServiceInstancesResponse = exports.GetServiceInstancesRequest_TagFiltersEntry = exports.GetServiceInstancesRequest = exports.UpdateServiceInstanceResponse = exports.UpdateServiceInstanceRequest = exports.DeregisterServiceResponse = exports.DeregisterServiceRequest = exports.RegisterServiceResponse = exports.RegisterServiceRequest = exports.ServiceInstance_TagsEntry = exports.ServiceInstance = exports.ServiceMiddlewareConfig = exports.HealthCheckConfig = exports.LoadBalancer = exports.Endpoint = exports.ServiceStatus = exports.BalanceType = exports.protobufPackage = void 0;
+exports.ServiceDiscoveryServiceClientImpl = exports.ServiceDiscoveryServiceServiceName = exports.ProtobufDescriptorInfo = exports.ListProtobufDescriptorsResponse = exports.ListProtobufDescriptorsRequest = exports.GetProtobufDescriptorResponse = exports.GetProtobufDescriptorRequest = exports.UploadProtobufDescriptorResponse = exports.UploadProtobufDescriptorRequest = exports.GetServiceConfigResponse = exports.GetServiceConfigRequest = exports.UploadServiceConfigResponse = exports.UploadServiceConfigRequest = exports.ServiceInstanceHealth = exports.ServiceHealthCheckResponse = exports.ServiceHealthCheckRequest = exports.UpdateServiceHealthResponse = exports.UpdateServiceHealthRequest = exports.ServiceSummary = exports.ListServicesResponse = exports.ListServicesRequest_TagFiltersEntry = exports.ListServicesRequest = exports.GetServiceInstancesResponse = exports.GetServiceInstancesRequest_TagFiltersEntry = exports.GetServiceInstancesRequest = exports.UpdateServiceInstanceResponse = exports.UpdateServiceInstanceRequest = exports.DeleteServiceRecordResponse = exports.DeleteServiceRecordRequest = exports.DeregisterServiceResponse = exports.DeregisterServiceRequest = exports.RegisterServiceResponse = exports.RegisterServiceRequest = exports.ServiceInstance_TagsEntry = exports.ServiceInstance = exports.ServiceMiddlewareConfig = exports.ServiceTurnstileConfig = exports.ServiceRiskConfig = exports.ServiceRiskRuleConfig = exports.ServiceCorsConfig = exports.HealthCheckConfig = exports.LoadBalancer = exports.Endpoint = exports.ServiceStatus = exports.BalanceType = exports.protobufPackage = void 0;
 exports.balanceTypeFromJSON = balanceTypeFromJSON;
 exports.balanceTypeToJSON = balanceTypeToJSON;
 exports.serviceStatusFromJSON = serviceStatusFromJSON;
@@ -463,8 +463,784 @@ exports.HealthCheckConfig = {
         return message;
     },
 };
+function createBaseServiceCorsConfig() {
+    return {
+        enabled: false,
+        allow_origins: [],
+        allow_methods: [],
+        allow_headers: [],
+        expose_headers: [],
+        allow_credentials: false,
+        max_age_secs: 0,
+    };
+}
+exports.ServiceCorsConfig = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.enabled !== false) {
+            writer.uint32(8).bool(message.enabled);
+        }
+        for (const v of message.allow_origins) {
+            writer.uint32(18).string(v);
+        }
+        for (const v of message.allow_methods) {
+            writer.uint32(26).string(v);
+        }
+        for (const v of message.allow_headers) {
+            writer.uint32(34).string(v);
+        }
+        for (const v of message.expose_headers) {
+            writer.uint32(42).string(v);
+        }
+        if (message.allow_credentials !== false) {
+            writer.uint32(48).bool(message.allow_credentials);
+        }
+        if (message.max_age_secs !== 0) {
+            writer.uint32(56).uint32(message.max_age_secs);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseServiceCorsConfig();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 8) {
+                        break;
+                    }
+                    message.enabled = reader.bool();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.allow_origins.push(reader.string());
+                    continue;
+                }
+                case 3: {
+                    if (tag !== 26) {
+                        break;
+                    }
+                    message.allow_methods.push(reader.string());
+                    continue;
+                }
+                case 4: {
+                    if (tag !== 34) {
+                        break;
+                    }
+                    message.allow_headers.push(reader.string());
+                    continue;
+                }
+                case 5: {
+                    if (tag !== 42) {
+                        break;
+                    }
+                    message.expose_headers.push(reader.string());
+                    continue;
+                }
+                case 6: {
+                    if (tag !== 48) {
+                        break;
+                    }
+                    message.allow_credentials = reader.bool();
+                    continue;
+                }
+                case 7: {
+                    if (tag !== 56) {
+                        break;
+                    }
+                    message.max_age_secs = reader.uint32();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            enabled: isSet(object.enabled) ? globalThis.Boolean(object.enabled) : false,
+            allow_origins: globalThis.Array.isArray(object?.allow_origins)
+                ? object.allow_origins.map((e) => globalThis.String(e))
+                : [],
+            allow_methods: globalThis.Array.isArray(object?.allow_methods)
+                ? object.allow_methods.map((e) => globalThis.String(e))
+                : [],
+            allow_headers: globalThis.Array.isArray(object?.allow_headers)
+                ? object.allow_headers.map((e) => globalThis.String(e))
+                : [],
+            expose_headers: globalThis.Array.isArray(object?.expose_headers)
+                ? object.expose_headers.map((e) => globalThis.String(e))
+                : [],
+            allow_credentials: isSet(object.allow_credentials) ? globalThis.Boolean(object.allow_credentials) : false,
+            max_age_secs: isSet(object.max_age_secs) ? globalThis.Number(object.max_age_secs) : 0,
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.enabled !== false) {
+            obj.enabled = message.enabled;
+        }
+        if (message.allow_origins?.length) {
+            obj.allow_origins = message.allow_origins;
+        }
+        if (message.allow_methods?.length) {
+            obj.allow_methods = message.allow_methods;
+        }
+        if (message.allow_headers?.length) {
+            obj.allow_headers = message.allow_headers;
+        }
+        if (message.expose_headers?.length) {
+            obj.expose_headers = message.expose_headers;
+        }
+        if (message.allow_credentials !== false) {
+            obj.allow_credentials = message.allow_credentials;
+        }
+        if (message.max_age_secs !== 0) {
+            obj.max_age_secs = Math.round(message.max_age_secs);
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.ServiceCorsConfig.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseServiceCorsConfig();
+        message.enabled = object.enabled ?? false;
+        message.allow_origins = object.allow_origins?.map((e) => e) || [];
+        message.allow_methods = object.allow_methods?.map((e) => e) || [];
+        message.allow_headers = object.allow_headers?.map((e) => e) || [];
+        message.expose_headers = object.expose_headers?.map((e) => e) || [];
+        message.allow_credentials = object.allow_credentials ?? false;
+        message.max_age_secs = object.max_age_secs ?? 0;
+        return message;
+    },
+};
+function createBaseServiceRiskRuleConfig() {
+    return {
+        name: "",
+        enabled: false,
+        path_prefixes: [],
+        countries: [],
+        proxy: undefined,
+        tor: undefined,
+        datacenter: undefined,
+        min_bot_score: undefined,
+        max_bot_score: undefined,
+        action: "",
+    };
+}
+exports.ServiceRiskRuleConfig = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.name !== "") {
+            writer.uint32(10).string(message.name);
+        }
+        if (message.enabled !== false) {
+            writer.uint32(16).bool(message.enabled);
+        }
+        for (const v of message.path_prefixes) {
+            writer.uint32(26).string(v);
+        }
+        for (const v of message.countries) {
+            writer.uint32(34).string(v);
+        }
+        if (message.proxy !== undefined) {
+            writer.uint32(40).bool(message.proxy);
+        }
+        if (message.tor !== undefined) {
+            writer.uint32(48).bool(message.tor);
+        }
+        if (message.datacenter !== undefined) {
+            writer.uint32(56).bool(message.datacenter);
+        }
+        if (message.min_bot_score !== undefined) {
+            writer.uint32(64).uint32(message.min_bot_score);
+        }
+        if (message.max_bot_score !== undefined) {
+            writer.uint32(72).uint32(message.max_bot_score);
+        }
+        if (message.action !== "") {
+            writer.uint32(82).string(message.action);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseServiceRiskRuleConfig();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.name = reader.string();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 16) {
+                        break;
+                    }
+                    message.enabled = reader.bool();
+                    continue;
+                }
+                case 3: {
+                    if (tag !== 26) {
+                        break;
+                    }
+                    message.path_prefixes.push(reader.string());
+                    continue;
+                }
+                case 4: {
+                    if (tag !== 34) {
+                        break;
+                    }
+                    message.countries.push(reader.string());
+                    continue;
+                }
+                case 5: {
+                    if (tag !== 40) {
+                        break;
+                    }
+                    message.proxy = reader.bool();
+                    continue;
+                }
+                case 6: {
+                    if (tag !== 48) {
+                        break;
+                    }
+                    message.tor = reader.bool();
+                    continue;
+                }
+                case 7: {
+                    if (tag !== 56) {
+                        break;
+                    }
+                    message.datacenter = reader.bool();
+                    continue;
+                }
+                case 8: {
+                    if (tag !== 64) {
+                        break;
+                    }
+                    message.min_bot_score = reader.uint32();
+                    continue;
+                }
+                case 9: {
+                    if (tag !== 72) {
+                        break;
+                    }
+                    message.max_bot_score = reader.uint32();
+                    continue;
+                }
+                case 10: {
+                    if (tag !== 82) {
+                        break;
+                    }
+                    message.action = reader.string();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            name: isSet(object.name) ? globalThis.String(object.name) : "",
+            enabled: isSet(object.enabled) ? globalThis.Boolean(object.enabled) : false,
+            path_prefixes: globalThis.Array.isArray(object?.path_prefixes)
+                ? object.path_prefixes.map((e) => globalThis.String(e))
+                : [],
+            countries: globalThis.Array.isArray(object?.countries)
+                ? object.countries.map((e) => globalThis.String(e))
+                : [],
+            proxy: isSet(object.proxy) ? globalThis.Boolean(object.proxy) : undefined,
+            tor: isSet(object.tor) ? globalThis.Boolean(object.tor) : undefined,
+            datacenter: isSet(object.datacenter) ? globalThis.Boolean(object.datacenter) : undefined,
+            min_bot_score: isSet(object.min_bot_score) ? globalThis.Number(object.min_bot_score) : undefined,
+            max_bot_score: isSet(object.max_bot_score) ? globalThis.Number(object.max_bot_score) : undefined,
+            action: isSet(object.action) ? globalThis.String(object.action) : "",
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.name !== "") {
+            obj.name = message.name;
+        }
+        if (message.enabled !== false) {
+            obj.enabled = message.enabled;
+        }
+        if (message.path_prefixes?.length) {
+            obj.path_prefixes = message.path_prefixes;
+        }
+        if (message.countries?.length) {
+            obj.countries = message.countries;
+        }
+        if (message.proxy !== undefined) {
+            obj.proxy = message.proxy;
+        }
+        if (message.tor !== undefined) {
+            obj.tor = message.tor;
+        }
+        if (message.datacenter !== undefined) {
+            obj.datacenter = message.datacenter;
+        }
+        if (message.min_bot_score !== undefined) {
+            obj.min_bot_score = Math.round(message.min_bot_score);
+        }
+        if (message.max_bot_score !== undefined) {
+            obj.max_bot_score = Math.round(message.max_bot_score);
+        }
+        if (message.action !== "") {
+            obj.action = message.action;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.ServiceRiskRuleConfig.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseServiceRiskRuleConfig();
+        message.name = object.name ?? "";
+        message.enabled = object.enabled ?? false;
+        message.path_prefixes = object.path_prefixes?.map((e) => e) || [];
+        message.countries = object.countries?.map((e) => e) || [];
+        message.proxy = object.proxy ?? undefined;
+        message.tor = object.tor ?? undefined;
+        message.datacenter = object.datacenter ?? undefined;
+        message.min_bot_score = object.min_bot_score ?? undefined;
+        message.max_bot_score = object.max_bot_score ?? undefined;
+        message.action = object.action ?? "";
+        return message;
+    },
+};
+function createBaseServiceRiskConfig() {
+    return {
+        enabled: false,
+        mode: "",
+        default_action: "",
+        challenge_paths: [],
+        block_paths: [],
+        observe_only_paths: [],
+        high_risk_countries: [],
+        challenge_proxy_traffic: false,
+        block_datacenter_traffic: false,
+        allow_tor_exit_nodes: false,
+        bot_score_threshold: 0,
+        proxy_score_threshold: 0,
+        action_overrides: [],
+    };
+}
+exports.ServiceRiskConfig = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.enabled !== false) {
+            writer.uint32(8).bool(message.enabled);
+        }
+        if (message.mode !== "") {
+            writer.uint32(18).string(message.mode);
+        }
+        if (message.default_action !== "") {
+            writer.uint32(26).string(message.default_action);
+        }
+        for (const v of message.challenge_paths) {
+            writer.uint32(34).string(v);
+        }
+        for (const v of message.block_paths) {
+            writer.uint32(42).string(v);
+        }
+        for (const v of message.observe_only_paths) {
+            writer.uint32(50).string(v);
+        }
+        for (const v of message.high_risk_countries) {
+            writer.uint32(58).string(v);
+        }
+        if (message.challenge_proxy_traffic !== false) {
+            writer.uint32(64).bool(message.challenge_proxy_traffic);
+        }
+        if (message.block_datacenter_traffic !== false) {
+            writer.uint32(72).bool(message.block_datacenter_traffic);
+        }
+        if (message.allow_tor_exit_nodes !== false) {
+            writer.uint32(80).bool(message.allow_tor_exit_nodes);
+        }
+        if (message.bot_score_threshold !== 0) {
+            writer.uint32(88).uint32(message.bot_score_threshold);
+        }
+        if (message.proxy_score_threshold !== 0) {
+            writer.uint32(96).uint32(message.proxy_score_threshold);
+        }
+        for (const v of message.action_overrides) {
+            exports.ServiceRiskRuleConfig.encode(v, writer.uint32(106).fork()).join();
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseServiceRiskConfig();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 8) {
+                        break;
+                    }
+                    message.enabled = reader.bool();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.mode = reader.string();
+                    continue;
+                }
+                case 3: {
+                    if (tag !== 26) {
+                        break;
+                    }
+                    message.default_action = reader.string();
+                    continue;
+                }
+                case 4: {
+                    if (tag !== 34) {
+                        break;
+                    }
+                    message.challenge_paths.push(reader.string());
+                    continue;
+                }
+                case 5: {
+                    if (tag !== 42) {
+                        break;
+                    }
+                    message.block_paths.push(reader.string());
+                    continue;
+                }
+                case 6: {
+                    if (tag !== 50) {
+                        break;
+                    }
+                    message.observe_only_paths.push(reader.string());
+                    continue;
+                }
+                case 7: {
+                    if (tag !== 58) {
+                        break;
+                    }
+                    message.high_risk_countries.push(reader.string());
+                    continue;
+                }
+                case 8: {
+                    if (tag !== 64) {
+                        break;
+                    }
+                    message.challenge_proxy_traffic = reader.bool();
+                    continue;
+                }
+                case 9: {
+                    if (tag !== 72) {
+                        break;
+                    }
+                    message.block_datacenter_traffic = reader.bool();
+                    continue;
+                }
+                case 10: {
+                    if (tag !== 80) {
+                        break;
+                    }
+                    message.allow_tor_exit_nodes = reader.bool();
+                    continue;
+                }
+                case 11: {
+                    if (tag !== 88) {
+                        break;
+                    }
+                    message.bot_score_threshold = reader.uint32();
+                    continue;
+                }
+                case 12: {
+                    if (tag !== 96) {
+                        break;
+                    }
+                    message.proxy_score_threshold = reader.uint32();
+                    continue;
+                }
+                case 13: {
+                    if (tag !== 106) {
+                        break;
+                    }
+                    message.action_overrides.push(exports.ServiceRiskRuleConfig.decode(reader, reader.uint32()));
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            enabled: isSet(object.enabled) ? globalThis.Boolean(object.enabled) : false,
+            mode: isSet(object.mode) ? globalThis.String(object.mode) : "",
+            default_action: isSet(object.default_action) ? globalThis.String(object.default_action) : "",
+            challenge_paths: globalThis.Array.isArray(object?.challenge_paths)
+                ? object.challenge_paths.map((e) => globalThis.String(e))
+                : [],
+            block_paths: globalThis.Array.isArray(object?.block_paths)
+                ? object.block_paths.map((e) => globalThis.String(e))
+                : [],
+            observe_only_paths: globalThis.Array.isArray(object?.observe_only_paths)
+                ? object.observe_only_paths.map((e) => globalThis.String(e))
+                : [],
+            high_risk_countries: globalThis.Array.isArray(object?.high_risk_countries)
+                ? object.high_risk_countries.map((e) => globalThis.String(e))
+                : [],
+            challenge_proxy_traffic: isSet(object.challenge_proxy_traffic)
+                ? globalThis.Boolean(object.challenge_proxy_traffic)
+                : false,
+            block_datacenter_traffic: isSet(object.block_datacenter_traffic)
+                ? globalThis.Boolean(object.block_datacenter_traffic)
+                : false,
+            allow_tor_exit_nodes: isSet(object.allow_tor_exit_nodes)
+                ? globalThis.Boolean(object.allow_tor_exit_nodes)
+                : false,
+            bot_score_threshold: isSet(object.bot_score_threshold) ? globalThis.Number(object.bot_score_threshold) : 0,
+            proxy_score_threshold: isSet(object.proxy_score_threshold) ? globalThis.Number(object.proxy_score_threshold) : 0,
+            action_overrides: globalThis.Array.isArray(object?.action_overrides)
+                ? object.action_overrides.map((e) => exports.ServiceRiskRuleConfig.fromJSON(e))
+                : [],
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.enabled !== false) {
+            obj.enabled = message.enabled;
+        }
+        if (message.mode !== "") {
+            obj.mode = message.mode;
+        }
+        if (message.default_action !== "") {
+            obj.default_action = message.default_action;
+        }
+        if (message.challenge_paths?.length) {
+            obj.challenge_paths = message.challenge_paths;
+        }
+        if (message.block_paths?.length) {
+            obj.block_paths = message.block_paths;
+        }
+        if (message.observe_only_paths?.length) {
+            obj.observe_only_paths = message.observe_only_paths;
+        }
+        if (message.high_risk_countries?.length) {
+            obj.high_risk_countries = message.high_risk_countries;
+        }
+        if (message.challenge_proxy_traffic !== false) {
+            obj.challenge_proxy_traffic = message.challenge_proxy_traffic;
+        }
+        if (message.block_datacenter_traffic !== false) {
+            obj.block_datacenter_traffic = message.block_datacenter_traffic;
+        }
+        if (message.allow_tor_exit_nodes !== false) {
+            obj.allow_tor_exit_nodes = message.allow_tor_exit_nodes;
+        }
+        if (message.bot_score_threshold !== 0) {
+            obj.bot_score_threshold = Math.round(message.bot_score_threshold);
+        }
+        if (message.proxy_score_threshold !== 0) {
+            obj.proxy_score_threshold = Math.round(message.proxy_score_threshold);
+        }
+        if (message.action_overrides?.length) {
+            obj.action_overrides = message.action_overrides.map((e) => exports.ServiceRiskRuleConfig.toJSON(e));
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.ServiceRiskConfig.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseServiceRiskConfig();
+        message.enabled = object.enabled ?? false;
+        message.mode = object.mode ?? "";
+        message.default_action = object.default_action ?? "";
+        message.challenge_paths = object.challenge_paths?.map((e) => e) || [];
+        message.block_paths = object.block_paths?.map((e) => e) || [];
+        message.observe_only_paths = object.observe_only_paths?.map((e) => e) || [];
+        message.high_risk_countries = object.high_risk_countries?.map((e) => e) || [];
+        message.challenge_proxy_traffic = object.challenge_proxy_traffic ?? false;
+        message.block_datacenter_traffic = object.block_datacenter_traffic ?? false;
+        message.allow_tor_exit_nodes = object.allow_tor_exit_nodes ?? false;
+        message.bot_score_threshold = object.bot_score_threshold ?? 0;
+        message.proxy_score_threshold = object.proxy_score_threshold ?? 0;
+        message.action_overrides = object.action_overrides?.map((e) => exports.ServiceRiskRuleConfig.fromPartial(e)) || [];
+        return message;
+    },
+};
+function createBaseServiceTurnstileConfig() {
+    return {
+        enabled: false,
+        required_paths: [],
+        skip_paths: [],
+        expected_action: "",
+        expected_hostname: "",
+        enforce_on_risk_challenge: false,
+    };
+}
+exports.ServiceTurnstileConfig = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.enabled !== false) {
+            writer.uint32(8).bool(message.enabled);
+        }
+        for (const v of message.required_paths) {
+            writer.uint32(18).string(v);
+        }
+        for (const v of message.skip_paths) {
+            writer.uint32(26).string(v);
+        }
+        if (message.expected_action !== "") {
+            writer.uint32(34).string(message.expected_action);
+        }
+        if (message.expected_hostname !== "") {
+            writer.uint32(42).string(message.expected_hostname);
+        }
+        if (message.enforce_on_risk_challenge !== false) {
+            writer.uint32(48).bool(message.enforce_on_risk_challenge);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseServiceTurnstileConfig();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 8) {
+                        break;
+                    }
+                    message.enabled = reader.bool();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.required_paths.push(reader.string());
+                    continue;
+                }
+                case 3: {
+                    if (tag !== 26) {
+                        break;
+                    }
+                    message.skip_paths.push(reader.string());
+                    continue;
+                }
+                case 4: {
+                    if (tag !== 34) {
+                        break;
+                    }
+                    message.expected_action = reader.string();
+                    continue;
+                }
+                case 5: {
+                    if (tag !== 42) {
+                        break;
+                    }
+                    message.expected_hostname = reader.string();
+                    continue;
+                }
+                case 6: {
+                    if (tag !== 48) {
+                        break;
+                    }
+                    message.enforce_on_risk_challenge = reader.bool();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            enabled: isSet(object.enabled) ? globalThis.Boolean(object.enabled) : false,
+            required_paths: globalThis.Array.isArray(object?.required_paths)
+                ? object.required_paths.map((e) => globalThis.String(e))
+                : [],
+            skip_paths: globalThis.Array.isArray(object?.skip_paths)
+                ? object.skip_paths.map((e) => globalThis.String(e))
+                : [],
+            expected_action: isSet(object.expected_action) ? globalThis.String(object.expected_action) : "",
+            expected_hostname: isSet(object.expected_hostname) ? globalThis.String(object.expected_hostname) : "",
+            enforce_on_risk_challenge: isSet(object.enforce_on_risk_challenge)
+                ? globalThis.Boolean(object.enforce_on_risk_challenge)
+                : false,
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.enabled !== false) {
+            obj.enabled = message.enabled;
+        }
+        if (message.required_paths?.length) {
+            obj.required_paths = message.required_paths;
+        }
+        if (message.skip_paths?.length) {
+            obj.skip_paths = message.skip_paths;
+        }
+        if (message.expected_action !== "") {
+            obj.expected_action = message.expected_action;
+        }
+        if (message.expected_hostname !== "") {
+            obj.expected_hostname = message.expected_hostname;
+        }
+        if (message.enforce_on_risk_challenge !== false) {
+            obj.enforce_on_risk_challenge = message.enforce_on_risk_challenge;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.ServiceTurnstileConfig.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseServiceTurnstileConfig();
+        message.enabled = object.enabled ?? false;
+        message.required_paths = object.required_paths?.map((e) => e) || [];
+        message.skip_paths = object.skip_paths?.map((e) => e) || [];
+        message.expected_action = object.expected_action ?? "";
+        message.expected_hostname = object.expected_hostname ?? "";
+        message.enforce_on_risk_challenge = object.enforce_on_risk_challenge ?? false;
+        return message;
+    },
+};
 function createBaseServiceMiddlewareConfig() {
-    return { rate_limit_enabled: false, rate_limit_rpm: 0, rate_limit_user_rpm: 0 };
+    return {
+        rate_limit_enabled: false,
+        rate_limit_rpm: 0,
+        rate_limit_user_rpm: 0,
+        cors_enabled: false,
+        cors: undefined,
+        risk_enabled: false,
+        risk: undefined,
+        turnstile_enabled: false,
+        turnstile: undefined,
+    };
 }
 exports.ServiceMiddlewareConfig = {
     encode(message, writer = new wire_1.BinaryWriter()) {
@@ -476,6 +1252,24 @@ exports.ServiceMiddlewareConfig = {
         }
         if (message.rate_limit_user_rpm !== 0) {
             writer.uint32(24).uint32(message.rate_limit_user_rpm);
+        }
+        if (message.cors_enabled !== false) {
+            writer.uint32(80).bool(message.cors_enabled);
+        }
+        if (message.cors !== undefined) {
+            exports.ServiceCorsConfig.encode(message.cors, writer.uint32(90).fork()).join();
+        }
+        if (message.risk_enabled !== false) {
+            writer.uint32(160).bool(message.risk_enabled);
+        }
+        if (message.risk !== undefined) {
+            exports.ServiceRiskConfig.encode(message.risk, writer.uint32(170).fork()).join();
+        }
+        if (message.turnstile_enabled !== false) {
+            writer.uint32(240).bool(message.turnstile_enabled);
+        }
+        if (message.turnstile !== undefined) {
+            exports.ServiceTurnstileConfig.encode(message.turnstile, writer.uint32(250).fork()).join();
         }
         return writer;
     },
@@ -507,6 +1301,48 @@ exports.ServiceMiddlewareConfig = {
                     message.rate_limit_user_rpm = reader.uint32();
                     continue;
                 }
+                case 10: {
+                    if (tag !== 80) {
+                        break;
+                    }
+                    message.cors_enabled = reader.bool();
+                    continue;
+                }
+                case 11: {
+                    if (tag !== 90) {
+                        break;
+                    }
+                    message.cors = exports.ServiceCorsConfig.decode(reader, reader.uint32());
+                    continue;
+                }
+                case 20: {
+                    if (tag !== 160) {
+                        break;
+                    }
+                    message.risk_enabled = reader.bool();
+                    continue;
+                }
+                case 21: {
+                    if (tag !== 170) {
+                        break;
+                    }
+                    message.risk = exports.ServiceRiskConfig.decode(reader, reader.uint32());
+                    continue;
+                }
+                case 30: {
+                    if (tag !== 240) {
+                        break;
+                    }
+                    message.turnstile_enabled = reader.bool();
+                    continue;
+                }
+                case 31: {
+                    if (tag !== 250) {
+                        break;
+                    }
+                    message.turnstile = exports.ServiceTurnstileConfig.decode(reader, reader.uint32());
+                    continue;
+                }
             }
             if ((tag & 7) === 4 || tag === 0) {
                 break;
@@ -520,6 +1356,12 @@ exports.ServiceMiddlewareConfig = {
             rate_limit_enabled: isSet(object.rate_limit_enabled) ? globalThis.Boolean(object.rate_limit_enabled) : false,
             rate_limit_rpm: isSet(object.rate_limit_rpm) ? globalThis.Number(object.rate_limit_rpm) : 0,
             rate_limit_user_rpm: isSet(object.rate_limit_user_rpm) ? globalThis.Number(object.rate_limit_user_rpm) : 0,
+            cors_enabled: isSet(object.cors_enabled) ? globalThis.Boolean(object.cors_enabled) : false,
+            cors: isSet(object.cors) ? exports.ServiceCorsConfig.fromJSON(object.cors) : undefined,
+            risk_enabled: isSet(object.risk_enabled) ? globalThis.Boolean(object.risk_enabled) : false,
+            risk: isSet(object.risk) ? exports.ServiceRiskConfig.fromJSON(object.risk) : undefined,
+            turnstile_enabled: isSet(object.turnstile_enabled) ? globalThis.Boolean(object.turnstile_enabled) : false,
+            turnstile: isSet(object.turnstile) ? exports.ServiceTurnstileConfig.fromJSON(object.turnstile) : undefined,
         };
     },
     toJSON(message) {
@@ -533,6 +1375,24 @@ exports.ServiceMiddlewareConfig = {
         if (message.rate_limit_user_rpm !== 0) {
             obj.rate_limit_user_rpm = Math.round(message.rate_limit_user_rpm);
         }
+        if (message.cors_enabled !== false) {
+            obj.cors_enabled = message.cors_enabled;
+        }
+        if (message.cors !== undefined) {
+            obj.cors = exports.ServiceCorsConfig.toJSON(message.cors);
+        }
+        if (message.risk_enabled !== false) {
+            obj.risk_enabled = message.risk_enabled;
+        }
+        if (message.risk !== undefined) {
+            obj.risk = exports.ServiceRiskConfig.toJSON(message.risk);
+        }
+        if (message.turnstile_enabled !== false) {
+            obj.turnstile_enabled = message.turnstile_enabled;
+        }
+        if (message.turnstile !== undefined) {
+            obj.turnstile = exports.ServiceTurnstileConfig.toJSON(message.turnstile);
+        }
         return obj;
     },
     create(base) {
@@ -543,6 +1403,18 @@ exports.ServiceMiddlewareConfig = {
         message.rate_limit_enabled = object.rate_limit_enabled ?? false;
         message.rate_limit_rpm = object.rate_limit_rpm ?? 0;
         message.rate_limit_user_rpm = object.rate_limit_user_rpm ?? 0;
+        message.cors_enabled = object.cors_enabled ?? false;
+        message.cors = (object.cors !== undefined && object.cors !== null)
+            ? exports.ServiceCorsConfig.fromPartial(object.cors)
+            : undefined;
+        message.risk_enabled = object.risk_enabled ?? false;
+        message.risk = (object.risk !== undefined && object.risk !== null)
+            ? exports.ServiceRiskConfig.fromPartial(object.risk)
+            : undefined;
+        message.turnstile_enabled = object.turnstile_enabled ?? false;
+        message.turnstile = (object.turnstile !== undefined && object.turnstile !== null)
+            ? exports.ServiceTurnstileConfig.fromPartial(object.turnstile)
+            : undefined;
         return message;
     },
 };
@@ -1206,6 +2078,142 @@ exports.DeregisterServiceResponse = {
     },
     fromPartial(object) {
         const message = createBaseDeregisterServiceResponse();
+        message.success = object.success ?? false;
+        message.message = object.message ?? "";
+        return message;
+    },
+};
+function createBaseDeleteServiceRecordRequest() {
+    return { service_name: "", instance_id: "" };
+}
+exports.DeleteServiceRecordRequest = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.service_name !== "") {
+            writer.uint32(10).string(message.service_name);
+        }
+        if (message.instance_id !== "") {
+            writer.uint32(18).string(message.instance_id);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseDeleteServiceRecordRequest();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.service_name = reader.string();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.instance_id = reader.string();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            service_name: isSet(object.service_name) ? globalThis.String(object.service_name) : "",
+            instance_id: isSet(object.instance_id) ? globalThis.String(object.instance_id) : "",
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.service_name !== "") {
+            obj.service_name = message.service_name;
+        }
+        if (message.instance_id !== "") {
+            obj.instance_id = message.instance_id;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.DeleteServiceRecordRequest.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseDeleteServiceRecordRequest();
+        message.service_name = object.service_name ?? "";
+        message.instance_id = object.instance_id ?? "";
+        return message;
+    },
+};
+function createBaseDeleteServiceRecordResponse() {
+    return { success: false, message: "" };
+}
+exports.DeleteServiceRecordResponse = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.success !== false) {
+            writer.uint32(8).bool(message.success);
+        }
+        if (message.message !== "") {
+            writer.uint32(18).string(message.message);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseDeleteServiceRecordResponse();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 8) {
+                        break;
+                    }
+                    message.success = reader.bool();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.message = reader.string();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
+            message: isSet(object.message) ? globalThis.String(object.message) : "",
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.success !== false) {
+            obj.success = message.success;
+        }
+        if (message.message !== "") {
+            obj.message = message.message;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.DeleteServiceRecordResponse.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseDeleteServiceRecordResponse();
         message.success = object.success ?? false;
         message.message = object.message ?? "";
         return message;
@@ -3283,6 +4291,7 @@ class ServiceDiscoveryServiceClientImpl {
         this.rpc = rpc;
         this.RegisterService = this.RegisterService.bind(this);
         this.DeregisterService = this.DeregisterService.bind(this);
+        this.DeleteServiceRecord = this.DeleteServiceRecord.bind(this);
         this.UpdateServiceInstance = this.UpdateServiceInstance.bind(this);
         this.GetServiceInstances = this.GetServiceInstances.bind(this);
         this.ListServices = this.ListServices.bind(this);
@@ -3303,6 +4312,11 @@ class ServiceDiscoveryServiceClientImpl {
         const data = exports.DeregisterServiceRequest.encode(request).finish();
         const promise = this.rpc.request(this.service, "DeregisterService", data);
         return promise.then((data) => exports.DeregisterServiceResponse.decode(new wire_1.BinaryReader(data)));
+    }
+    DeleteServiceRecord(request) {
+        const data = exports.DeleteServiceRecordRequest.encode(request).finish();
+        const promise = this.rpc.request(this.service, "DeleteServiceRecord", data);
+        return promise.then((data) => exports.DeleteServiceRecordResponse.decode(new wire_1.BinaryReader(data)));
     }
     UpdateServiceInstance(request) {
         const data = exports.UpdateServiceInstanceRequest.encode(request).finish();

@@ -5,6 +5,38 @@ import { User } from './proto/user';
 // 浏览器环境检查
 const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
 
+/**
+ * 用户更新请求
+ */
+export interface UpdateUserRequest {
+    displayName?: string;
+    preferredUsername?: string;
+    locale?: string;
+    zoneinfo?: string;
+    website?: string;
+    picture?: string;
+    givenName?: string;
+    familyName?: string;
+    nickname?: string;
+    gender?: string;
+    birthdate?: string;
+}
+
+/**
+ * 上传头像请求
+ */
+export interface UploadAvatarRequest {
+    file: File | Blob;
+    filename?: string;
+}
+
+/**
+ * 上传头像响应
+ */
+export interface UploadAvatarResponse {
+    avatarUrl: string;
+}
+
 export default class AuthServiceClient {
     private gwBaseUrl: string;
     private loginCallbackUrl: string;
@@ -120,6 +152,60 @@ export default class AuthServiceClient {
         const response = await this.axiosInstance.get<HttpResponse>('/auth/user');
         const data = response.data.data;
         return User.fromJSON(data);
+    }
+
+    /**
+     * 更新当前用户信息
+     * 需要配置用户管理提供者（Casdoor）才能使用
+     * @param updateRequest 用户更新请求
+     * @returns 更新后的用户信息
+     */
+    async updateUser(updateRequest: UpdateUserRequest): Promise<User> {
+        try {
+            const response = await this.axiosInstance.put<HttpResponse>('/auth/user', updateRequest);
+            const data = response.data.data;
+            return User.fromJSON(data);
+        } catch (error: any) {
+            console.error('[AuthClient] Failed to update user:', error);
+            if (error.response?.status === 501) {
+                throw new Error('用户管理提供者未配置，无法更新用户信息');
+            }
+            throw new Error(error.response?.data?.message || 'Failed to update user');
+        }
+    }
+
+    /**
+     * 上传并更新用户头像
+     * 需要配置用户管理提供者（Casdoor）才能使用
+     * @param request 上传头像请求
+     * @returns 更新后的头像 URL
+     */
+    async uploadAvatar(request: UploadAvatarRequest): Promise<UploadAvatarResponse> {
+        try {
+            const formData = new FormData();
+            formData.append('avatar_data', request.file);
+            if (request.filename) {
+                formData.append('filename', request.filename);
+            }
+
+            const response = await this.axiosInstance.post<{ data: UploadAvatarResponse }>(
+                '/auth/user/avatar',
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                }
+            );
+
+            return response.data.data;
+        } catch (error: any) {
+            console.error('[AuthClient] Failed to upload avatar:', error);
+            if (error.response?.status === 501) {
+                throw new Error('用户管理提供者未配置，无法上传头像');
+            }
+            throw new Error(error.response?.data?.message || 'Failed to upload avatar');
+        }
     }
 
     /**

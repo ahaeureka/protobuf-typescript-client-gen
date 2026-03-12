@@ -1,5 +1,5 @@
 export * from './plugin';
-export { default as AuthServiceClient } from "./auth_client";
+export { default as AuthServiceClient, UpdateUserRequest, UploadAvatarRequest, UploadAvatarResponse } from "./auth_client";
 export { OpenIDConnectCallbackRequest, LoginRequest, LogoutRequest, LoginCallbackResponse, LogoutCallbackRequest } from "./proto/authentication";
 export { User, Address } from "./proto/user";
 export { APIResponse } from "./proto/stew/api/v1/web";

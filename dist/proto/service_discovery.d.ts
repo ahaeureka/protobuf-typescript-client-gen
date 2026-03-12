@@ -80,6 +80,50 @@ export interface HealthCheckConfig {
     /** 是否启用健康检查（默认启用） */
     enabled: boolean;
 }
+export interface ServiceCorsConfig {
+    enabled: boolean;
+    allow_origins: string[];
+    allow_methods: string[];
+    allow_headers: string[];
+    expose_headers: string[];
+    allow_credentials: boolean;
+    max_age_secs: number;
+}
+export interface ServiceRiskRuleConfig {
+    name: string;
+    enabled: boolean;
+    path_prefixes: string[];
+    countries: string[];
+    proxy?: boolean | undefined;
+    tor?: boolean | undefined;
+    datacenter?: boolean | undefined;
+    min_bot_score?: number | undefined;
+    max_bot_score?: number | undefined;
+    action: string;
+}
+export interface ServiceRiskConfig {
+    enabled: boolean;
+    mode: string;
+    default_action: string;
+    challenge_paths: string[];
+    block_paths: string[];
+    observe_only_paths: string[];
+    high_risk_countries: string[];
+    challenge_proxy_traffic: boolean;
+    block_datacenter_traffic: boolean;
+    allow_tor_exit_nodes: boolean;
+    bot_score_threshold: number;
+    proxy_score_threshold: number;
+    action_overrides: ServiceRiskRuleConfig[];
+}
+export interface ServiceTurnstileConfig {
+    enabled: boolean;
+    required_paths: string[];
+    skip_paths: string[];
+    expected_action: string;
+    expected_hostname: string;
+    enforce_on_risk_challenge: boolean;
+}
 /**
  * 每个下游服务的中间件开关配置
  * 注册或编辑服务时可单独控制各中间件的启用状态和参数。
@@ -92,6 +136,12 @@ export interface ServiceMiddlewareConfig {
     rate_limit_rpm: number;
     /** 该服务的每用户每分钟请求数上限（0 = 沿用全局默认值） */
     rate_limit_user_rpm: number;
+    cors_enabled: boolean;
+    cors: ServiceCorsConfig | undefined;
+    risk_enabled: boolean;
+    risk: ServiceRiskConfig | undefined;
+    turnstile_enabled: boolean;
+    turnstile: ServiceTurnstileConfig | undefined;
 }
 /** 服务实例定义 */
 export interface ServiceInstance {
@@ -156,6 +206,16 @@ export interface DeregisterServiceRequest {
 }
 /** 注销服务响应 */
 export interface DeregisterServiceResponse {
+    success: boolean;
+    message: string;
+}
+/** 删除持久化服务记录请求 */
+export interface DeleteServiceRecordRequest {
+    service_name: string;
+    instance_id: string;
+}
+/** 删除持久化服务记录响应 */
+export interface DeleteServiceRecordResponse {
     success: boolean;
     message: string;
 }
@@ -323,6 +383,10 @@ export interface ProtobufDescriptorInfo {
 export declare const Endpoint: MessageFns<Endpoint>;
 export declare const LoadBalancer: MessageFns<LoadBalancer>;
 export declare const HealthCheckConfig: MessageFns<HealthCheckConfig>;
+export declare const ServiceCorsConfig: MessageFns<ServiceCorsConfig>;
+export declare const ServiceRiskRuleConfig: MessageFns<ServiceRiskRuleConfig>;
+export declare const ServiceRiskConfig: MessageFns<ServiceRiskConfig>;
+export declare const ServiceTurnstileConfig: MessageFns<ServiceTurnstileConfig>;
 export declare const ServiceMiddlewareConfig: MessageFns<ServiceMiddlewareConfig>;
 export declare const ServiceInstance: MessageFns<ServiceInstance>;
 export declare const ServiceInstance_TagsEntry: MessageFns<ServiceInstance_TagsEntry>;
@@ -330,6 +394,8 @@ export declare const RegisterServiceRequest: MessageFns<RegisterServiceRequest>;
 export declare const RegisterServiceResponse: MessageFns<RegisterServiceResponse>;
 export declare const DeregisterServiceRequest: MessageFns<DeregisterServiceRequest>;
 export declare const DeregisterServiceResponse: MessageFns<DeregisterServiceResponse>;
+export declare const DeleteServiceRecordRequest: MessageFns<DeleteServiceRecordRequest>;
+export declare const DeleteServiceRecordResponse: MessageFns<DeleteServiceRecordResponse>;
 export declare const UpdateServiceInstanceRequest: MessageFns<UpdateServiceInstanceRequest>;
 export declare const UpdateServiceInstanceResponse: MessageFns<UpdateServiceInstanceResponse>;
 export declare const GetServiceInstancesRequest: MessageFns<GetServiceInstancesRequest>;
@@ -361,6 +427,8 @@ export interface ServiceDiscoveryService {
     RegisterService(request: RegisterServiceRequest): Promise<RegisterServiceResponse>;
     /** 注销服务实例 */
     DeregisterService(request: DeregisterServiceRequest): Promise<DeregisterServiceResponse>;
+    /** 删除持久化服务记录 */
+    DeleteServiceRecord(request: DeleteServiceRecordRequest): Promise<DeleteServiceRecordResponse>;
     /** 更新服务实例 */
     UpdateServiceInstance(request: UpdateServiceInstanceRequest): Promise<ServiceInstance>;
     /** 获取服务实例列表 */
@@ -391,6 +459,7 @@ export declare class ServiceDiscoveryServiceClientImpl implements ServiceDiscove
     });
     RegisterService(request: RegisterServiceRequest): Promise<RegisterServiceResponse>;
     DeregisterService(request: DeregisterServiceRequest): Promise<DeregisterServiceResponse>;
+    DeleteServiceRecord(request: DeleteServiceRecordRequest): Promise<DeleteServiceRecordResponse>;
     UpdateServiceInstance(request: UpdateServiceInstanceRequest): Promise<ServiceInstance>;
     GetServiceInstances(request: GetServiceInstancesRequest): Promise<GetServiceInstancesResponse>;
     ListServices(request: ListServicesRequest): Promise<ListServicesResponse>;

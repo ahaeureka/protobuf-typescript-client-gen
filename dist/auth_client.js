@@ -108,6 +108,54 @@ class AuthServiceClient {
         return user_1.User.fromJSON(data);
     }
     /**
+     * 更新当前用户信息
+     * 需要配置用户管理提供者（Casdoor）才能使用
+     * @param updateRequest 用户更新请求
+     * @returns 更新后的用户信息
+     */
+    async updateUser(updateRequest) {
+        try {
+            const response = await this.axiosInstance.put('/auth/user', updateRequest);
+            const data = response.data.data;
+            return user_1.User.fromJSON(data);
+        }
+        catch (error) {
+            console.error('[AuthClient] Failed to update user:', error);
+            if (error.response?.status === 501) {
+                throw new Error('用户管理提供者未配置，无法更新用户信息');
+            }
+            throw new Error(error.response?.data?.message || 'Failed to update user');
+        }
+    }
+    /**
+     * 上传并更新用户头像
+     * 需要配置用户管理提供者（Casdoor）才能使用
+     * @param request 上传头像请求
+     * @returns 更新后的头像 URL
+     */
+    async uploadAvatar(request) {
+        try {
+            const formData = new FormData();
+            formData.append('avatar_data', request.file);
+            if (request.filename) {
+                formData.append('filename', request.filename);
+            }
+            const response = await this.axiosInstance.post('/auth/user/avatar', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+            return response.data.data;
+        }
+        catch (error) {
+            console.error('[AuthClient] Failed to upload avatar:', error);
+            if (error.response?.status === 501) {
+                throw new Error('用户管理提供者未配置，无法上传头像');
+            }
+            throw new Error(error.response?.data?.message || 'Failed to upload avatar');
+        }
+    }
+    /**
      * 验证当前 session 是否有效
      * 返回 session 的有效性、用户 ID 和过期时间
      *

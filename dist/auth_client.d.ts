@@ -1,4 +1,33 @@
 import { User } from './proto/user';
+/**
+ * 用户更新请求
+ */
+export interface UpdateUserRequest {
+    displayName?: string;
+    preferredUsername?: string;
+    locale?: string;
+    zoneinfo?: string;
+    website?: string;
+    picture?: string;
+    givenName?: string;
+    familyName?: string;
+    nickname?: string;
+    gender?: string;
+    birthdate?: string;
+}
+/**
+ * 上传头像请求
+ */
+export interface UploadAvatarRequest {
+    file: File | Blob;
+    filename?: string;
+}
+/**
+ * 上传头像响应
+ */
+export interface UploadAvatarResponse {
+    avatarUrl: string;
+}
 export default class AuthServiceClient {
     private gwBaseUrl;
     private loginCallbackUrl;
@@ -39,6 +68,20 @@ export default class AuthServiceClient {
      * @deprecated 推荐使用 getCurrentUser() 方法
      */
     getUserInfo(): Promise<User>;
+    /**
+     * 更新当前用户信息
+     * 需要配置用户管理提供者（Casdoor）才能使用
+     * @param updateRequest 用户更新请求
+     * @returns 更新后的用户信息
+     */
+    updateUser(updateRequest: UpdateUserRequest): Promise<User>;
+    /**
+     * 上传并更新用户头像
+     * 需要配置用户管理提供者（Casdoor）才能使用
+     * @param request 上传头像请求
+     * @returns 更新后的头像 URL
+     */
+    uploadAvatar(request: UploadAvatarRequest): Promise<UploadAvatarResponse>;
     /**
      * 验证当前 session 是否有效
      * 返回 session 的有效性、用户 ID 和过期时间
