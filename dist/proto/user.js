@@ -5,7 +5,7 @@
 //   protoc               v3.21.12
 // source: user.proto
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UserServiceClientImpl = exports.UserServiceServiceName = exports.PatchUserRequest = exports.DeleteUserResponse = exports.DeleteUserRequest = exports.GetUserRequest = exports.PostUserRequest = exports.BasicAuth = exports.User_PropertiesEntry = exports.User = exports.Address = exports.UserSvrCode = exports.USER_STATUS = exports.Role = exports.protobufPackage = void 0;
+exports.UserServiceClientImpl = exports.UserServiceServiceName = exports.UploadAvatarResponse = exports.UploadAvatarRequest = exports.UpdateUserRequest = exports.PatchUserRequest = exports.DeleteUserResponse = exports.DeleteUserRequest = exports.GetUserRequest = exports.PostUserRequest = exports.BasicAuth = exports.User_PropertiesEntry = exports.User = exports.Address = exports.UserSvrCode = exports.USER_STATUS = exports.Role = exports.protobufPackage = void 0;
 exports.roleFromJSON = roleFromJSON;
 exports.roleToJSON = roleToJSON;
 exports.uSER_STATUSFromJSON = uSER_STATUSFromJSON;
@@ -1776,20 +1776,417 @@ exports.PatchUserRequest = {
         return message;
     },
 };
+function createBaseUpdateUserRequest() {
+    return {
+        display_name: "",
+        preferred_username: "",
+        locale: "",
+        zoneinfo: "",
+        website: "",
+        picture: "",
+        given_name: "",
+        family_name: "",
+        nickname: "",
+        gender: "",
+        birthdate: "",
+    };
+}
+exports.UpdateUserRequest = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.display_name !== "") {
+            writer.uint32(10).string(message.display_name);
+        }
+        if (message.preferred_username !== "") {
+            writer.uint32(18).string(message.preferred_username);
+        }
+        if (message.locale !== "") {
+            writer.uint32(26).string(message.locale);
+        }
+        if (message.zoneinfo !== "") {
+            writer.uint32(34).string(message.zoneinfo);
+        }
+        if (message.website !== "") {
+            writer.uint32(42).string(message.website);
+        }
+        if (message.picture !== "") {
+            writer.uint32(50).string(message.picture);
+        }
+        if (message.given_name !== "") {
+            writer.uint32(58).string(message.given_name);
+        }
+        if (message.family_name !== "") {
+            writer.uint32(66).string(message.family_name);
+        }
+        if (message.nickname !== "") {
+            writer.uint32(74).string(message.nickname);
+        }
+        if (message.gender !== "") {
+            writer.uint32(82).string(message.gender);
+        }
+        if (message.birthdate !== "") {
+            writer.uint32(90).string(message.birthdate);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseUpdateUserRequest();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.display_name = reader.string();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.preferred_username = reader.string();
+                    continue;
+                }
+                case 3: {
+                    if (tag !== 26) {
+                        break;
+                    }
+                    message.locale = reader.string();
+                    continue;
+                }
+                case 4: {
+                    if (tag !== 34) {
+                        break;
+                    }
+                    message.zoneinfo = reader.string();
+                    continue;
+                }
+                case 5: {
+                    if (tag !== 42) {
+                        break;
+                    }
+                    message.website = reader.string();
+                    continue;
+                }
+                case 6: {
+                    if (tag !== 50) {
+                        break;
+                    }
+                    message.picture = reader.string();
+                    continue;
+                }
+                case 7: {
+                    if (tag !== 58) {
+                        break;
+                    }
+                    message.given_name = reader.string();
+                    continue;
+                }
+                case 8: {
+                    if (tag !== 66) {
+                        break;
+                    }
+                    message.family_name = reader.string();
+                    continue;
+                }
+                case 9: {
+                    if (tag !== 74) {
+                        break;
+                    }
+                    message.nickname = reader.string();
+                    continue;
+                }
+                case 10: {
+                    if (tag !== 82) {
+                        break;
+                    }
+                    message.gender = reader.string();
+                    continue;
+                }
+                case 11: {
+                    if (tag !== 90) {
+                        break;
+                    }
+                    message.birthdate = reader.string();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            display_name: isSet(object.displayName)
+                ? globalThis.String(object.displayName)
+                : isSet(object.display_name)
+                    ? globalThis.String(object.display_name)
+                    : "",
+            preferred_username: isSet(object.preferredUsername)
+                ? globalThis.String(object.preferredUsername)
+                : isSet(object.preferred_username)
+                    ? globalThis.String(object.preferred_username)
+                    : "",
+            locale: isSet(object.locale) ? globalThis.String(object.locale) : "",
+            zoneinfo: isSet(object.zoneinfo) ? globalThis.String(object.zoneinfo) : "",
+            website: isSet(object.website) ? globalThis.String(object.website) : "",
+            picture: isSet(object.picture) ? globalThis.String(object.picture) : "",
+            given_name: isSet(object.givenName)
+                ? globalThis.String(object.givenName)
+                : isSet(object.given_name)
+                    ? globalThis.String(object.given_name)
+                    : "",
+            family_name: isSet(object.familyName)
+                ? globalThis.String(object.familyName)
+                : isSet(object.family_name)
+                    ? globalThis.String(object.family_name)
+                    : "",
+            nickname: isSet(object.nickname) ? globalThis.String(object.nickname) : "",
+            gender: isSet(object.gender) ? globalThis.String(object.gender) : "",
+            birthdate: isSet(object.birthdate) ? globalThis.String(object.birthdate) : "",
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.display_name !== "") {
+            obj.displayName = message.display_name;
+        }
+        if (message.preferred_username !== "") {
+            obj.preferredUsername = message.preferred_username;
+        }
+        if (message.locale !== "") {
+            obj.locale = message.locale;
+        }
+        if (message.zoneinfo !== "") {
+            obj.zoneinfo = message.zoneinfo;
+        }
+        if (message.website !== "") {
+            obj.website = message.website;
+        }
+        if (message.picture !== "") {
+            obj.picture = message.picture;
+        }
+        if (message.given_name !== "") {
+            obj.givenName = message.given_name;
+        }
+        if (message.family_name !== "") {
+            obj.familyName = message.family_name;
+        }
+        if (message.nickname !== "") {
+            obj.nickname = message.nickname;
+        }
+        if (message.gender !== "") {
+            obj.gender = message.gender;
+        }
+        if (message.birthdate !== "") {
+            obj.birthdate = message.birthdate;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.UpdateUserRequest.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseUpdateUserRequest();
+        message.display_name = object.display_name ?? "";
+        message.preferred_username = object.preferred_username ?? "";
+        message.locale = object.locale ?? "";
+        message.zoneinfo = object.zoneinfo ?? "";
+        message.website = object.website ?? "";
+        message.picture = object.picture ?? "";
+        message.given_name = object.given_name ?? "";
+        message.family_name = object.family_name ?? "";
+        message.nickname = object.nickname ?? "";
+        message.gender = object.gender ?? "";
+        message.birthdate = object.birthdate ?? "";
+        return message;
+    },
+};
+function createBaseUploadAvatarRequest() {
+    return { avatar_data: new Uint8Array(0), filename: "" };
+}
+exports.UploadAvatarRequest = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.avatar_data.length !== 0) {
+            writer.uint32(10).bytes(message.avatar_data);
+        }
+        if (message.filename !== "") {
+            writer.uint32(18).string(message.filename);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseUploadAvatarRequest();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.avatar_data = reader.bytes();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.filename = reader.string();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            avatar_data: isSet(object.avatarData)
+                ? bytesFromBase64(object.avatarData)
+                : isSet(object.avatar_data)
+                    ? bytesFromBase64(object.avatar_data)
+                    : new Uint8Array(0),
+            filename: isSet(object.filename) ? globalThis.String(object.filename) : "",
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.avatar_data.length !== 0) {
+            obj.avatarData = base64FromBytes(message.avatar_data);
+        }
+        if (message.filename !== "") {
+            obj.filename = message.filename;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.UploadAvatarRequest.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseUploadAvatarRequest();
+        message.avatar_data = object.avatar_data ?? new Uint8Array(0);
+        message.filename = object.filename ?? "";
+        return message;
+    },
+};
+function createBaseUploadAvatarResponse() {
+    return { avatar_url: "" };
+}
+exports.UploadAvatarResponse = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.avatar_url !== "") {
+            writer.uint32(10).string(message.avatar_url);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseUploadAvatarResponse();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.avatar_url = reader.string();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            avatar_url: isSet(object.avatarUrl)
+                ? globalThis.String(object.avatarUrl)
+                : isSet(object.avatar_url)
+                    ? globalThis.String(object.avatar_url)
+                    : "",
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.avatar_url !== "") {
+            obj.avatarUrl = message.avatar_url;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.UploadAvatarResponse.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseUploadAvatarResponse();
+        message.avatar_url = object.avatar_url ?? "";
+        return message;
+    },
+};
 exports.UserServiceServiceName = "stew.api.v1.UserService";
 class UserServiceClientImpl {
     constructor(rpc, opts) {
         this.service = opts?.service || exports.UserServiceServiceName;
         this.rpc = rpc;
         this.Get = this.Get.bind(this);
+        this.Update = this.Update.bind(this);
+        this.UploadAvatar = this.UploadAvatar.bind(this);
     }
     Get(request) {
         const data = empty_1.Empty.encode(request).finish();
         const promise = this.rpc.request(this.service, "Get", data);
         return promise.then((data) => exports.User.decode(new wire_1.BinaryReader(data)));
     }
+    Update(request) {
+        const data = exports.UpdateUserRequest.encode(request).finish();
+        const promise = this.rpc.request(this.service, "Update", data);
+        return promise.then((data) => exports.User.decode(new wire_1.BinaryReader(data)));
+    }
+    UploadAvatar(request) {
+        const data = exports.UploadAvatarRequest.encode(request).finish();
+        const promise = this.rpc.request(this.service, "UploadAvatar", data);
+        return promise.then((data) => exports.UploadAvatarResponse.decode(new wire_1.BinaryReader(data)));
+    }
 }
 exports.UserServiceClientImpl = UserServiceClientImpl;
+function bytesFromBase64(b64) {
+    if (globalThis.Buffer) {
+        return Uint8Array.from(globalThis.Buffer.from(b64, "base64"));
+    }
+    else {
+        const bin = globalThis.atob(b64);
+        const arr = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; ++i) {
+            arr[i] = bin.charCodeAt(i);
+        }
+        return arr;
+    }
+}
+function base64FromBytes(arr) {
+    if (globalThis.Buffer) {
+        return globalThis.Buffer.from(arr).toString("base64");
+    }
+    else {
+        const bin = [];
+        arr.forEach((byte) => {
+            bin.push(globalThis.String.fromCharCode(byte));
+        });
+        return globalThis.btoa(bin.join(""));
+    }
+}
 function longToNumber(int64) {
     const num = globalThis.Number(int64.toString());
     if (num > globalThis.Number.MAX_SAFE_INTEGER) {

@@ -62,10 +62,6 @@ export default class AuthServiceClient {
 
         // 添加请求拦截器自动添加认证头
         this.axiosInstance.interceptors.request.use((config: any) => {
-            const token = this.getToken();
-            if (token) {
-                config.headers.Authorization = `Bearer ${token}`;
-            }
             return config;
         });
     }
@@ -88,15 +84,9 @@ export default class AuthServiceClient {
 
     /**
      * 处理登录回调
-     * 服务端会在回调 URL 中附加 session_id 参数: ?code=success&session_id=xxx
-     * 并且会设置 HttpOnly cookie（服务端自动设置）
-     * 
-     * 注意：
-     * - session_id 主要通过 HttpOnly Cookie 传递（更安全，服务端验证）
-     * - URL 参数中的 session_id 会保存到 localStorage（仅用于客户端路由守卫判断）
-     * - 实际 API 认证完全依赖 HttpOnly Cookie，不依赖 localStorage
+     * 服务端会设置 HttpOnly cookie，并在回调 URL 中附加 code=success
      */
-    handleLoginCallback(): { success: boolean; session_id?: string; error?: string } {
+    handleLoginCallback(): { success: boolean; error?: string } {
         if (!isBrowser) {
             return { success: false, error: 'Not in browser environment' };
         }
@@ -104,15 +94,10 @@ export default class AuthServiceClient {
         try {
             const urlParams = new URLSearchParams((window as any).location.search);
             const code = urlParams.get('code');
-            const sessionId = urlParams.get('session_id');
 
-            if (code === 'success' && sessionId) {
-                // 保存到 localStorage 用于客户端路由守卫（判断是否登录）
-                // 实际 API 认证依赖服务端设置的 HttpOnly Cookie
-                this.saveSessionIdForClientRouting(sessionId);
+            if (code === 'success') {
                 console.log('[AuthClient] Login callback successful, session established via HttpOnly cookie');
-                console.log('[AuthClient] session_id saved to localStorage for client-side routing');
-                return { success: true, session_id: sessionId };
+                return { success: true };
             } else {
                 const error = urlParams.get('error') || 'Unknown error';
                 console.error('[AuthClient] Login callback failed:', error);
@@ -278,146 +263,29 @@ export default class AuthServiceClient {
     }
 
     /**
-     * 保存 session_id 到 localStorage（仅用于客户端路由守卫）
-     * 
-     * 重要说明：
-     * - localStorage 中的 session_id 仅用于客户端快速判断登录状态（路由守卫）
-     * - 实际 API 认证完全依赖服务端设置的 HttpOnly Cookie
-     * - 这样可以避免每次路由切换都调用 API 验证
-     * - 安全性：即使 localStorage 被篡改，服务端仍然通过 HttpOnly Cookie 验证
-     */
-    private saveSessionIdForClientRouting(sessionId: string): void {
-        if (!isBrowser) {
-            return;
-        }
-
-        try {
-            // 保存到 localStorage（用于客户端路由守卫）
-            (localStorage as any).setItem('session_id', sessionId);
-            // 同时保存到 sessionStorage（备份）
-            (sessionStorage as any).setItem('session_id', sessionId);
-            console.log('[AuthClient] Session ID saved for client-side routing guard');
-        } catch (error) {
-            console.error('[AuthClient] Failed to save session ID:', error);
-        }
-    }
-
-    /**
      * 清除所有本地认证信息
-     * 注意：HttpOnly Cookie 无法从客户端删除，必须由服务端清除
+     * Cookie-only mode: HttpOnly session cookie is managed by server via /auth/logout.
+     * Client only performs minimal cleanup.
      */
     clearLocalAuth(): void {
         if (!isBrowser) {
             return;
         }
-
-        try {
-            // 清除 localStorage 中的认证信息
-            (localStorage as any).removeItem('session_id');
-            (localStorage as any).removeItem('token');
-            (localStorage as any).removeItem('access_token');
-            (localStorage as any).removeItem('refresh_token');
-            (localStorage as any).removeItem('id_token');
-            (localStorage as any).removeItem('user_info');
-
-            // 清除 sessionStorage 中的认证信息
-            (sessionStorage as any).removeItem('session_id');
-            (sessionStorage as any).removeItem('token');
-            (sessionStorage as any).removeItem('access_token');
-            (sessionStorage as any).removeItem('user_info');
-
-            // 尝试清除客户端可访问的 cookie（非 HttpOnly）
-            // 注意：HttpOnly cookie 无法从客户端删除，必须由服务端通过 logout 端点清除
-            const cookies = (document as any).cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i];
-                const eqPos = cookie.indexOf('=');
-                const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-
-                // 只清除客户端可访问的认证相关 cookie（不包括 session_id，它是 HttpOnly 的）
-                if ((name.includes('token') || name.includes('auth') || name.includes('csrf') || name.includes('nonce'))
-                    && !name.includes('session')) {
-                    (document as any).cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-                    (document as any).cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${(window as any).location.hostname}`;
-                }
-            }
-
-            console.log('[AuthClient] Local auth data cleared (session_id in HttpOnly Cookie managed by server)');
-        } catch (error) {
-            console.error('[AuthClient] Failed to clear local auth data:', error);
-        }
+        console.log('[AuthClient] Local auth data cleared (session managed by server HttpOnly cookie)');
     }
 
     /**
-     * 获取当前的 session_id（用于客户端路由守卫）
-     * 
-     * 注意：
-     * - 此方法仅用于客户端快速判断登录状态（路由守卫）
-     * - 实际 API 认证依赖服务端的 HttpOnly Cookie
-     * - 推荐：服务端验证使用 isAuthenticatedAsync() 或 validateSession()
+     * 纯 HttpOnly Cookie 模式下，客户端不再读取 session_id
      */
     getSessionId(): string | null {
-        if (!isBrowser) {
-            return null;
-        }
-
-        try {
-            // 从 localStorage 获取（用于客户端路由守卫）
-            const sessionId = (localStorage as any).getItem('session_id');
-            if (sessionId) {
-                return sessionId;
-            }
-
-            // 从 sessionStorage 获取（备份）
-            const sessionSessionId = (sessionStorage as any).getItem('session_id');
-            if (sessionSessionId) {
-                return sessionSessionId;
-            }
-        } catch (error) {
-            console.error('[AuthClient] Failed to get session ID:', error);
-        }
-
         return null;
     }
 
     /**
      * 获取当前的认证 token（已废弃，仅为兼容性保留）
-     * @deprecated 新架构使用 session-based 认证，不再直接暴露 token
-     * 优先级：localStorage > sessionStorage > cookie
+     * @deprecated 纯 HttpOnly Cookie 模式下客户端不再直接读取 token
      */
     getToken(): string | null {
-        if (!isBrowser) {
-            return null;
-        }
-
-        try {
-            // 1. 从 localStorage 获取
-            const localToken = (localStorage as any).getItem('token') ||
-                (localStorage as any).getItem('access_token') ||
-                (localStorage as any).getItem('id_token');
-            if (localToken) {
-                return localToken;
-            }
-
-            // 2. 从 sessionStorage 获取
-            const sessionToken = (sessionStorage as any).getItem('token') ||
-                (sessionStorage as any).getItem('access_token');
-            if (sessionToken) {
-                return sessionToken;
-            }
-
-            // 3. 从 cookie 获取（服务端设置的）
-            const cookies = (document as any).cookie.split(';');
-            for (let cookie of cookies) {
-                const [name, value] = cookie.trim().split('=');
-                if (name === 'token' || name === 'access_token' || name === 'id_token') {
-                    return decodeURIComponent(value);
-                }
-            }
-        } catch (error) {
-            console.error('[AuthClient] Failed to get token:', error);
-        }
-
         return null;
     }
 
@@ -426,12 +294,11 @@ export default class AuthServiceClient {
      * 
      * 注意：
      * - 这是客户端快速检查，用于路由守卫和 UI 状态
-     * - 检查 localStorage 中的 session_id 或 token
-     * - 实际 API 认证依赖服务端的 HttpOnly Cookie
-     * - 推荐：关键操作前使用 isAuthenticatedAsync() 进行服务端验证
+     * - 纯 HttpOnly Cookie 模式下，同步检查不可靠
+     * - 推荐：使用 isAuthenticatedAsync() 进行服务端验证
      */
     isAuthenticated(): boolean {
-        return this.getSessionId() !== null || this.getToken() !== null;
+        return false;
     }
 
     /**

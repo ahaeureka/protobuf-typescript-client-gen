@@ -171,6 +171,43 @@ export interface PatchUserRequest {
     /** @gotags: gorm:"-" json:"-" */
     update_mask: string[] | undefined;
 }
+/** 用户更新请求（用于 PUT /auth/user） */
+export interface UpdateUserRequest {
+    /** 显示名称 */
+    display_name: string;
+    /** 用户名 */
+    preferred_username: string;
+    /** 语言偏好 */
+    locale: string;
+    /** 时区 */
+    zoneinfo: string;
+    /** 个人网站 */
+    website: string;
+    /** 头像 URL */
+    picture: string;
+    /** 名字 */
+    given_name: string;
+    /** 姓氏 */
+    family_name: string;
+    /** 昵称 */
+    nickname: string;
+    /** 性别 */
+    gender: string;
+    /** 生日 */
+    birthdate: string;
+}
+/** 上传头像请求 */
+export interface UploadAvatarRequest {
+    /** 头像文件数据 */
+    avatar_data: Uint8Array;
+    /** 文件名 */
+    filename: string;
+}
+/** 上传头像响应 */
+export interface UploadAvatarResponse {
+    /** 头像 URL */
+    avatar_url: string;
+}
 export declare const Address: MessageFns<Address>;
 export declare const User: MessageFns<User>;
 export declare const User_PropertiesEntry: MessageFns<User_PropertiesEntry>;
@@ -180,6 +217,9 @@ export declare const GetUserRequest: MessageFns<GetUserRequest>;
 export declare const DeleteUserRequest: MessageFns<DeleteUserRequest>;
 export declare const DeleteUserResponse: MessageFns<DeleteUserResponse>;
 export declare const PatchUserRequest: MessageFns<PatchUserRequest>;
+export declare const UpdateUserRequest: MessageFns<UpdateUserRequest>;
+export declare const UploadAvatarRequest: MessageFns<UploadAvatarRequest>;
+export declare const UploadAvatarResponse: MessageFns<UploadAvatarResponse>;
 export interface UserService {
     /**
      * rpc Register(PostUserRequest) returns (User){
@@ -195,6 +235,10 @@ export interface UserService {
      *     };
      */
     Get(request: Empty): Promise<User>;
+    /** 更新当前用户信息 */
+    Update(request: UpdateUserRequest): Promise<User>;
+    /** 上传并更新用户头像 */
+    UploadAvatar(request: UploadAvatarRequest): Promise<UploadAvatarResponse>;
 }
 export declare const UserServiceServiceName = "stew.api.v1.UserService";
 export declare class UserServiceClientImpl implements UserService {
@@ -204,6 +248,8 @@ export declare class UserServiceClientImpl implements UserService {
         service?: string;
     });
     Get(request: Empty): Promise<User>;
+    Update(request: UpdateUserRequest): Promise<User>;
+    UploadAvatar(request: UploadAvatarRequest): Promise<UploadAvatarResponse>;
 }
 interface Rpc {
     request(service: string, method: string, data: Uint8Array): Promise<Uint8Array>;

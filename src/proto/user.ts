@@ -331,6 +331,46 @@ export interface PatchUserRequest {
   update_mask: string[] | undefined;
 }
 
+/** 用户更新请求（用于 PUT /auth/user） */
+export interface UpdateUserRequest {
+  /** 显示名称 */
+  display_name: string;
+  /** 用户名 */
+  preferred_username: string;
+  /** 语言偏好 */
+  locale: string;
+  /** 时区 */
+  zoneinfo: string;
+  /** 个人网站 */
+  website: string;
+  /** 头像 URL */
+  picture: string;
+  /** 名字 */
+  given_name: string;
+  /** 姓氏 */
+  family_name: string;
+  /** 昵称 */
+  nickname: string;
+  /** 性别 */
+  gender: string;
+  /** 生日 */
+  birthdate: string;
+}
+
+/** 上传头像请求 */
+export interface UploadAvatarRequest {
+  /** 头像文件数据 */
+  avatar_data: Uint8Array;
+  /** 文件名 */
+  filename: string;
+}
+
+/** 上传头像响应 */
+export interface UploadAvatarResponse {
+  /** 头像 URL */
+  avatar_url: string;
+}
+
 function createBaseAddress(): Address {
   return { formatted: "", street_address: "", locality: "", region: "", postal_code: "", country: "" };
 }
@@ -2053,6 +2093,398 @@ export const PatchUserRequest: MessageFns<PatchUserRequest> = {
   },
 };
 
+function createBaseUpdateUserRequest(): UpdateUserRequest {
+  return {
+    display_name: "",
+    preferred_username: "",
+    locale: "",
+    zoneinfo: "",
+    website: "",
+    picture: "",
+    given_name: "",
+    family_name: "",
+    nickname: "",
+    gender: "",
+    birthdate: "",
+  };
+}
+
+export const UpdateUserRequest: MessageFns<UpdateUserRequest> = {
+  encode(message: UpdateUserRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.display_name !== "") {
+      writer.uint32(10).string(message.display_name);
+    }
+    if (message.preferred_username !== "") {
+      writer.uint32(18).string(message.preferred_username);
+    }
+    if (message.locale !== "") {
+      writer.uint32(26).string(message.locale);
+    }
+    if (message.zoneinfo !== "") {
+      writer.uint32(34).string(message.zoneinfo);
+    }
+    if (message.website !== "") {
+      writer.uint32(42).string(message.website);
+    }
+    if (message.picture !== "") {
+      writer.uint32(50).string(message.picture);
+    }
+    if (message.given_name !== "") {
+      writer.uint32(58).string(message.given_name);
+    }
+    if (message.family_name !== "") {
+      writer.uint32(66).string(message.family_name);
+    }
+    if (message.nickname !== "") {
+      writer.uint32(74).string(message.nickname);
+    }
+    if (message.gender !== "") {
+      writer.uint32(82).string(message.gender);
+    }
+    if (message.birthdate !== "") {
+      writer.uint32(90).string(message.birthdate);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateUserRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateUserRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.display_name = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.preferred_username = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.locale = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.zoneinfo = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.website = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.picture = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.given_name = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.family_name = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.nickname = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.gender = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.birthdate = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateUserRequest {
+    return {
+      display_name: isSet(object.displayName)
+        ? globalThis.String(object.displayName)
+        : isSet(object.display_name)
+        ? globalThis.String(object.display_name)
+        : "",
+      preferred_username: isSet(object.preferredUsername)
+        ? globalThis.String(object.preferredUsername)
+        : isSet(object.preferred_username)
+        ? globalThis.String(object.preferred_username)
+        : "",
+      locale: isSet(object.locale) ? globalThis.String(object.locale) : "",
+      zoneinfo: isSet(object.zoneinfo) ? globalThis.String(object.zoneinfo) : "",
+      website: isSet(object.website) ? globalThis.String(object.website) : "",
+      picture: isSet(object.picture) ? globalThis.String(object.picture) : "",
+      given_name: isSet(object.givenName)
+        ? globalThis.String(object.givenName)
+        : isSet(object.given_name)
+        ? globalThis.String(object.given_name)
+        : "",
+      family_name: isSet(object.familyName)
+        ? globalThis.String(object.familyName)
+        : isSet(object.family_name)
+        ? globalThis.String(object.family_name)
+        : "",
+      nickname: isSet(object.nickname) ? globalThis.String(object.nickname) : "",
+      gender: isSet(object.gender) ? globalThis.String(object.gender) : "",
+      birthdate: isSet(object.birthdate) ? globalThis.String(object.birthdate) : "",
+    };
+  },
+
+  toJSON(message: UpdateUserRequest): unknown {
+    const obj: any = {};
+    if (message.display_name !== "") {
+      obj.displayName = message.display_name;
+    }
+    if (message.preferred_username !== "") {
+      obj.preferredUsername = message.preferred_username;
+    }
+    if (message.locale !== "") {
+      obj.locale = message.locale;
+    }
+    if (message.zoneinfo !== "") {
+      obj.zoneinfo = message.zoneinfo;
+    }
+    if (message.website !== "") {
+      obj.website = message.website;
+    }
+    if (message.picture !== "") {
+      obj.picture = message.picture;
+    }
+    if (message.given_name !== "") {
+      obj.givenName = message.given_name;
+    }
+    if (message.family_name !== "") {
+      obj.familyName = message.family_name;
+    }
+    if (message.nickname !== "") {
+      obj.nickname = message.nickname;
+    }
+    if (message.gender !== "") {
+      obj.gender = message.gender;
+    }
+    if (message.birthdate !== "") {
+      obj.birthdate = message.birthdate;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateUserRequest>, I>>(base?: I): UpdateUserRequest {
+    return UpdateUserRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateUserRequest>, I>>(object: I): UpdateUserRequest {
+    const message = createBaseUpdateUserRequest();
+    message.display_name = object.display_name ?? "";
+    message.preferred_username = object.preferred_username ?? "";
+    message.locale = object.locale ?? "";
+    message.zoneinfo = object.zoneinfo ?? "";
+    message.website = object.website ?? "";
+    message.picture = object.picture ?? "";
+    message.given_name = object.given_name ?? "";
+    message.family_name = object.family_name ?? "";
+    message.nickname = object.nickname ?? "";
+    message.gender = object.gender ?? "";
+    message.birthdate = object.birthdate ?? "";
+    return message;
+  },
+};
+
+function createBaseUploadAvatarRequest(): UploadAvatarRequest {
+  return { avatar_data: new Uint8Array(0), filename: "" };
+}
+
+export const UploadAvatarRequest: MessageFns<UploadAvatarRequest> = {
+  encode(message: UploadAvatarRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.avatar_data.length !== 0) {
+      writer.uint32(10).bytes(message.avatar_data);
+    }
+    if (message.filename !== "") {
+      writer.uint32(18).string(message.filename);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UploadAvatarRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUploadAvatarRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.avatar_data = reader.bytes();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.filename = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UploadAvatarRequest {
+    return {
+      avatar_data: isSet(object.avatarData)
+        ? bytesFromBase64(object.avatarData)
+        : isSet(object.avatar_data)
+        ? bytesFromBase64(object.avatar_data)
+        : new Uint8Array(0),
+      filename: isSet(object.filename) ? globalThis.String(object.filename) : "",
+    };
+  },
+
+  toJSON(message: UploadAvatarRequest): unknown {
+    const obj: any = {};
+    if (message.avatar_data.length !== 0) {
+      obj.avatarData = base64FromBytes(message.avatar_data);
+    }
+    if (message.filename !== "") {
+      obj.filename = message.filename;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UploadAvatarRequest>, I>>(base?: I): UploadAvatarRequest {
+    return UploadAvatarRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UploadAvatarRequest>, I>>(object: I): UploadAvatarRequest {
+    const message = createBaseUploadAvatarRequest();
+    message.avatar_data = object.avatar_data ?? new Uint8Array(0);
+    message.filename = object.filename ?? "";
+    return message;
+  },
+};
+
+function createBaseUploadAvatarResponse(): UploadAvatarResponse {
+  return { avatar_url: "" };
+}
+
+export const UploadAvatarResponse: MessageFns<UploadAvatarResponse> = {
+  encode(message: UploadAvatarResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.avatar_url !== "") {
+      writer.uint32(10).string(message.avatar_url);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UploadAvatarResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUploadAvatarResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.avatar_url = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UploadAvatarResponse {
+    return {
+      avatar_url: isSet(object.avatarUrl)
+        ? globalThis.String(object.avatarUrl)
+        : isSet(object.avatar_url)
+        ? globalThis.String(object.avatar_url)
+        : "",
+    };
+  },
+
+  toJSON(message: UploadAvatarResponse): unknown {
+    const obj: any = {};
+    if (message.avatar_url !== "") {
+      obj.avatarUrl = message.avatar_url;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UploadAvatarResponse>, I>>(base?: I): UploadAvatarResponse {
+    return UploadAvatarResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UploadAvatarResponse>, I>>(object: I): UploadAvatarResponse {
+    const message = createBaseUploadAvatarResponse();
+    message.avatar_url = object.avatar_url ?? "";
+    return message;
+  },
+};
+
 export interface UserService {
   /**
    * rpc Register(PostUserRequest) returns (User){
@@ -2068,6 +2500,10 @@ export interface UserService {
    *     };
    */
   Get(request: Empty): Promise<User>;
+  /** 更新当前用户信息 */
+  Update(request: UpdateUserRequest): Promise<User>;
+  /** 上传并更新用户头像 */
+  UploadAvatar(request: UploadAvatarRequest): Promise<UploadAvatarResponse>;
 }
 
 export const UserServiceServiceName = "stew.api.v1.UserService";
@@ -2078,16 +2514,55 @@ export class UserServiceClientImpl implements UserService {
     this.service = opts?.service || UserServiceServiceName;
     this.rpc = rpc;
     this.Get = this.Get.bind(this);
+    this.Update = this.Update.bind(this);
+    this.UploadAvatar = this.UploadAvatar.bind(this);
   }
   Get(request: Empty): Promise<User> {
     const data = Empty.encode(request).finish();
     const promise = this.rpc.request(this.service, "Get", data);
     return promise.then((data) => User.decode(new BinaryReader(data)));
   }
+
+  Update(request: UpdateUserRequest): Promise<User> {
+    const data = UpdateUserRequest.encode(request).finish();
+    const promise = this.rpc.request(this.service, "Update", data);
+    return promise.then((data) => User.decode(new BinaryReader(data)));
+  }
+
+  UploadAvatar(request: UploadAvatarRequest): Promise<UploadAvatarResponse> {
+    const data = UploadAvatarRequest.encode(request).finish();
+    const promise = this.rpc.request(this.service, "UploadAvatar", data);
+    return promise.then((data) => UploadAvatarResponse.decode(new BinaryReader(data)));
+  }
 }
 
 interface Rpc {
   request(service: string, method: string, data: Uint8Array): Promise<Uint8Array>;
+}
+
+function bytesFromBase64(b64: string): Uint8Array {
+  if ((globalThis as any).Buffer) {
+    return Uint8Array.from(globalThis.Buffer.from(b64, "base64"));
+  } else {
+    const bin = globalThis.atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; ++i) {
+      arr[i] = bin.charCodeAt(i);
+    }
+    return arr;
+  }
+}
+
+function base64FromBytes(arr: Uint8Array): string {
+  if ((globalThis as any).Buffer) {
+    return globalThis.Buffer.from(arr).toString("base64");
+  } else {
+    const bin: string[] = [];
+    arr.forEach((byte) => {
+      bin.push(globalThis.String.fromCharCode(byte));
+    });
+    return globalThis.btoa(bin.join(""));
+  }
 }
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;

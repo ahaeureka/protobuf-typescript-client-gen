@@ -132,17 +132,12 @@ import { useEffect } from 'react';
 export default function AuthCallback() {
   useEffect(() => {
     // 网关登录成功后跳转格式：
-    // /auth/callback?code=success&session_id=xxx
+    // /auth/callback?code=success
+    // 服务端已通过 Set-Cookie 设置 HttpOnly session cookie，无需客户端处理
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
-    const sessionId = params.get('session_id');
 
-    if (code === 'success' && sessionId) {
-      // 保存 session_id，供路由守卫判断登录状态
-      // 实际 API 认证依赖服务端设置的 HttpOnly Cookie，无需手动处理
-      localStorage.setItem('session_id', sessionId);
-      sessionStorage.setItem('session_id', sessionId);
-
+    if (code === 'success') {
       window.location.href = '/dashboard';
     } else {
       const msg = params.get('message') || '登录失败';
@@ -158,17 +153,11 @@ export default function AuthCallback() {
 #### 4. 路由守卫
 
 ```typescript
-// 通用路由守卫逻辑
-function isLoggedIn(): boolean {
-  return !!(
-    localStorage.getItem('session_id') ||
-    localStorage.getItem('token')
-  );
-}
-
-// React Router 示例
+// 推荐：在应用顶层通过服务端验证获取用户状态，然后在路由守卫中使用
 function ProtectedRoute({ children }) {
-  if (!isLoggedIn()) {
+  const { currentUser } = useAppContext(); // 来自 getInitialState 或等效服务端验证
+
+  if (!currentUser) {
     return <Navigate to="/login" />;
   }
   return <>{children}</>;
@@ -181,13 +170,10 @@ function ProtectedRoute({ children }) {
 import { authClient } from '@/auth';
 
 // 方式一：使用 AuthServiceClient
-authClient.logout(); // 会清除本地数据并跳转到网关登出端点
+authClient.logout(); // 清除本地数据并跳转到网关登出端点
 
 // 方式二：手动
 function logout() {
-  localStorage.removeItem('session_id');
-  localStorage.removeItem('token');
-  sessionStorage.clear();
   const callback = encodeURIComponent(window.location.origin + '/login');
   window.location.href = `/auth/logout?callback=${callback}`;
 }
@@ -236,9 +222,8 @@ const newOrder = await client.create_order({
 ```
 
 客户端会自动：
-- 从 `localStorage` / `sessionStorage` / Cookie 读取 `session_id` 并同步到 Cookie
-- 读取 `token` / `access_token` 并添加 `Authorization: Bearer <token>` 头
-- 遇到 `401` 时清除所有本地认证状态
+- 使用 `withCredentials: true` 确保请求携带 HttpOnly Cookie
+- 遇到 `401` 时清除内部认证状态
 
 #### 使用 protoc 插件生成客户端
 
@@ -347,13 +332,13 @@ ws.onopen = () => {
 回调 URL 参数格式：
 
 ```
-成功：<callback_url>?code=success&session_id=<session_id>
+成功：<callback_url>?code=success
 失败：<callback_url>?code=error&message=<error_message>
 ```
 
 ---
 
-## session_id 认证机制说明
+## session 认证机制说明
 
 ```
 OIDC 登录完成
@@ -362,10 +347,10 @@ OIDC 登录完成
 网关设置 HttpOnly Cookie（session_id）   <- 所有 API 请求的实际认证凭证
     |
     v
-302 跳转到前端 /auth/callback?code=success&session_id=xxx
+302 跳转到前端 /auth/callback?code=success
     |
     v
-前端保存 session_id 到 localStorage     <- 仅用于路由守卫快速判断登录状态
+前端检查 code=success，跳转到 /dashboard（无需客户端存储 session_id）
     |
     v
 后续请求：浏览器自动携带 HttpOnly Cookie
@@ -374,8 +359,8 @@ OIDC 登录完成
 
 **重要：**
 - `HttpOnly Cookie` 无法被 JavaScript 读取，可防止 XSS 攻击窃取 token
-- `localStorage` 中的 `session_id` 仅用于路由守卫的快速检查，不影响认证安全
-- 关键操作前调用 `authClient.validateSession()` 进行服务端验证
+- 客户端不存储 session_id，登录状态通过服务端 `/auth/me` 验证
+- 回调 URL 中不携带 session_id，避免 URL 泄露风险
 
 ---
 
@@ -404,7 +389,7 @@ OIDC 登录完成
 
 ## 注意事项
 
-1. **回调页面必须实现** — 网关登录成功后 302 跳转到 callback URL，该页面必须处理 `session_id` 保存
+1. **回调页面必须实现** — 网关登录成功后 302 跳转到 callback URL，该页面检查 `code=success` 后跳转到主页
 2. **CORS 与 Cookie** — 跨域场景需确保网关配置 `Access-Control-Allow-Credentials: true`，客户端请求使用 `withCredentials: true`
 3. **HTTPS** — 生产环境必须使用 HTTPS，否则 Cookie 安全标志可能导致认证失败
 4. **OIDC Provider 配置** — 前端回调 URL 必须在 OIDC Provider 的允许重定向列表中注册

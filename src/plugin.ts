@@ -522,27 +522,29 @@ private getToken(): string | null {
     // Fallback: treat as direct response for non-JSON or non-HttpResponse format
     return {{output_type}}.fromJSON(response.data);
     {{else}}
-    // Handle direct response format (no HttpResponse wrapper)
+    // Handle response format (APIResponse wrapper or direct response)
     if (isAPIResponse(response.data)) {
       // Check if wrapped in APIResponse format
       if (response.data.data !== undefined) {
         // API response format: { code: 2000, data: { user: {...}, session_id: "...", expires_at: ... }, message: "..." }
         const userData = response.data.data;
-        
+
         // Check if data contains a nested 'user' object
         if (userData && typeof userData === 'object' && 'user' in userData) {
           console.log('[{{@../key}}] Extracting user from nested structure:', userData.user);
           return {{output_type}}.fromJSON(userData.user);
         }
-        
+
         console.log('[{{@../key}}] Using data directly as {{output_type}}:', userData);
         return {{output_type}}.fromJSON(userData);
       }
-      // Direct response
+      // Direct response (APIResponse but without data field - shouldn't normally happen)
       console.log('[{{@../key}}] Using response.data directly as {{output_type}}:', response.data);
       return {{output_type}}.fromJSON(response.data);
     }
-    throw new Error(\`Invalid response format: \${JSON.stringify(response.data)}\`);
+    // Not an APIResponse - treat as direct protobuf response
+    console.log('[{{@../key}}] Using response directly as {{output_type}} (non-wrapped):', response.data);
+    return {{output_type}}.fromJSON(response.data);
     {{/if}}
     {{/if}}
   }{{else if (eq streaming_type "server_streaming")}}
