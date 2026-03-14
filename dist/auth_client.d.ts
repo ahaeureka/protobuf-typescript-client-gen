@@ -41,17 +41,10 @@ export default class AuthServiceClient {
     login(): Promise<void>;
     /**
      * 处理登录回调
-     * 服务端会在回调 URL 中附加 session_id 参数: ?code=success&session_id=xxx
-     * 并且会设置 HttpOnly cookie（服务端自动设置）
-     *
-     * 注意：
-     * - session_id 主要通过 HttpOnly Cookie 传递（更安全，服务端验证）
-     * - URL 参数中的 session_id 会保存到 localStorage（仅用于客户端路由守卫判断）
-     * - 实际 API 认证完全依赖 HttpOnly Cookie，不依赖 localStorage
+     * 服务端会设置 HttpOnly cookie，并在回调 URL 中附加 code=success
      */
     handleLoginCallback(): {
         success: boolean;
-        session_id?: string;
         error?: string;
     };
     /**

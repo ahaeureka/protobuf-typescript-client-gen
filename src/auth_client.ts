@@ -94,12 +94,26 @@ export default class AuthServiceClient {
         try {
             const urlParams = new URLSearchParams((window as any).location.search);
             const code = urlParams.get('code');
+            const state = urlParams.get('state');
+            const errorParam = urlParams.get('error');
+            const errorDescription = urlParams.get('error_description');
+            const message = urlParams.get('message');
 
             if (code === 'success') {
                 console.log('[AuthClient] Login callback successful, session established via HttpOnly cookie');
                 return { success: true };
+            } else if (code && state) {
+                // Raw OIDC callback landed on frontend directly.
+                // Forward to gateway callback to complete token exchange and session cookie setup.
+                const gwCallbackUrl = `${this.gwBaseUrl}/auth/callback?${urlParams.toString()}`;
+                console.warn('[AuthClient] Raw OIDC callback detected, forwarding to gateway callback:', gwCallbackUrl);
+                (window as any).location.href = gwCallbackUrl;
+                return { success: false, error: 'Redirecting to gateway callback' };
             } else {
-                const error = urlParams.get('error') || 'Unknown error';
+                const error = message
+                    || errorDescription
+                    || errorParam
+                    || (code ? `Unexpected callback code: ${code}` : 'Missing callback code');
                 console.error('[AuthClient] Login callback failed:', error);
                 return { success: false, error };
             }

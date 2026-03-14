@@ -44,13 +44,7 @@ class AuthServiceClient {
     }
     /**
      * 处理登录回调
-     * 服务端会在回调 URL 中附加 session_id 参数: ?code=success&session_id=xxx
-     * 并且会设置 HttpOnly cookie（服务端自动设置）
-     *
-     * 注意：
-     * - session_id 主要通过 HttpOnly Cookie 传递（更安全，服务端验证）
-     * - URL 参数中的 session_id 会保存到 localStorage（仅用于客户端路由守卫判断）
-     * - 实际 API 认证完全依赖 HttpOnly Cookie，不依赖 localStorage
+     * 服务端会设置 HttpOnly cookie，并在回调 URL 中附加 code=success
      */
     handleLoginCallback() {
         if (!isBrowser) {
@@ -59,17 +53,27 @@ class AuthServiceClient {
         try {
             const urlParams = new URLSearchParams(window.location.search);
             const code = urlParams.get('code');
-            const sessionId = urlParams.get('session_id');
-            if (code === 'success' && sessionId) {
-                // 保存到 localStorage 用于客户端路由守卫（判断是否登录）
-                // 实际 API 认证依赖服务端设置的 HttpOnly Cookie
-                this.saveSessionIdForClientRouting(sessionId);
+            const state = urlParams.get('state');
+            const errorParam = urlParams.get('error');
+            const errorDescription = urlParams.get('error_description');
+            const message = urlParams.get('message');
+            if (code === 'success') {
                 console.log('[AuthClient] Login callback successful, session established via HttpOnly cookie');
-                console.log('[AuthClient] session_id saved to localStorage for client-side routing');
-                return { success: true, session_id: sessionId };
+                return { success: true };
+            }
+            else if (code && state) {
+                // Raw OIDC callback landed on frontend directly.
+                // Forward to gateway callback to complete token exchange and session cookie setup.
+                const gwCallbackUrl = `${this.gwBaseUrl}/auth/callback?${urlParams.toString()}`;
+                console.warn('[AuthClient] Raw OIDC callback detected, forwarding to gateway callback:', gwCallbackUrl);
+                window.location.href = gwCallbackUrl;
+                return { success: false, error: 'Redirecting to gateway callback' };
             }
             else {
-                const error = urlParams.get('error') || 'Unknown error';
+                const error = message
+                    || errorDescription
+                    || errorParam
+                    || (code ? `Unexpected callback code: ${code}` : 'Missing callback code');
                 console.error('[AuthClient] Login callback failed:', error);
                 return { success: false, error };
             }
