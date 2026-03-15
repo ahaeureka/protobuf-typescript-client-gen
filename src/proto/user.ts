@@ -264,6 +264,7 @@ export interface User {
   avatar_type: string;
   /** @gotags: doc:"Permanent avatar URL of the user" json:"permanent_avatar" gorm:"column:permanent_avatar;type:varchar(512);comment:Permanent avatar URL of the user" */
   permanent_avatar: string;
+  is_admin: boolean;
   /** @gotags: doc:"Additional properties of the user" json:"properties" gorm:"column:properties;type:json;comment:Additional properties of the user" */
   properties: { [key: string]: Any };
 }
@@ -545,6 +546,7 @@ function createBaseUser(): User {
     avatar: "",
     avatar_type: "",
     permanent_avatar: "",
+    is_admin: false,
     properties: {},
   };
 }
@@ -647,8 +649,11 @@ export const User: MessageFns<User> = {
     if (message.permanent_avatar !== "") {
       writer.uint32(258).string(message.permanent_avatar);
     }
+    if (message.is_admin !== false) {
+      writer.uint32(264).bool(message.is_admin);
+    }
     globalThis.Object.entries(message.properties).forEach(([key, value]: [string, Any]) => {
-      User_PropertiesEntry.encode({ key: key as any, value }, writer.uint32(266).fork()).join();
+      User_PropertiesEntry.encode({ key: key as any, value }, writer.uint32(274).fork()).join();
     });
     return writer;
   },
@@ -917,13 +922,21 @@ export const User: MessageFns<User> = {
           continue;
         }
         case 33: {
-          if (tag !== 266) {
+          if (tag !== 264) {
             break;
           }
 
-          const entry33 = User_PropertiesEntry.decode(reader, reader.uint32());
-          if (entry33.value !== undefined) {
-            message.properties[entry33.key] = entry33.value;
+          message.is_admin = reader.bool();
+          continue;
+        }
+        case 34: {
+          if (tag !== 274) {
+            break;
+          }
+
+          const entry34 = User_PropertiesEntry.decode(reader, reader.uint32());
+          if (entry34.value !== undefined) {
+            message.properties[entry34.key] = entry34.value;
           }
           continue;
         }
@@ -972,6 +985,7 @@ export const User: MessageFns<User> = {
       avatar: isSet(object.avatar) ? globalThis.String(object.avatar) : "",
       avatar_type: isSet(object.avatar_type) ? globalThis.String(object.avatar_type) : "",
       permanent_avatar: isSet(object.permanent_avatar) ? globalThis.String(object.permanent_avatar) : "",
+      is_admin: isSet(object.is_admin) ? globalThis.Boolean(object.is_admin) : false,
       properties: isObject(object.properties)
         ? (globalThis.Object.entries(object.properties) as [string, any][]).reduce(
           (acc: { [key: string]: Any }, [key, value]: [string, any]) => {
@@ -1082,6 +1096,9 @@ export const User: MessageFns<User> = {
     if (message.permanent_avatar !== "") {
       obj.permanent_avatar = message.permanent_avatar;
     }
+    if (message.is_admin !== false) {
+      obj.is_admin = message.is_admin;
+    }
     if (message.properties) {
       const entries = globalThis.Object.entries(message.properties) as [string, Any][];
       if (entries.length > 0) {
@@ -1131,6 +1148,7 @@ export const User: MessageFns<User> = {
     message.avatar = object.avatar ?? "";
     message.avatar_type = object.avatar_type ?? "";
     message.permanent_avatar = object.permanent_avatar ?? "";
+    message.is_admin = object.is_admin ?? false;
     message.properties = (globalThis.Object.entries(object.properties ?? {}) as [string, Any][]).reduce(
       (acc: { [key: string]: Any }, [key, value]: [string, Any]) => {
         if (value !== undefined) {
