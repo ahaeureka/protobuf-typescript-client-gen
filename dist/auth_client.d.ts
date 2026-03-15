@@ -40,11 +40,24 @@ export default class AuthServiceClient {
      */
     login(): Promise<void>;
     /**
-     * 处理登录回调
-     * 服务端会设置 HttpOnly cookie，并在回调 URL 中附加 code=success
+     * Handle the login callback page.
+     *
+     * Expected flow:
+     *   OIDC Provider --[code+state]--> Gateway /auth/callback
+     *     --> token exchange, session creation, set-cookie
+     *     --> 302 to frontend callback with ?code=success
+     *
+     * If the OIDC provider's redirect_uri accidentally points at the frontend
+     * instead of the gateway, the raw authorization code arrives here. In that
+     * case this method transparently redirects to the gateway so the token
+     * exchange can still complete. Callers should check `redirecting` in the
+     * return value and avoid treating it as an error.
+     *
+     * @returns {{ success: boolean; redirecting?: boolean; error?: string }}
      */
     handleLoginCallback(): {
         success: boolean;
+        redirecting?: boolean;
         error?: string;
     };
     /**
@@ -104,33 +117,18 @@ export default class AuthServiceClient {
      */
     logout(): Promise<void>;
     /**
-     * 保存 session_id 到 localStorage（仅用于客户端路由守卫）
-     *
-     * 重要说明：
-     * - localStorage 中的 session_id 仅用于客户端快速判断登录状态（路由守卫）
-     * - 实际 API 认证完全依赖服务端设置的 HttpOnly Cookie
-     * - 这样可以避免每次路由切换都调用 API 验证
-     * - 安全性：即使 localStorage 被篡改，服务端仍然通过 HttpOnly Cookie 验证
-     */
-    private saveSessionIdForClientRouting;
-    /**
      * 清除所有本地认证信息
-     * 注意：HttpOnly Cookie 无法从客户端删除，必须由服务端清除
+     * Cookie-only mode: HttpOnly session cookie is managed by server via /auth/logout.
+     * Client only performs minimal cleanup.
      */
     clearLocalAuth(): void;
     /**
-     * 获取当前的 session_id（用于客户端路由守卫）
-     *
-     * 注意：
-     * - 此方法仅用于客户端快速判断登录状态（路由守卫）
-     * - 实际 API 认证依赖服务端的 HttpOnly Cookie
-     * - 推荐：服务端验证使用 isAuthenticatedAsync() 或 validateSession()
+     * 纯 HttpOnly Cookie 模式下，客户端不再读取 session_id
      */
     getSessionId(): string | null;
     /**
      * 获取当前的认证 token（已废弃，仅为兼容性保留）
-     * @deprecated 新架构使用 session-based 认证，不再直接暴露 token
-     * 优先级：localStorage > sessionStorage > cookie
+     * @deprecated 纯 HttpOnly Cookie 模式下客户端不再直接读取 token
      */
     getToken(): string | null;
     /**
@@ -138,9 +136,8 @@ export default class AuthServiceClient {
      *
      * 注意：
      * - 这是客户端快速检查，用于路由守卫和 UI 状态
-     * - 检查 localStorage 中的 session_id 或 token
-     * - 实际 API 认证依赖服务端的 HttpOnly Cookie
-     * - 推荐：关键操作前使用 isAuthenticatedAsync() 进行服务端验证
+     * - 纯 HttpOnly Cookie 模式下，同步检查不可靠
+     * - 推荐：使用 isAuthenticatedAsync() 进行服务端验证
      */
     isAuthenticated(): boolean;
     /**

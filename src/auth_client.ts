@@ -83,10 +83,22 @@ export default class AuthServiceClient {
     }
 
     /**
-     * 处理登录回调
-     * 服务端会设置 HttpOnly cookie，并在回调 URL 中附加 code=success
+     * Handle the login callback page.
+     *
+     * Expected flow:
+     *   OIDC Provider --[code+state]--> Gateway /auth/callback
+     *     --> token exchange, session creation, set-cookie
+     *     --> 302 to frontend callback with ?code=success
+     *
+     * If the OIDC provider's redirect_uri accidentally points at the frontend
+     * instead of the gateway, the raw authorization code arrives here. In that
+     * case this method transparently redirects to the gateway so the token
+     * exchange can still complete. Callers should check `redirecting` in the
+     * return value and avoid treating it as an error.
+     *
+     * @returns {{ success: boolean; redirecting?: boolean; error?: string }}
      */
-    handleLoginCallback(): { success: boolean; error?: string } {
+    handleLoginCallback(): { success: boolean; redirecting?: boolean; error?: string } {
         if (!isBrowser) {
             return { success: false, error: 'Not in browser environment' };
         }
@@ -99,24 +111,42 @@ export default class AuthServiceClient {
             const errorDescription = urlParams.get('error_description');
             const message = urlParams.get('message');
 
+            // Standard success: gateway completed OIDC flow, session cookie is set.
             if (code === 'success') {
-                console.log('[AuthClient] Login callback successful, session established via HttpOnly cookie');
                 return { success: true };
-            } else if (code && state) {
-                // Raw OIDC callback landed on frontend directly.
-                // Forward to gateway callback to complete token exchange and session cookie setup.
-                const gwCallbackUrl = `${this.gwBaseUrl}/auth/callback?${urlParams.toString()}`;
-                console.warn('[AuthClient] Raw OIDC callback detected, forwarding to gateway callback:', gwCallbackUrl);
-                (window as any).location.href = gwCallbackUrl;
-                return { success: false, error: 'Redirecting to gateway callback' };
-            } else {
+            }
+
+            // Explicit error from gateway
+            if (code === 'error' || errorParam) {
                 const error = message
                     || errorDescription
                     || errorParam
-                    || (code ? `Unexpected callback code: ${code}` : 'Missing callback code');
+                    || 'Login failed';
                 console.error('[AuthClient] Login callback failed:', error);
                 return { success: false, error };
             }
+
+            // Raw OIDC authorization code landed on the frontend.
+            // This means redirect_uri is misconfigured. Forward to gateway as fallback.
+            if (code && state) {
+                const gwCallbackUrl = `${this.gwBaseUrl}/auth/callback?${urlParams.toString()}`;
+                console.warn(
+                    '[AuthClient] Raw OIDC callback detected. '
+                    + 'The OIDC redirect_uri should point to the gateway, not the frontend. '
+                    + 'Forwarding to gateway:',
+                    gwCallbackUrl
+                );
+                (window as any).location.href = gwCallbackUrl;
+                // Signal callers that a redirect is in progress, not a failure.
+                return { success: false, redirecting: true };
+            }
+
+            // Unrecognized callback shape
+            const error = code
+                ? `Unexpected callback code: ${code}`
+                : 'Missing callback code';
+            console.error('[AuthClient] Login callback failed:', error);
+            return { success: false, error };
         } catch (error) {
             console.error('[AuthClient] Failed to handle login callback:', error);
             return { success: false, error: String(error) };

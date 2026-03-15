@@ -22,10 +22,6 @@ class AuthServiceClient {
         });
         // 添加请求拦截器自动添加认证头
         this.axiosInstance.interceptors.request.use((config) => {
-            const token = this.getToken();
-            if (token) {
-                config.headers.Authorization = `Bearer ${token}`;
-            }
             return config;
         });
     }
@@ -43,8 +39,20 @@ class AuthServiceClient {
         window.location.href = loginUrl;
     }
     /**
-     * 处理登录回调
-     * 服务端会设置 HttpOnly cookie，并在回调 URL 中附加 code=success
+     * Handle the login callback page.
+     *
+     * Expected flow:
+     *   OIDC Provider --[code+state]--> Gateway /auth/callback
+     *     --> token exchange, session creation, set-cookie
+     *     --> 302 to frontend callback with ?code=success
+     *
+     * If the OIDC provider's redirect_uri accidentally points at the frontend
+     * instead of the gateway, the raw authorization code arrives here. In that
+     * case this method transparently redirects to the gateway so the token
+     * exchange can still complete. Callers should check `redirecting` in the
+     * return value and avoid treating it as an error.
+     *
+     * @returns {{ success: boolean; redirecting?: boolean; error?: string }}
      */
     handleLoginCallback() {
         if (!isBrowser) {
@@ -57,26 +65,36 @@ class AuthServiceClient {
             const errorParam = urlParams.get('error');
             const errorDescription = urlParams.get('error_description');
             const message = urlParams.get('message');
+            // Standard success: gateway completed OIDC flow, session cookie is set.
             if (code === 'success') {
-                console.log('[AuthClient] Login callback successful, session established via HttpOnly cookie');
                 return { success: true };
             }
-            else if (code && state) {
-                // Raw OIDC callback landed on frontend directly.
-                // Forward to gateway callback to complete token exchange and session cookie setup.
-                const gwCallbackUrl = `${this.gwBaseUrl}/auth/callback?${urlParams.toString()}`;
-                console.warn('[AuthClient] Raw OIDC callback detected, forwarding to gateway callback:', gwCallbackUrl);
-                window.location.href = gwCallbackUrl;
-                return { success: false, error: 'Redirecting to gateway callback' };
-            }
-            else {
+            // Explicit error from gateway
+            if (code === 'error' || errorParam) {
                 const error = message
                     || errorDescription
                     || errorParam
-                    || (code ? `Unexpected callback code: ${code}` : 'Missing callback code');
+                    || 'Login failed';
                 console.error('[AuthClient] Login callback failed:', error);
                 return { success: false, error };
             }
+            // Raw OIDC authorization code landed on the frontend.
+            // This means redirect_uri is misconfigured. Forward to gateway as fallback.
+            if (code && state) {
+                const gwCallbackUrl = `${this.gwBaseUrl}/auth/callback?${urlParams.toString()}`;
+                console.warn('[AuthClient] Raw OIDC callback detected. '
+                    + 'The OIDC redirect_uri should point to the gateway, not the frontend. '
+                    + 'Forwarding to gateway:', gwCallbackUrl);
+                window.location.href = gwCallbackUrl;
+                // Signal callers that a redirect is in progress, not a failure.
+                return { success: false, redirecting: true };
+            }
+            // Unrecognized callback shape
+            const error = code
+                ? `Unexpected callback code: ${code}`
+                : 'Missing callback code';
+            console.error('[AuthClient] Login callback failed:', error);
+            return { success: false, error };
         }
         catch (error) {
             console.error('[AuthClient] Failed to handle login callback:', error);
@@ -222,134 +240,27 @@ class AuthServiceClient {
         window.location.href = logoutUrl;
     }
     /**
-     * 保存 session_id 到 localStorage（仅用于客户端路由守卫）
-     *
-     * 重要说明：
-     * - localStorage 中的 session_id 仅用于客户端快速判断登录状态（路由守卫）
-     * - 实际 API 认证完全依赖服务端设置的 HttpOnly Cookie
-     * - 这样可以避免每次路由切换都调用 API 验证
-     * - 安全性：即使 localStorage 被篡改，服务端仍然通过 HttpOnly Cookie 验证
-     */
-    saveSessionIdForClientRouting(sessionId) {
-        if (!isBrowser) {
-            return;
-        }
-        try {
-            // 保存到 localStorage（用于客户端路由守卫）
-            localStorage.setItem('session_id', sessionId);
-            // 同时保存到 sessionStorage（备份）
-            sessionStorage.setItem('session_id', sessionId);
-            console.log('[AuthClient] Session ID saved for client-side routing guard');
-        }
-        catch (error) {
-            console.error('[AuthClient] Failed to save session ID:', error);
-        }
-    }
-    /**
      * 清除所有本地认证信息
-     * 注意：HttpOnly Cookie 无法从客户端删除，必须由服务端清除
+     * Cookie-only mode: HttpOnly session cookie is managed by server via /auth/logout.
+     * Client only performs minimal cleanup.
      */
     clearLocalAuth() {
         if (!isBrowser) {
             return;
         }
-        try {
-            // 清除 localStorage 中的认证信息
-            localStorage.removeItem('session_id');
-            localStorage.removeItem('token');
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
-            localStorage.removeItem('id_token');
-            localStorage.removeItem('user_info');
-            // 清除 sessionStorage 中的认证信息
-            sessionStorage.removeItem('session_id');
-            sessionStorage.removeItem('token');
-            sessionStorage.removeItem('access_token');
-            sessionStorage.removeItem('user_info');
-            // 尝试清除客户端可访问的 cookie（非 HttpOnly）
-            // 注意：HttpOnly cookie 无法从客户端删除，必须由服务端通过 logout 端点清除
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i];
-                const eqPos = cookie.indexOf('=');
-                const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-                // 只清除客户端可访问的认证相关 cookie（不包括 session_id，它是 HttpOnly 的）
-                if ((name.includes('token') || name.includes('auth') || name.includes('csrf') || name.includes('nonce'))
-                    && !name.includes('session')) {
-                    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-                    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
-                }
-            }
-            console.log('[AuthClient] Local auth data cleared (session_id in HttpOnly Cookie managed by server)');
-        }
-        catch (error) {
-            console.error('[AuthClient] Failed to clear local auth data:', error);
-        }
+        console.log('[AuthClient] Local auth data cleared (session managed by server HttpOnly cookie)');
     }
     /**
-     * 获取当前的 session_id（用于客户端路由守卫）
-     *
-     * 注意：
-     * - 此方法仅用于客户端快速判断登录状态（路由守卫）
-     * - 实际 API 认证依赖服务端的 HttpOnly Cookie
-     * - 推荐：服务端验证使用 isAuthenticatedAsync() 或 validateSession()
+     * 纯 HttpOnly Cookie 模式下，客户端不再读取 session_id
      */
     getSessionId() {
-        if (!isBrowser) {
-            return null;
-        }
-        try {
-            // 从 localStorage 获取（用于客户端路由守卫）
-            const sessionId = localStorage.getItem('session_id');
-            if (sessionId) {
-                return sessionId;
-            }
-            // 从 sessionStorage 获取（备份）
-            const sessionSessionId = sessionStorage.getItem('session_id');
-            if (sessionSessionId) {
-                return sessionSessionId;
-            }
-        }
-        catch (error) {
-            console.error('[AuthClient] Failed to get session ID:', error);
-        }
         return null;
     }
     /**
      * 获取当前的认证 token（已废弃，仅为兼容性保留）
-     * @deprecated 新架构使用 session-based 认证，不再直接暴露 token
-     * 优先级：localStorage > sessionStorage > cookie
+     * @deprecated 纯 HttpOnly Cookie 模式下客户端不再直接读取 token
      */
     getToken() {
-        if (!isBrowser) {
-            return null;
-        }
-        try {
-            // 1. 从 localStorage 获取
-            const localToken = localStorage.getItem('token') ||
-                localStorage.getItem('access_token') ||
-                localStorage.getItem('id_token');
-            if (localToken) {
-                return localToken;
-            }
-            // 2. 从 sessionStorage 获取
-            const sessionToken = sessionStorage.getItem('token') ||
-                sessionStorage.getItem('access_token');
-            if (sessionToken) {
-                return sessionToken;
-            }
-            // 3. 从 cookie 获取（服务端设置的）
-            const cookies = document.cookie.split(';');
-            for (let cookie of cookies) {
-                const [name, value] = cookie.trim().split('=');
-                if (name === 'token' || name === 'access_token' || name === 'id_token') {
-                    return decodeURIComponent(value);
-                }
-            }
-        }
-        catch (error) {
-            console.error('[AuthClient] Failed to get token:', error);
-        }
         return null;
     }
     /**
@@ -357,12 +268,11 @@ class AuthServiceClient {
      *
      * 注意：
      * - 这是客户端快速检查，用于路由守卫和 UI 状态
-     * - 检查 localStorage 中的 session_id 或 token
-     * - 实际 API 认证依赖服务端的 HttpOnly Cookie
-     * - 推荐：关键操作前使用 isAuthenticatedAsync() 进行服务端验证
+     * - 纯 HttpOnly Cookie 模式下，同步检查不可靠
+     * - 推荐：使用 isAuthenticatedAsync() 进行服务端验证
      */
     isAuthenticated() {
-        return this.getSessionId() !== null || this.getToken() !== null;
+        return false;
     }
     /**
      * 异步检查用户是否已登录（服务端验证）
