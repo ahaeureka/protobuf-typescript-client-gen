@@ -1,4 +1,5 @@
 import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { Any } from "./google/protobuf/any";
 export declare const protobufPackage = "stew.api.v1";
 /**
  * pub enum BalanceType {
@@ -125,6 +126,114 @@ export interface ServiceTurnstileConfig {
     enforce_on_risk_challenge: boolean;
 }
 /**
+ * AI Guard: configurable body field path mapping (Tier 2 extraction strategy).
+ * When set, the gateway uses these paths to locate user messages, model name,
+ * etc. in the JSON request body. Leave empty to fall back to heuristic detection.
+ */
+export interface AiBodyFieldMap {
+    messages_path: string;
+    role_field: string;
+    content_field: string;
+    user_role_value: string;
+    prompt_path: string;
+    model_path: string;
+    max_tokens_path: string;
+}
+/**
+ * AI SaaS abuse prevention configuration (per-service).
+ * Controls token quotas, intent classification, context truncation,
+ * and topic filtering for AI-related API endpoints.
+ */
+export interface ServiceAiGuardConfig {
+    enabled: boolean;
+    mode: string;
+    include_paths: string[];
+    request_body_max_bytes: number;
+    max_input_tokens: number;
+    max_output_tokens: number;
+    max_context_tokens: number;
+    history_policy: string;
+    daily_token_quota: number;
+    daily_request_quota: number;
+    minute_request_quota: number;
+    allow_free_chat: boolean;
+    allowed_topics: string[];
+    deny_keywords: string[];
+    enable_audit: boolean;
+    classifier_type: string;
+    llm_endpoint: string;
+    llm_model: string;
+    llm_system_prompt: string;
+    llm_timeout_ms: number;
+    llm_confidence_threshold: number;
+    body_map: AiBodyFieldMap | undefined;
+    quota_window_secs: number;
+    /**
+     * Business intent configuration for the LLM classifier.
+     * When llm_system_prompt is empty, these fields are used to automatically
+     * build the intent classification prompt.
+     */
+    business_description: string;
+    valid_intent_examples: string[];
+    invalid_intent_examples: string[];
+    /**
+     * Per-endpoint configuration overrides (v2.0).
+     * Each entry can override service-level defaults for a specific API endpoint.
+     * Non-zero/non-empty fields override the parent ServiceAiGuardConfig value.
+     * Matching priority: exact_paths > pattern_paths (by literal score) > longest prefix_paths > service-level default.
+     */
+    endpoint_overrides: AiGuardEndpointConfig[];
+}
+/**
+ * Per-endpoint AI Guard configuration override.
+ * Binds to specific API paths via exact or prefix matching.
+ * Non-zero/non-empty fields override the parent ServiceAiGuardConfig value;
+ * zero/empty fields inherit the service-level default.
+ */
+export interface AiGuardEndpointConfig {
+    /**
+     * Endpoint identifier (admin-assigned, used in Redis keys and audit logs).
+     * Must be unique within the same service.
+     */
+    endpoint_id: string;
+    /** Exact path matches, e.g. ["/stew.api.v1.ChatService/SendMessage", "/v1/chat/completions"] */
+    exact_paths: string[];
+    /** Prefix path matches, e.g. ["/stew.api.v1.Chat"] matches all methods under that prefix */
+    prefix_paths: string[];
+    /**
+     * Path template matches using {param} placeholders for single-segment wildcards,
+     * e.g. ["/api/v1/sessions/{session_id}/reflection"] matches any session ID.
+     * Matching priority: exact_paths > pattern_paths (by literal score) > prefix_paths.
+     */
+    pattern_paths: string[];
+    /** Disable AI Guard for this endpoint (true = skip even if service-level is enabled) */
+    disabled?: boolean | undefined;
+    mode: string;
+    request_body_max_bytes: number;
+    max_input_tokens: number;
+    max_output_tokens: number;
+    max_context_tokens: number;
+    history_policy: string;
+    daily_token_quota: number;
+    daily_request_quota: number;
+    minute_request_quota: number;
+    quota_window_secs: number;
+    allow_free_chat?: boolean | undefined;
+    allowed_topics: string[];
+    deny_keywords: string[];
+    enable_audit?: boolean | undefined;
+    classifier_type: string;
+    llm_endpoint: string;
+    llm_model: string;
+    llm_system_prompt: string;
+    business_description: string;
+    valid_intent_examples: string[];
+    invalid_intent_examples: string[];
+    llm_timeout_ms: number;
+    llm_confidence_threshold: number;
+    body_map: AiBodyFieldMap | undefined;
+}
+/**
  * 每个下游服务的中间件开关配置
  * 注册或编辑服务时可单独控制各中间件的启用状态和参数。
  * 配置随 ServiceInstance 一起存储在 ETCD，运行时热生效。
@@ -142,6 +251,8 @@ export interface ServiceMiddlewareConfig {
     risk: ServiceRiskConfig | undefined;
     turnstile_enabled: boolean;
     turnstile: ServiceTurnstileConfig | undefined;
+    ai_guard_enabled: boolean;
+    ai_guard: ServiceAiGuardConfig | undefined;
 }
 /** 服务实例定义 */
 export interface ServiceInstance {
@@ -158,8 +269,8 @@ export interface ServiceInstance {
     version: string;
     /** 服务元数据 */
     metadata: {
-        [key: string]: any;
-    } | undefined;
+        [key: string]: Any;
+    };
     /** 健康检查端点 */
     health_endpoint: string;
     /** 健康检查配置（新增） */
@@ -183,9 +294,31 @@ export interface ServiceInstance {
     /** 每服务中间件配置（注册/编辑服务时设置，存储在 ETCD） */
     middleware_config: ServiceMiddlewareConfig | undefined;
 }
+export interface ServiceInstance_MetadataEntry {
+    key: string;
+    value: Any | undefined;
+}
 export interface ServiceInstance_TagsEntry {
     key: string;
     value: string;
+}
+/**
+ * 初始化服务请求（管理端专属）
+ * 管理员在管理端初始化服务后，系统生成 app_id + app_secret 凭证供业务侧使用
+ */
+export interface InitServiceRequest {
+    /** Globally unique service name. Duplicate names are rejected. */
+    service_name: string;
+    description: string;
+    protocol: string;
+}
+/** 初始化服务响应 */
+export interface InitServiceResponse {
+    success: boolean;
+    message: string;
+    app_id: string;
+    app_secret: string;
+    service_name: string;
 }
 /** 注册服务请求 */
 export interface RegisterServiceRequest {
@@ -198,6 +331,7 @@ export interface RegisterServiceResponse {
     success: boolean;
     message: string;
     lease_id: string;
+    instance_id: string;
 }
 /** 注销服务请求 */
 export interface DeregisterServiceRequest {
@@ -342,6 +476,12 @@ export interface UploadProtobufDescriptorRequest {
     descriptor_version: string;
     descriptor_data: Uint8Array;
     description: string;
+    /** HMAC-SHA256(descriptor_data, shared_secret) - optional integrity verification */
+    signature: string;
+    /** Force update, skip compatibility warnings */
+    force: boolean;
+    /** Previous version for optimistic locking (reject if active version != previous_version) */
+    previous_version: string;
 }
 /** 上传 protobuf 描述符响应 */
 export interface UploadProtobufDescriptorResponse {
@@ -349,6 +489,12 @@ export interface UploadProtobufDescriptorResponse {
     message: string;
     descriptor_key: string;
     discovered_services: string[];
+    /** Compatibility warnings (breaking changes detected but not blocked) */
+    compatibility_warnings: string[];
+    /** Actual version applied (may differ from requested if auto-generated) */
+    applied_version: string;
+    /** SHA-256 hash of the descriptor data */
+    descriptor_hash: string;
 }
 /** 获取 protobuf 描述符请求 */
 export interface GetProtobufDescriptorRequest {
@@ -379,6 +525,39 @@ export interface ProtobufDescriptorInfo {
     description: string;
     services: string[];
     size_bytes: number;
+    descriptor_hash: string;
+    is_active: boolean;
+}
+/** 描述符版本详细信息 */
+export interface DescriptorVersionInfo {
+    version: string;
+    descriptor_hash: string;
+    created_at: Date | undefined;
+    description: string;
+    services: string[];
+    size_bytes: number;
+    is_active: boolean;
+}
+/** 回滚描述符请求 */
+export interface RollbackDescriptorRequest {
+    service_name: string;
+    target_version: string;
+}
+/** 回滚描述符响应 */
+export interface RollbackDescriptorResponse {
+    success: boolean;
+    message: string;
+    active_version: string;
+    discovered_services: string[];
+}
+/** 列出描述符版本请求 */
+export interface ListDescriptorVersionsRequest {
+    service_name: string;
+}
+/** 列出描述符版本响应 */
+export interface ListDescriptorVersionsResponse {
+    versions: DescriptorVersionInfo[];
+    active_version: string;
 }
 export declare const Endpoint: MessageFns<Endpoint>;
 export declare const LoadBalancer: MessageFns<LoadBalancer>;
@@ -387,9 +566,15 @@ export declare const ServiceCorsConfig: MessageFns<ServiceCorsConfig>;
 export declare const ServiceRiskRuleConfig: MessageFns<ServiceRiskRuleConfig>;
 export declare const ServiceRiskConfig: MessageFns<ServiceRiskConfig>;
 export declare const ServiceTurnstileConfig: MessageFns<ServiceTurnstileConfig>;
+export declare const AiBodyFieldMap: MessageFns<AiBodyFieldMap>;
+export declare const ServiceAiGuardConfig: MessageFns<ServiceAiGuardConfig>;
+export declare const AiGuardEndpointConfig: MessageFns<AiGuardEndpointConfig>;
 export declare const ServiceMiddlewareConfig: MessageFns<ServiceMiddlewareConfig>;
 export declare const ServiceInstance: MessageFns<ServiceInstance>;
+export declare const ServiceInstance_MetadataEntry: MessageFns<ServiceInstance_MetadataEntry>;
 export declare const ServiceInstance_TagsEntry: MessageFns<ServiceInstance_TagsEntry>;
+export declare const InitServiceRequest: MessageFns<InitServiceRequest>;
+export declare const InitServiceResponse: MessageFns<InitServiceResponse>;
 export declare const RegisterServiceRequest: MessageFns<RegisterServiceRequest>;
 export declare const RegisterServiceResponse: MessageFns<RegisterServiceResponse>;
 export declare const DeregisterServiceRequest: MessageFns<DeregisterServiceRequest>;
@@ -421,8 +606,15 @@ export declare const GetProtobufDescriptorResponse: MessageFns<GetProtobufDescri
 export declare const ListProtobufDescriptorsRequest: MessageFns<ListProtobufDescriptorsRequest>;
 export declare const ListProtobufDescriptorsResponse: MessageFns<ListProtobufDescriptorsResponse>;
 export declare const ProtobufDescriptorInfo: MessageFns<ProtobufDescriptorInfo>;
+export declare const DescriptorVersionInfo: MessageFns<DescriptorVersionInfo>;
+export declare const RollbackDescriptorRequest: MessageFns<RollbackDescriptorRequest>;
+export declare const RollbackDescriptorResponse: MessageFns<RollbackDescriptorResponse>;
+export declare const ListDescriptorVersionsRequest: MessageFns<ListDescriptorVersionsRequest>;
+export declare const ListDescriptorVersionsResponse: MessageFns<ListDescriptorVersionsResponse>;
 /** 服务注册和发现服务 */
 export interface ServiceDiscoveryService {
+    /** 初始化服务（管理端专属，生成 app_id + app_secret） */
+    InitService(request: InitServiceRequest): Promise<InitServiceResponse>;
     /** 注册服务实例 */
     RegisterService(request: RegisterServiceRequest): Promise<RegisterServiceResponse>;
     /** 注销服务实例 */
@@ -449,6 +641,10 @@ export interface ServiceDiscoveryService {
     GetProtobufDescriptor(request: GetProtobufDescriptorRequest): Promise<GetProtobufDescriptorResponse>;
     /** 列出可用的 protobuf 描述符 */
     ListProtobufDescriptors(request: ListProtobufDescriptorsRequest): Promise<ListProtobufDescriptorsResponse>;
+    /** 回滚描述符到指定版本 */
+    RollbackDescriptor(request: RollbackDescriptorRequest): Promise<RollbackDescriptorResponse>;
+    /** 列出描述符版本历史 */
+    ListDescriptorVersions(request: ListDescriptorVersionsRequest): Promise<ListDescriptorVersionsResponse>;
 }
 export declare const ServiceDiscoveryServiceServiceName = "stew.api.v1.ServiceDiscoveryService";
 export declare class ServiceDiscoveryServiceClientImpl implements ServiceDiscoveryService {
@@ -457,6 +653,7 @@ export declare class ServiceDiscoveryServiceClientImpl implements ServiceDiscove
     constructor(rpc: Rpc, opts?: {
         service?: string;
     });
+    InitService(request: InitServiceRequest): Promise<InitServiceResponse>;
     RegisterService(request: RegisterServiceRequest): Promise<RegisterServiceResponse>;
     DeregisterService(request: DeregisterServiceRequest): Promise<DeregisterServiceResponse>;
     DeleteServiceRecord(request: DeleteServiceRecordRequest): Promise<DeleteServiceRecordResponse>;
@@ -470,6 +667,8 @@ export declare class ServiceDiscoveryServiceClientImpl implements ServiceDiscove
     UploadProtobufDescriptor(request: UploadProtobufDescriptorRequest): Promise<UploadProtobufDescriptorResponse>;
     GetProtobufDescriptor(request: GetProtobufDescriptorRequest): Promise<GetProtobufDescriptorResponse>;
     ListProtobufDescriptors(request: ListProtobufDescriptorsRequest): Promise<ListProtobufDescriptorsResponse>;
+    RollbackDescriptor(request: RollbackDescriptorRequest): Promise<RollbackDescriptorResponse>;
+    ListDescriptorVersions(request: ListDescriptorVersionsRequest): Promise<ListDescriptorVersionsResponse>;
 }
 interface Rpc {
     request(service: string, method: string, data: Uint8Array): Promise<Uint8Array>;

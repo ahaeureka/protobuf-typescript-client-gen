@@ -110,6 +110,7 @@ export interface User {
     avatar_type: string;
     /** @gotags: doc:"Permanent avatar URL of the user" json:"permanent_avatar" gorm:"column:permanent_avatar;type:varchar(512);comment:Permanent avatar URL of the user" */
     permanent_avatar: string;
+    is_admin: boolean;
     /** @gotags: doc:"Additional properties of the user" json:"properties" gorm:"column:properties;type:json;comment:Additional properties of the user" */
     properties: {
         [key: string]: Any;

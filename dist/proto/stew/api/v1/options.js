@@ -5,6 +5,189 @@
 //   protoc               v3.21.12
 // source: stew/api/v1/options.proto
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.protobufPackage = void 0;
+exports.AiGuardFieldOptions = exports.protobufPackage = void 0;
 /* eslint-disable */
+const wire_1 = require("@bufbuild/protobuf/wire");
 exports.protobufPackage = "stew.api.v1";
+function createBaseAiGuardFieldOptions() {
+    return {
+        is_messages_array: false,
+        is_role_field: false,
+        is_content_field: false,
+        role_filter: "",
+        is_prompt: false,
+        is_model: false,
+        is_max_tokens: false,
+    };
+}
+exports.AiGuardFieldOptions = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.is_messages_array !== false) {
+            writer.uint32(8).bool(message.is_messages_array);
+        }
+        if (message.is_role_field !== false) {
+            writer.uint32(16).bool(message.is_role_field);
+        }
+        if (message.is_content_field !== false) {
+            writer.uint32(24).bool(message.is_content_field);
+        }
+        if (message.role_filter !== "") {
+            writer.uint32(34).string(message.role_filter);
+        }
+        if (message.is_prompt !== false) {
+            writer.uint32(40).bool(message.is_prompt);
+        }
+        if (message.is_model !== false) {
+            writer.uint32(48).bool(message.is_model);
+        }
+        if (message.is_max_tokens !== false) {
+            writer.uint32(56).bool(message.is_max_tokens);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseAiGuardFieldOptions();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 8) {
+                        break;
+                    }
+                    message.is_messages_array = reader.bool();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 16) {
+                        break;
+                    }
+                    message.is_role_field = reader.bool();
+                    continue;
+                }
+                case 3: {
+                    if (tag !== 24) {
+                        break;
+                    }
+                    message.is_content_field = reader.bool();
+                    continue;
+                }
+                case 4: {
+                    if (tag !== 34) {
+                        break;
+                    }
+                    message.role_filter = reader.string();
+                    continue;
+                }
+                case 5: {
+                    if (tag !== 40) {
+                        break;
+                    }
+                    message.is_prompt = reader.bool();
+                    continue;
+                }
+                case 6: {
+                    if (tag !== 48) {
+                        break;
+                    }
+                    message.is_model = reader.bool();
+                    continue;
+                }
+                case 7: {
+                    if (tag !== 56) {
+                        break;
+                    }
+                    message.is_max_tokens = reader.bool();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            is_messages_array: isSet(object.isMessagesArray)
+                ? globalThis.Boolean(object.isMessagesArray)
+                : isSet(object.is_messages_array)
+                    ? globalThis.Boolean(object.is_messages_array)
+                    : false,
+            is_role_field: isSet(object.isRoleField)
+                ? globalThis.Boolean(object.isRoleField)
+                : isSet(object.is_role_field)
+                    ? globalThis.Boolean(object.is_role_field)
+                    : false,
+            is_content_field: isSet(object.isContentField)
+                ? globalThis.Boolean(object.isContentField)
+                : isSet(object.is_content_field)
+                    ? globalThis.Boolean(object.is_content_field)
+                    : false,
+            role_filter: isSet(object.roleFilter)
+                ? globalThis.String(object.roleFilter)
+                : isSet(object.role_filter)
+                    ? globalThis.String(object.role_filter)
+                    : "",
+            is_prompt: isSet(object.isPrompt)
+                ? globalThis.Boolean(object.isPrompt)
+                : isSet(object.is_prompt)
+                    ? globalThis.Boolean(object.is_prompt)
+                    : false,
+            is_model: isSet(object.isModel)
+                ? globalThis.Boolean(object.isModel)
+                : isSet(object.is_model)
+                    ? globalThis.Boolean(object.is_model)
+                    : false,
+            is_max_tokens: isSet(object.isMaxTokens)
+                ? globalThis.Boolean(object.isMaxTokens)
+                : isSet(object.is_max_tokens)
+                    ? globalThis.Boolean(object.is_max_tokens)
+                    : false,
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.is_messages_array !== false) {
+            obj.isMessagesArray = message.is_messages_array;
+        }
+        if (message.is_role_field !== false) {
+            obj.isRoleField = message.is_role_field;
+        }
+        if (message.is_content_field !== false) {
+            obj.isContentField = message.is_content_field;
+        }
+        if (message.role_filter !== "") {
+            obj.roleFilter = message.role_filter;
+        }
+        if (message.is_prompt !== false) {
+            obj.isPrompt = message.is_prompt;
+        }
+        if (message.is_model !== false) {
+            obj.isModel = message.is_model;
+        }
+        if (message.is_max_tokens !== false) {
+            obj.isMaxTokens = message.is_max_tokens;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.AiGuardFieldOptions.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseAiGuardFieldOptions();
+        message.is_messages_array = object.is_messages_array ?? false;
+        message.is_role_field = object.is_role_field ?? false;
+        message.is_content_field = object.is_content_field ?? false;
+        message.role_filter = object.role_filter ?? "";
+        message.is_prompt = object.is_prompt ?? false;
+        message.is_model = object.is_model ?? false;
+        message.is_max_tokens = object.is_max_tokens ?? false;
+        return message;
+    },
+};
+function isSet(value) {
+    return value !== null && value !== undefined;
+}

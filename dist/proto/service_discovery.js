@@ -5,13 +5,15 @@
 //   protoc               v3.21.12
 // source: service_discovery.proto
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ServiceDiscoveryServiceClientImpl = exports.ServiceDiscoveryServiceServiceName = exports.ProtobufDescriptorInfo = exports.ListProtobufDescriptorsResponse = exports.ListProtobufDescriptorsRequest = exports.GetProtobufDescriptorResponse = exports.GetProtobufDescriptorRequest = exports.UploadProtobufDescriptorResponse = exports.UploadProtobufDescriptorRequest = exports.GetServiceConfigResponse = exports.GetServiceConfigRequest = exports.UploadServiceConfigResponse = exports.UploadServiceConfigRequest = exports.ServiceInstanceHealth = exports.ServiceHealthCheckResponse = exports.ServiceHealthCheckRequest = exports.UpdateServiceHealthResponse = exports.UpdateServiceHealthRequest = exports.ServiceSummary = exports.ListServicesResponse = exports.ListServicesRequest_TagFiltersEntry = exports.ListServicesRequest = exports.GetServiceInstancesResponse = exports.GetServiceInstancesRequest_TagFiltersEntry = exports.GetServiceInstancesRequest = exports.UpdateServiceInstanceResponse = exports.UpdateServiceInstanceRequest = exports.DeleteServiceRecordResponse = exports.DeleteServiceRecordRequest = exports.DeregisterServiceResponse = exports.DeregisterServiceRequest = exports.RegisterServiceResponse = exports.RegisterServiceRequest = exports.ServiceInstance_TagsEntry = exports.ServiceInstance = exports.ServiceMiddlewareConfig = exports.ServiceTurnstileConfig = exports.ServiceRiskConfig = exports.ServiceRiskRuleConfig = exports.ServiceCorsConfig = exports.HealthCheckConfig = exports.LoadBalancer = exports.Endpoint = exports.ServiceStatus = exports.BalanceType = exports.protobufPackage = void 0;
+exports.ProtobufDescriptorInfo = exports.ListProtobufDescriptorsResponse = exports.ListProtobufDescriptorsRequest = exports.GetProtobufDescriptorResponse = exports.GetProtobufDescriptorRequest = exports.UploadProtobufDescriptorResponse = exports.UploadProtobufDescriptorRequest = exports.GetServiceConfigResponse = exports.GetServiceConfigRequest = exports.UploadServiceConfigResponse = exports.UploadServiceConfigRequest = exports.ServiceInstanceHealth = exports.ServiceHealthCheckResponse = exports.ServiceHealthCheckRequest = exports.UpdateServiceHealthResponse = exports.UpdateServiceHealthRequest = exports.ServiceSummary = exports.ListServicesResponse = exports.ListServicesRequest_TagFiltersEntry = exports.ListServicesRequest = exports.GetServiceInstancesResponse = exports.GetServiceInstancesRequest_TagFiltersEntry = exports.GetServiceInstancesRequest = exports.UpdateServiceInstanceResponse = exports.UpdateServiceInstanceRequest = exports.DeleteServiceRecordResponse = exports.DeleteServiceRecordRequest = exports.DeregisterServiceResponse = exports.DeregisterServiceRequest = exports.RegisterServiceResponse = exports.RegisterServiceRequest = exports.InitServiceResponse = exports.InitServiceRequest = exports.ServiceInstance_TagsEntry = exports.ServiceInstance_MetadataEntry = exports.ServiceInstance = exports.ServiceMiddlewareConfig = exports.AiGuardEndpointConfig = exports.ServiceAiGuardConfig = exports.AiBodyFieldMap = exports.ServiceTurnstileConfig = exports.ServiceRiskConfig = exports.ServiceRiskRuleConfig = exports.ServiceCorsConfig = exports.HealthCheckConfig = exports.LoadBalancer = exports.Endpoint = exports.ServiceStatus = exports.BalanceType = exports.protobufPackage = void 0;
+exports.ServiceDiscoveryServiceClientImpl = exports.ServiceDiscoveryServiceServiceName = exports.ListDescriptorVersionsResponse = exports.ListDescriptorVersionsRequest = exports.RollbackDescriptorResponse = exports.RollbackDescriptorRequest = exports.DescriptorVersionInfo = void 0;
 exports.balanceTypeFromJSON = balanceTypeFromJSON;
 exports.balanceTypeToJSON = balanceTypeToJSON;
 exports.serviceStatusFromJSON = serviceStatusFromJSON;
 exports.serviceStatusToJSON = serviceStatusToJSON;
 /* eslint-disable */
 const wire_1 = require("@bufbuild/protobuf/wire");
+const any_1 = require("./google/protobuf/any");
 const struct_1 = require("./google/protobuf/struct");
 const timestamp_1 = require("./google/protobuf/timestamp");
 exports.protobufPackage = "stew.api.v1";
@@ -1229,6 +1231,1169 @@ exports.ServiceTurnstileConfig = {
         return message;
     },
 };
+function createBaseAiBodyFieldMap() {
+    return {
+        messages_path: "",
+        role_field: "",
+        content_field: "",
+        user_role_value: "",
+        prompt_path: "",
+        model_path: "",
+        max_tokens_path: "",
+    };
+}
+exports.AiBodyFieldMap = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.messages_path !== "") {
+            writer.uint32(10).string(message.messages_path);
+        }
+        if (message.role_field !== "") {
+            writer.uint32(18).string(message.role_field);
+        }
+        if (message.content_field !== "") {
+            writer.uint32(26).string(message.content_field);
+        }
+        if (message.user_role_value !== "") {
+            writer.uint32(34).string(message.user_role_value);
+        }
+        if (message.prompt_path !== "") {
+            writer.uint32(42).string(message.prompt_path);
+        }
+        if (message.model_path !== "") {
+            writer.uint32(50).string(message.model_path);
+        }
+        if (message.max_tokens_path !== "") {
+            writer.uint32(58).string(message.max_tokens_path);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseAiBodyFieldMap();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.messages_path = reader.string();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.role_field = reader.string();
+                    continue;
+                }
+                case 3: {
+                    if (tag !== 26) {
+                        break;
+                    }
+                    message.content_field = reader.string();
+                    continue;
+                }
+                case 4: {
+                    if (tag !== 34) {
+                        break;
+                    }
+                    message.user_role_value = reader.string();
+                    continue;
+                }
+                case 5: {
+                    if (tag !== 42) {
+                        break;
+                    }
+                    message.prompt_path = reader.string();
+                    continue;
+                }
+                case 6: {
+                    if (tag !== 50) {
+                        break;
+                    }
+                    message.model_path = reader.string();
+                    continue;
+                }
+                case 7: {
+                    if (tag !== 58) {
+                        break;
+                    }
+                    message.max_tokens_path = reader.string();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            messages_path: isSet(object.messages_path) ? globalThis.String(object.messages_path) : "",
+            role_field: isSet(object.role_field) ? globalThis.String(object.role_field) : "",
+            content_field: isSet(object.content_field) ? globalThis.String(object.content_field) : "",
+            user_role_value: isSet(object.user_role_value) ? globalThis.String(object.user_role_value) : "",
+            prompt_path: isSet(object.prompt_path) ? globalThis.String(object.prompt_path) : "",
+            model_path: isSet(object.model_path) ? globalThis.String(object.model_path) : "",
+            max_tokens_path: isSet(object.max_tokens_path) ? globalThis.String(object.max_tokens_path) : "",
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.messages_path !== "") {
+            obj.messages_path = message.messages_path;
+        }
+        if (message.role_field !== "") {
+            obj.role_field = message.role_field;
+        }
+        if (message.content_field !== "") {
+            obj.content_field = message.content_field;
+        }
+        if (message.user_role_value !== "") {
+            obj.user_role_value = message.user_role_value;
+        }
+        if (message.prompt_path !== "") {
+            obj.prompt_path = message.prompt_path;
+        }
+        if (message.model_path !== "") {
+            obj.model_path = message.model_path;
+        }
+        if (message.max_tokens_path !== "") {
+            obj.max_tokens_path = message.max_tokens_path;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.AiBodyFieldMap.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseAiBodyFieldMap();
+        message.messages_path = object.messages_path ?? "";
+        message.role_field = object.role_field ?? "";
+        message.content_field = object.content_field ?? "";
+        message.user_role_value = object.user_role_value ?? "";
+        message.prompt_path = object.prompt_path ?? "";
+        message.model_path = object.model_path ?? "";
+        message.max_tokens_path = object.max_tokens_path ?? "";
+        return message;
+    },
+};
+function createBaseServiceAiGuardConfig() {
+    return {
+        enabled: false,
+        mode: "",
+        include_paths: [],
+        request_body_max_bytes: 0,
+        max_input_tokens: 0,
+        max_output_tokens: 0,
+        max_context_tokens: 0,
+        history_policy: "",
+        daily_token_quota: 0,
+        daily_request_quota: 0,
+        minute_request_quota: 0,
+        allow_free_chat: false,
+        allowed_topics: [],
+        deny_keywords: [],
+        enable_audit: false,
+        classifier_type: "",
+        llm_endpoint: "",
+        llm_model: "",
+        llm_system_prompt: "",
+        llm_timeout_ms: 0,
+        llm_confidence_threshold: 0,
+        body_map: undefined,
+        quota_window_secs: 0,
+        business_description: "",
+        valid_intent_examples: [],
+        invalid_intent_examples: [],
+        endpoint_overrides: [],
+    };
+}
+exports.ServiceAiGuardConfig = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.enabled !== false) {
+            writer.uint32(8).bool(message.enabled);
+        }
+        if (message.mode !== "") {
+            writer.uint32(18).string(message.mode);
+        }
+        for (const v of message.include_paths) {
+            writer.uint32(26).string(v);
+        }
+        if (message.request_body_max_bytes !== 0) {
+            writer.uint32(32).uint32(message.request_body_max_bytes);
+        }
+        if (message.max_input_tokens !== 0) {
+            writer.uint32(40).uint32(message.max_input_tokens);
+        }
+        if (message.max_output_tokens !== 0) {
+            writer.uint32(48).uint32(message.max_output_tokens);
+        }
+        if (message.max_context_tokens !== 0) {
+            writer.uint32(56).uint32(message.max_context_tokens);
+        }
+        if (message.history_policy !== "") {
+            writer.uint32(66).string(message.history_policy);
+        }
+        if (message.daily_token_quota !== 0) {
+            writer.uint32(72).uint32(message.daily_token_quota);
+        }
+        if (message.daily_request_quota !== 0) {
+            writer.uint32(80).uint32(message.daily_request_quota);
+        }
+        if (message.minute_request_quota !== 0) {
+            writer.uint32(88).uint32(message.minute_request_quota);
+        }
+        if (message.allow_free_chat !== false) {
+            writer.uint32(96).bool(message.allow_free_chat);
+        }
+        for (const v of message.allowed_topics) {
+            writer.uint32(106).string(v);
+        }
+        for (const v of message.deny_keywords) {
+            writer.uint32(114).string(v);
+        }
+        if (message.enable_audit !== false) {
+            writer.uint32(120).bool(message.enable_audit);
+        }
+        if (message.classifier_type !== "") {
+            writer.uint32(130).string(message.classifier_type);
+        }
+        if (message.llm_endpoint !== "") {
+            writer.uint32(138).string(message.llm_endpoint);
+        }
+        if (message.llm_model !== "") {
+            writer.uint32(146).string(message.llm_model);
+        }
+        if (message.llm_system_prompt !== "") {
+            writer.uint32(154).string(message.llm_system_prompt);
+        }
+        if (message.llm_timeout_ms !== 0) {
+            writer.uint32(160).uint32(message.llm_timeout_ms);
+        }
+        if (message.llm_confidence_threshold !== 0) {
+            writer.uint32(173).float(message.llm_confidence_threshold);
+        }
+        if (message.body_map !== undefined) {
+            exports.AiBodyFieldMap.encode(message.body_map, writer.uint32(178).fork()).join();
+        }
+        if (message.quota_window_secs !== 0) {
+            writer.uint32(184).uint32(message.quota_window_secs);
+        }
+        if (message.business_description !== "") {
+            writer.uint32(194).string(message.business_description);
+        }
+        for (const v of message.valid_intent_examples) {
+            writer.uint32(202).string(v);
+        }
+        for (const v of message.invalid_intent_examples) {
+            writer.uint32(210).string(v);
+        }
+        for (const v of message.endpoint_overrides) {
+            exports.AiGuardEndpointConfig.encode(v, writer.uint32(218).fork()).join();
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseServiceAiGuardConfig();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 8) {
+                        break;
+                    }
+                    message.enabled = reader.bool();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.mode = reader.string();
+                    continue;
+                }
+                case 3: {
+                    if (tag !== 26) {
+                        break;
+                    }
+                    message.include_paths.push(reader.string());
+                    continue;
+                }
+                case 4: {
+                    if (tag !== 32) {
+                        break;
+                    }
+                    message.request_body_max_bytes = reader.uint32();
+                    continue;
+                }
+                case 5: {
+                    if (tag !== 40) {
+                        break;
+                    }
+                    message.max_input_tokens = reader.uint32();
+                    continue;
+                }
+                case 6: {
+                    if (tag !== 48) {
+                        break;
+                    }
+                    message.max_output_tokens = reader.uint32();
+                    continue;
+                }
+                case 7: {
+                    if (tag !== 56) {
+                        break;
+                    }
+                    message.max_context_tokens = reader.uint32();
+                    continue;
+                }
+                case 8: {
+                    if (tag !== 66) {
+                        break;
+                    }
+                    message.history_policy = reader.string();
+                    continue;
+                }
+                case 9: {
+                    if (tag !== 72) {
+                        break;
+                    }
+                    message.daily_token_quota = reader.uint32();
+                    continue;
+                }
+                case 10: {
+                    if (tag !== 80) {
+                        break;
+                    }
+                    message.daily_request_quota = reader.uint32();
+                    continue;
+                }
+                case 11: {
+                    if (tag !== 88) {
+                        break;
+                    }
+                    message.minute_request_quota = reader.uint32();
+                    continue;
+                }
+                case 12: {
+                    if (tag !== 96) {
+                        break;
+                    }
+                    message.allow_free_chat = reader.bool();
+                    continue;
+                }
+                case 13: {
+                    if (tag !== 106) {
+                        break;
+                    }
+                    message.allowed_topics.push(reader.string());
+                    continue;
+                }
+                case 14: {
+                    if (tag !== 114) {
+                        break;
+                    }
+                    message.deny_keywords.push(reader.string());
+                    continue;
+                }
+                case 15: {
+                    if (tag !== 120) {
+                        break;
+                    }
+                    message.enable_audit = reader.bool();
+                    continue;
+                }
+                case 16: {
+                    if (tag !== 130) {
+                        break;
+                    }
+                    message.classifier_type = reader.string();
+                    continue;
+                }
+                case 17: {
+                    if (tag !== 138) {
+                        break;
+                    }
+                    message.llm_endpoint = reader.string();
+                    continue;
+                }
+                case 18: {
+                    if (tag !== 146) {
+                        break;
+                    }
+                    message.llm_model = reader.string();
+                    continue;
+                }
+                case 19: {
+                    if (tag !== 154) {
+                        break;
+                    }
+                    message.llm_system_prompt = reader.string();
+                    continue;
+                }
+                case 20: {
+                    if (tag !== 160) {
+                        break;
+                    }
+                    message.llm_timeout_ms = reader.uint32();
+                    continue;
+                }
+                case 21: {
+                    if (tag !== 173) {
+                        break;
+                    }
+                    message.llm_confidence_threshold = reader.float();
+                    continue;
+                }
+                case 22: {
+                    if (tag !== 178) {
+                        break;
+                    }
+                    message.body_map = exports.AiBodyFieldMap.decode(reader, reader.uint32());
+                    continue;
+                }
+                case 23: {
+                    if (tag !== 184) {
+                        break;
+                    }
+                    message.quota_window_secs = reader.uint32();
+                    continue;
+                }
+                case 24: {
+                    if (tag !== 194) {
+                        break;
+                    }
+                    message.business_description = reader.string();
+                    continue;
+                }
+                case 25: {
+                    if (tag !== 202) {
+                        break;
+                    }
+                    message.valid_intent_examples.push(reader.string());
+                    continue;
+                }
+                case 26: {
+                    if (tag !== 210) {
+                        break;
+                    }
+                    message.invalid_intent_examples.push(reader.string());
+                    continue;
+                }
+                case 27: {
+                    if (tag !== 218) {
+                        break;
+                    }
+                    message.endpoint_overrides.push(exports.AiGuardEndpointConfig.decode(reader, reader.uint32()));
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            enabled: isSet(object.enabled) ? globalThis.Boolean(object.enabled) : false,
+            mode: isSet(object.mode) ? globalThis.String(object.mode) : "",
+            include_paths: globalThis.Array.isArray(object?.include_paths)
+                ? object.include_paths.map((e) => globalThis.String(e))
+                : [],
+            request_body_max_bytes: isSet(object.request_body_max_bytes)
+                ? globalThis.Number(object.request_body_max_bytes)
+                : 0,
+            max_input_tokens: isSet(object.max_input_tokens) ? globalThis.Number(object.max_input_tokens) : 0,
+            max_output_tokens: isSet(object.max_output_tokens) ? globalThis.Number(object.max_output_tokens) : 0,
+            max_context_tokens: isSet(object.max_context_tokens) ? globalThis.Number(object.max_context_tokens) : 0,
+            history_policy: isSet(object.history_policy) ? globalThis.String(object.history_policy) : "",
+            daily_token_quota: isSet(object.daily_token_quota) ? globalThis.Number(object.daily_token_quota) : 0,
+            daily_request_quota: isSet(object.daily_request_quota) ? globalThis.Number(object.daily_request_quota) : 0,
+            minute_request_quota: isSet(object.minute_request_quota) ? globalThis.Number(object.minute_request_quota) : 0,
+            allow_free_chat: isSet(object.allow_free_chat) ? globalThis.Boolean(object.allow_free_chat) : false,
+            allowed_topics: globalThis.Array.isArray(object?.allowed_topics)
+                ? object.allowed_topics.map((e) => globalThis.String(e))
+                : [],
+            deny_keywords: globalThis.Array.isArray(object?.deny_keywords)
+                ? object.deny_keywords.map((e) => globalThis.String(e))
+                : [],
+            enable_audit: isSet(object.enable_audit) ? globalThis.Boolean(object.enable_audit) : false,
+            classifier_type: isSet(object.classifier_type) ? globalThis.String(object.classifier_type) : "",
+            llm_endpoint: isSet(object.llm_endpoint) ? globalThis.String(object.llm_endpoint) : "",
+            llm_model: isSet(object.llm_model) ? globalThis.String(object.llm_model) : "",
+            llm_system_prompt: isSet(object.llm_system_prompt) ? globalThis.String(object.llm_system_prompt) : "",
+            llm_timeout_ms: isSet(object.llm_timeout_ms) ? globalThis.Number(object.llm_timeout_ms) : 0,
+            llm_confidence_threshold: isSet(object.llm_confidence_threshold)
+                ? globalThis.Number(object.llm_confidence_threshold)
+                : 0,
+            body_map: isSet(object.body_map) ? exports.AiBodyFieldMap.fromJSON(object.body_map) : undefined,
+            quota_window_secs: isSet(object.quota_window_secs) ? globalThis.Number(object.quota_window_secs) : 0,
+            business_description: isSet(object.business_description) ? globalThis.String(object.business_description) : "",
+            valid_intent_examples: globalThis.Array.isArray(object?.valid_intent_examples)
+                ? object.valid_intent_examples.map((e) => globalThis.String(e))
+                : [],
+            invalid_intent_examples: globalThis.Array.isArray(object?.invalid_intent_examples)
+                ? object.invalid_intent_examples.map((e) => globalThis.String(e))
+                : [],
+            endpoint_overrides: globalThis.Array.isArray(object?.endpoint_overrides)
+                ? object.endpoint_overrides.map((e) => exports.AiGuardEndpointConfig.fromJSON(e))
+                : [],
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.enabled !== false) {
+            obj.enabled = message.enabled;
+        }
+        if (message.mode !== "") {
+            obj.mode = message.mode;
+        }
+        if (message.include_paths?.length) {
+            obj.include_paths = message.include_paths;
+        }
+        if (message.request_body_max_bytes !== 0) {
+            obj.request_body_max_bytes = Math.round(message.request_body_max_bytes);
+        }
+        if (message.max_input_tokens !== 0) {
+            obj.max_input_tokens = Math.round(message.max_input_tokens);
+        }
+        if (message.max_output_tokens !== 0) {
+            obj.max_output_tokens = Math.round(message.max_output_tokens);
+        }
+        if (message.max_context_tokens !== 0) {
+            obj.max_context_tokens = Math.round(message.max_context_tokens);
+        }
+        if (message.history_policy !== "") {
+            obj.history_policy = message.history_policy;
+        }
+        if (message.daily_token_quota !== 0) {
+            obj.daily_token_quota = Math.round(message.daily_token_quota);
+        }
+        if (message.daily_request_quota !== 0) {
+            obj.daily_request_quota = Math.round(message.daily_request_quota);
+        }
+        if (message.minute_request_quota !== 0) {
+            obj.minute_request_quota = Math.round(message.minute_request_quota);
+        }
+        if (message.allow_free_chat !== false) {
+            obj.allow_free_chat = message.allow_free_chat;
+        }
+        if (message.allowed_topics?.length) {
+            obj.allowed_topics = message.allowed_topics;
+        }
+        if (message.deny_keywords?.length) {
+            obj.deny_keywords = message.deny_keywords;
+        }
+        if (message.enable_audit !== false) {
+            obj.enable_audit = message.enable_audit;
+        }
+        if (message.classifier_type !== "") {
+            obj.classifier_type = message.classifier_type;
+        }
+        if (message.llm_endpoint !== "") {
+            obj.llm_endpoint = message.llm_endpoint;
+        }
+        if (message.llm_model !== "") {
+            obj.llm_model = message.llm_model;
+        }
+        if (message.llm_system_prompt !== "") {
+            obj.llm_system_prompt = message.llm_system_prompt;
+        }
+        if (message.llm_timeout_ms !== 0) {
+            obj.llm_timeout_ms = Math.round(message.llm_timeout_ms);
+        }
+        if (message.llm_confidence_threshold !== 0) {
+            obj.llm_confidence_threshold = message.llm_confidence_threshold;
+        }
+        if (message.body_map !== undefined) {
+            obj.body_map = exports.AiBodyFieldMap.toJSON(message.body_map);
+        }
+        if (message.quota_window_secs !== 0) {
+            obj.quota_window_secs = Math.round(message.quota_window_secs);
+        }
+        if (message.business_description !== "") {
+            obj.business_description = message.business_description;
+        }
+        if (message.valid_intent_examples?.length) {
+            obj.valid_intent_examples = message.valid_intent_examples;
+        }
+        if (message.invalid_intent_examples?.length) {
+            obj.invalid_intent_examples = message.invalid_intent_examples;
+        }
+        if (message.endpoint_overrides?.length) {
+            obj.endpoint_overrides = message.endpoint_overrides.map((e) => exports.AiGuardEndpointConfig.toJSON(e));
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.ServiceAiGuardConfig.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseServiceAiGuardConfig();
+        message.enabled = object.enabled ?? false;
+        message.mode = object.mode ?? "";
+        message.include_paths = object.include_paths?.map((e) => e) || [];
+        message.request_body_max_bytes = object.request_body_max_bytes ?? 0;
+        message.max_input_tokens = object.max_input_tokens ?? 0;
+        message.max_output_tokens = object.max_output_tokens ?? 0;
+        message.max_context_tokens = object.max_context_tokens ?? 0;
+        message.history_policy = object.history_policy ?? "";
+        message.daily_token_quota = object.daily_token_quota ?? 0;
+        message.daily_request_quota = object.daily_request_quota ?? 0;
+        message.minute_request_quota = object.minute_request_quota ?? 0;
+        message.allow_free_chat = object.allow_free_chat ?? false;
+        message.allowed_topics = object.allowed_topics?.map((e) => e) || [];
+        message.deny_keywords = object.deny_keywords?.map((e) => e) || [];
+        message.enable_audit = object.enable_audit ?? false;
+        message.classifier_type = object.classifier_type ?? "";
+        message.llm_endpoint = object.llm_endpoint ?? "";
+        message.llm_model = object.llm_model ?? "";
+        message.llm_system_prompt = object.llm_system_prompt ?? "";
+        message.llm_timeout_ms = object.llm_timeout_ms ?? 0;
+        message.llm_confidence_threshold = object.llm_confidence_threshold ?? 0;
+        message.body_map = (object.body_map !== undefined && object.body_map !== null)
+            ? exports.AiBodyFieldMap.fromPartial(object.body_map)
+            : undefined;
+        message.quota_window_secs = object.quota_window_secs ?? 0;
+        message.business_description = object.business_description ?? "";
+        message.valid_intent_examples = object.valid_intent_examples?.map((e) => e) || [];
+        message.invalid_intent_examples = object.invalid_intent_examples?.map((e) => e) || [];
+        message.endpoint_overrides = object.endpoint_overrides?.map((e) => exports.AiGuardEndpointConfig.fromPartial(e)) || [];
+        return message;
+    },
+};
+function createBaseAiGuardEndpointConfig() {
+    return {
+        endpoint_id: "",
+        exact_paths: [],
+        prefix_paths: [],
+        pattern_paths: [],
+        disabled: undefined,
+        mode: "",
+        request_body_max_bytes: 0,
+        max_input_tokens: 0,
+        max_output_tokens: 0,
+        max_context_tokens: 0,
+        history_policy: "",
+        daily_token_quota: 0,
+        daily_request_quota: 0,
+        minute_request_quota: 0,
+        quota_window_secs: 0,
+        allow_free_chat: undefined,
+        allowed_topics: [],
+        deny_keywords: [],
+        enable_audit: undefined,
+        classifier_type: "",
+        llm_endpoint: "",
+        llm_model: "",
+        llm_system_prompt: "",
+        business_description: "",
+        valid_intent_examples: [],
+        invalid_intent_examples: [],
+        llm_timeout_ms: 0,
+        llm_confidence_threshold: 0,
+        body_map: undefined,
+    };
+}
+exports.AiGuardEndpointConfig = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.endpoint_id !== "") {
+            writer.uint32(10).string(message.endpoint_id);
+        }
+        for (const v of message.exact_paths) {
+            writer.uint32(18).string(v);
+        }
+        for (const v of message.prefix_paths) {
+            writer.uint32(26).string(v);
+        }
+        for (const v of message.pattern_paths) {
+            writer.uint32(234).string(v);
+        }
+        if (message.disabled !== undefined) {
+            writer.uint32(32).bool(message.disabled);
+        }
+        if (message.mode !== "") {
+            writer.uint32(42).string(message.mode);
+        }
+        if (message.request_body_max_bytes !== 0) {
+            writer.uint32(48).uint32(message.request_body_max_bytes);
+        }
+        if (message.max_input_tokens !== 0) {
+            writer.uint32(56).uint32(message.max_input_tokens);
+        }
+        if (message.max_output_tokens !== 0) {
+            writer.uint32(64).uint32(message.max_output_tokens);
+        }
+        if (message.max_context_tokens !== 0) {
+            writer.uint32(72).uint32(message.max_context_tokens);
+        }
+        if (message.history_policy !== "") {
+            writer.uint32(82).string(message.history_policy);
+        }
+        if (message.daily_token_quota !== 0) {
+            writer.uint32(88).uint32(message.daily_token_quota);
+        }
+        if (message.daily_request_quota !== 0) {
+            writer.uint32(96).uint32(message.daily_request_quota);
+        }
+        if (message.minute_request_quota !== 0) {
+            writer.uint32(104).uint32(message.minute_request_quota);
+        }
+        if (message.quota_window_secs !== 0) {
+            writer.uint32(112).uint32(message.quota_window_secs);
+        }
+        if (message.allow_free_chat !== undefined) {
+            writer.uint32(120).bool(message.allow_free_chat);
+        }
+        for (const v of message.allowed_topics) {
+            writer.uint32(130).string(v);
+        }
+        for (const v of message.deny_keywords) {
+            writer.uint32(138).string(v);
+        }
+        if (message.enable_audit !== undefined) {
+            writer.uint32(144).bool(message.enable_audit);
+        }
+        if (message.classifier_type !== "") {
+            writer.uint32(154).string(message.classifier_type);
+        }
+        if (message.llm_endpoint !== "") {
+            writer.uint32(162).string(message.llm_endpoint);
+        }
+        if (message.llm_model !== "") {
+            writer.uint32(170).string(message.llm_model);
+        }
+        if (message.llm_system_prompt !== "") {
+            writer.uint32(178).string(message.llm_system_prompt);
+        }
+        if (message.business_description !== "") {
+            writer.uint32(186).string(message.business_description);
+        }
+        for (const v of message.valid_intent_examples) {
+            writer.uint32(194).string(v);
+        }
+        for (const v of message.invalid_intent_examples) {
+            writer.uint32(202).string(v);
+        }
+        if (message.llm_timeout_ms !== 0) {
+            writer.uint32(208).uint32(message.llm_timeout_ms);
+        }
+        if (message.llm_confidence_threshold !== 0) {
+            writer.uint32(221).float(message.llm_confidence_threshold);
+        }
+        if (message.body_map !== undefined) {
+            exports.AiBodyFieldMap.encode(message.body_map, writer.uint32(226).fork()).join();
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseAiGuardEndpointConfig();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.endpoint_id = reader.string();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.exact_paths.push(reader.string());
+                    continue;
+                }
+                case 3: {
+                    if (tag !== 26) {
+                        break;
+                    }
+                    message.prefix_paths.push(reader.string());
+                    continue;
+                }
+                case 29: {
+                    if (tag !== 234) {
+                        break;
+                    }
+                    message.pattern_paths.push(reader.string());
+                    continue;
+                }
+                case 4: {
+                    if (tag !== 32) {
+                        break;
+                    }
+                    message.disabled = reader.bool();
+                    continue;
+                }
+                case 5: {
+                    if (tag !== 42) {
+                        break;
+                    }
+                    message.mode = reader.string();
+                    continue;
+                }
+                case 6: {
+                    if (tag !== 48) {
+                        break;
+                    }
+                    message.request_body_max_bytes = reader.uint32();
+                    continue;
+                }
+                case 7: {
+                    if (tag !== 56) {
+                        break;
+                    }
+                    message.max_input_tokens = reader.uint32();
+                    continue;
+                }
+                case 8: {
+                    if (tag !== 64) {
+                        break;
+                    }
+                    message.max_output_tokens = reader.uint32();
+                    continue;
+                }
+                case 9: {
+                    if (tag !== 72) {
+                        break;
+                    }
+                    message.max_context_tokens = reader.uint32();
+                    continue;
+                }
+                case 10: {
+                    if (tag !== 82) {
+                        break;
+                    }
+                    message.history_policy = reader.string();
+                    continue;
+                }
+                case 11: {
+                    if (tag !== 88) {
+                        break;
+                    }
+                    message.daily_token_quota = reader.uint32();
+                    continue;
+                }
+                case 12: {
+                    if (tag !== 96) {
+                        break;
+                    }
+                    message.daily_request_quota = reader.uint32();
+                    continue;
+                }
+                case 13: {
+                    if (tag !== 104) {
+                        break;
+                    }
+                    message.minute_request_quota = reader.uint32();
+                    continue;
+                }
+                case 14: {
+                    if (tag !== 112) {
+                        break;
+                    }
+                    message.quota_window_secs = reader.uint32();
+                    continue;
+                }
+                case 15: {
+                    if (tag !== 120) {
+                        break;
+                    }
+                    message.allow_free_chat = reader.bool();
+                    continue;
+                }
+                case 16: {
+                    if (tag !== 130) {
+                        break;
+                    }
+                    message.allowed_topics.push(reader.string());
+                    continue;
+                }
+                case 17: {
+                    if (tag !== 138) {
+                        break;
+                    }
+                    message.deny_keywords.push(reader.string());
+                    continue;
+                }
+                case 18: {
+                    if (tag !== 144) {
+                        break;
+                    }
+                    message.enable_audit = reader.bool();
+                    continue;
+                }
+                case 19: {
+                    if (tag !== 154) {
+                        break;
+                    }
+                    message.classifier_type = reader.string();
+                    continue;
+                }
+                case 20: {
+                    if (tag !== 162) {
+                        break;
+                    }
+                    message.llm_endpoint = reader.string();
+                    continue;
+                }
+                case 21: {
+                    if (tag !== 170) {
+                        break;
+                    }
+                    message.llm_model = reader.string();
+                    continue;
+                }
+                case 22: {
+                    if (tag !== 178) {
+                        break;
+                    }
+                    message.llm_system_prompt = reader.string();
+                    continue;
+                }
+                case 23: {
+                    if (tag !== 186) {
+                        break;
+                    }
+                    message.business_description = reader.string();
+                    continue;
+                }
+                case 24: {
+                    if (tag !== 194) {
+                        break;
+                    }
+                    message.valid_intent_examples.push(reader.string());
+                    continue;
+                }
+                case 25: {
+                    if (tag !== 202) {
+                        break;
+                    }
+                    message.invalid_intent_examples.push(reader.string());
+                    continue;
+                }
+                case 26: {
+                    if (tag !== 208) {
+                        break;
+                    }
+                    message.llm_timeout_ms = reader.uint32();
+                    continue;
+                }
+                case 27: {
+                    if (tag !== 221) {
+                        break;
+                    }
+                    message.llm_confidence_threshold = reader.float();
+                    continue;
+                }
+                case 28: {
+                    if (tag !== 226) {
+                        break;
+                    }
+                    message.body_map = exports.AiBodyFieldMap.decode(reader, reader.uint32());
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            endpoint_id: isSet(object.endpoint_id) ? globalThis.String(object.endpoint_id) : "",
+            exact_paths: globalThis.Array.isArray(object?.exact_paths)
+                ? object.exact_paths.map((e) => globalThis.String(e))
+                : [],
+            prefix_paths: globalThis.Array.isArray(object?.prefix_paths)
+                ? object.prefix_paths.map((e) => globalThis.String(e))
+                : [],
+            pattern_paths: globalThis.Array.isArray(object?.pattern_paths)
+                ? object.pattern_paths.map((e) => globalThis.String(e))
+                : [],
+            disabled: isSet(object.disabled) ? globalThis.Boolean(object.disabled) : undefined,
+            mode: isSet(object.mode) ? globalThis.String(object.mode) : "",
+            request_body_max_bytes: isSet(object.request_body_max_bytes)
+                ? globalThis.Number(object.request_body_max_bytes)
+                : 0,
+            max_input_tokens: isSet(object.max_input_tokens) ? globalThis.Number(object.max_input_tokens) : 0,
+            max_output_tokens: isSet(object.max_output_tokens) ? globalThis.Number(object.max_output_tokens) : 0,
+            max_context_tokens: isSet(object.max_context_tokens) ? globalThis.Number(object.max_context_tokens) : 0,
+            history_policy: isSet(object.history_policy) ? globalThis.String(object.history_policy) : "",
+            daily_token_quota: isSet(object.daily_token_quota) ? globalThis.Number(object.daily_token_quota) : 0,
+            daily_request_quota: isSet(object.daily_request_quota) ? globalThis.Number(object.daily_request_quota) : 0,
+            minute_request_quota: isSet(object.minute_request_quota) ? globalThis.Number(object.minute_request_quota) : 0,
+            quota_window_secs: isSet(object.quota_window_secs) ? globalThis.Number(object.quota_window_secs) : 0,
+            allow_free_chat: isSet(object.allow_free_chat) ? globalThis.Boolean(object.allow_free_chat) : undefined,
+            allowed_topics: globalThis.Array.isArray(object?.allowed_topics)
+                ? object.allowed_topics.map((e) => globalThis.String(e))
+                : [],
+            deny_keywords: globalThis.Array.isArray(object?.deny_keywords)
+                ? object.deny_keywords.map((e) => globalThis.String(e))
+                : [],
+            enable_audit: isSet(object.enable_audit) ? globalThis.Boolean(object.enable_audit) : undefined,
+            classifier_type: isSet(object.classifier_type) ? globalThis.String(object.classifier_type) : "",
+            llm_endpoint: isSet(object.llm_endpoint) ? globalThis.String(object.llm_endpoint) : "",
+            llm_model: isSet(object.llm_model) ? globalThis.String(object.llm_model) : "",
+            llm_system_prompt: isSet(object.llm_system_prompt) ? globalThis.String(object.llm_system_prompt) : "",
+            business_description: isSet(object.business_description) ? globalThis.String(object.business_description) : "",
+            valid_intent_examples: globalThis.Array.isArray(object?.valid_intent_examples)
+                ? object.valid_intent_examples.map((e) => globalThis.String(e))
+                : [],
+            invalid_intent_examples: globalThis.Array.isArray(object?.invalid_intent_examples)
+                ? object.invalid_intent_examples.map((e) => globalThis.String(e))
+                : [],
+            llm_timeout_ms: isSet(object.llm_timeout_ms) ? globalThis.Number(object.llm_timeout_ms) : 0,
+            llm_confidence_threshold: isSet(object.llm_confidence_threshold)
+                ? globalThis.Number(object.llm_confidence_threshold)
+                : 0,
+            body_map: isSet(object.body_map) ? exports.AiBodyFieldMap.fromJSON(object.body_map) : undefined,
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.endpoint_id !== "") {
+            obj.endpoint_id = message.endpoint_id;
+        }
+        if (message.exact_paths?.length) {
+            obj.exact_paths = message.exact_paths;
+        }
+        if (message.prefix_paths?.length) {
+            obj.prefix_paths = message.prefix_paths;
+        }
+        if (message.pattern_paths?.length) {
+            obj.pattern_paths = message.pattern_paths;
+        }
+        if (message.disabled !== undefined) {
+            obj.disabled = message.disabled;
+        }
+        if (message.mode !== "") {
+            obj.mode = message.mode;
+        }
+        if (message.request_body_max_bytes !== 0) {
+            obj.request_body_max_bytes = Math.round(message.request_body_max_bytes);
+        }
+        if (message.max_input_tokens !== 0) {
+            obj.max_input_tokens = Math.round(message.max_input_tokens);
+        }
+        if (message.max_output_tokens !== 0) {
+            obj.max_output_tokens = Math.round(message.max_output_tokens);
+        }
+        if (message.max_context_tokens !== 0) {
+            obj.max_context_tokens = Math.round(message.max_context_tokens);
+        }
+        if (message.history_policy !== "") {
+            obj.history_policy = message.history_policy;
+        }
+        if (message.daily_token_quota !== 0) {
+            obj.daily_token_quota = Math.round(message.daily_token_quota);
+        }
+        if (message.daily_request_quota !== 0) {
+            obj.daily_request_quota = Math.round(message.daily_request_quota);
+        }
+        if (message.minute_request_quota !== 0) {
+            obj.minute_request_quota = Math.round(message.minute_request_quota);
+        }
+        if (message.quota_window_secs !== 0) {
+            obj.quota_window_secs = Math.round(message.quota_window_secs);
+        }
+        if (message.allow_free_chat !== undefined) {
+            obj.allow_free_chat = message.allow_free_chat;
+        }
+        if (message.allowed_topics?.length) {
+            obj.allowed_topics = message.allowed_topics;
+        }
+        if (message.deny_keywords?.length) {
+            obj.deny_keywords = message.deny_keywords;
+        }
+        if (message.enable_audit !== undefined) {
+            obj.enable_audit = message.enable_audit;
+        }
+        if (message.classifier_type !== "") {
+            obj.classifier_type = message.classifier_type;
+        }
+        if (message.llm_endpoint !== "") {
+            obj.llm_endpoint = message.llm_endpoint;
+        }
+        if (message.llm_model !== "") {
+            obj.llm_model = message.llm_model;
+        }
+        if (message.llm_system_prompt !== "") {
+            obj.llm_system_prompt = message.llm_system_prompt;
+        }
+        if (message.business_description !== "") {
+            obj.business_description = message.business_description;
+        }
+        if (message.valid_intent_examples?.length) {
+            obj.valid_intent_examples = message.valid_intent_examples;
+        }
+        if (message.invalid_intent_examples?.length) {
+            obj.invalid_intent_examples = message.invalid_intent_examples;
+        }
+        if (message.llm_timeout_ms !== 0) {
+            obj.llm_timeout_ms = Math.round(message.llm_timeout_ms);
+        }
+        if (message.llm_confidence_threshold !== 0) {
+            obj.llm_confidence_threshold = message.llm_confidence_threshold;
+        }
+        if (message.body_map !== undefined) {
+            obj.body_map = exports.AiBodyFieldMap.toJSON(message.body_map);
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.AiGuardEndpointConfig.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseAiGuardEndpointConfig();
+        message.endpoint_id = object.endpoint_id ?? "";
+        message.exact_paths = object.exact_paths?.map((e) => e) || [];
+        message.prefix_paths = object.prefix_paths?.map((e) => e) || [];
+        message.pattern_paths = object.pattern_paths?.map((e) => e) || [];
+        message.disabled = object.disabled ?? undefined;
+        message.mode = object.mode ?? "";
+        message.request_body_max_bytes = object.request_body_max_bytes ?? 0;
+        message.max_input_tokens = object.max_input_tokens ?? 0;
+        message.max_output_tokens = object.max_output_tokens ?? 0;
+        message.max_context_tokens = object.max_context_tokens ?? 0;
+        message.history_policy = object.history_policy ?? "";
+        message.daily_token_quota = object.daily_token_quota ?? 0;
+        message.daily_request_quota = object.daily_request_quota ?? 0;
+        message.minute_request_quota = object.minute_request_quota ?? 0;
+        message.quota_window_secs = object.quota_window_secs ?? 0;
+        message.allow_free_chat = object.allow_free_chat ?? undefined;
+        message.allowed_topics = object.allowed_topics?.map((e) => e) || [];
+        message.deny_keywords = object.deny_keywords?.map((e) => e) || [];
+        message.enable_audit = object.enable_audit ?? undefined;
+        message.classifier_type = object.classifier_type ?? "";
+        message.llm_endpoint = object.llm_endpoint ?? "";
+        message.llm_model = object.llm_model ?? "";
+        message.llm_system_prompt = object.llm_system_prompt ?? "";
+        message.business_description = object.business_description ?? "";
+        message.valid_intent_examples = object.valid_intent_examples?.map((e) => e) || [];
+        message.invalid_intent_examples = object.invalid_intent_examples?.map((e) => e) || [];
+        message.llm_timeout_ms = object.llm_timeout_ms ?? 0;
+        message.llm_confidence_threshold = object.llm_confidence_threshold ?? 0;
+        message.body_map = (object.body_map !== undefined && object.body_map !== null)
+            ? exports.AiBodyFieldMap.fromPartial(object.body_map)
+            : undefined;
+        return message;
+    },
+};
 function createBaseServiceMiddlewareConfig() {
     return {
         rate_limit_enabled: false,
@@ -1240,6 +2405,8 @@ function createBaseServiceMiddlewareConfig() {
         risk: undefined,
         turnstile_enabled: false,
         turnstile: undefined,
+        ai_guard_enabled: false,
+        ai_guard: undefined,
     };
 }
 exports.ServiceMiddlewareConfig = {
@@ -1270,6 +2437,12 @@ exports.ServiceMiddlewareConfig = {
         }
         if (message.turnstile !== undefined) {
             exports.ServiceTurnstileConfig.encode(message.turnstile, writer.uint32(250).fork()).join();
+        }
+        if (message.ai_guard_enabled !== false) {
+            writer.uint32(320).bool(message.ai_guard_enabled);
+        }
+        if (message.ai_guard !== undefined) {
+            exports.ServiceAiGuardConfig.encode(message.ai_guard, writer.uint32(330).fork()).join();
         }
         return writer;
     },
@@ -1343,6 +2516,20 @@ exports.ServiceMiddlewareConfig = {
                     message.turnstile = exports.ServiceTurnstileConfig.decode(reader, reader.uint32());
                     continue;
                 }
+                case 40: {
+                    if (tag !== 320) {
+                        break;
+                    }
+                    message.ai_guard_enabled = reader.bool();
+                    continue;
+                }
+                case 41: {
+                    if (tag !== 330) {
+                        break;
+                    }
+                    message.ai_guard = exports.ServiceAiGuardConfig.decode(reader, reader.uint32());
+                    continue;
+                }
             }
             if ((tag & 7) === 4 || tag === 0) {
                 break;
@@ -1362,6 +2549,8 @@ exports.ServiceMiddlewareConfig = {
             risk: isSet(object.risk) ? exports.ServiceRiskConfig.fromJSON(object.risk) : undefined,
             turnstile_enabled: isSet(object.turnstile_enabled) ? globalThis.Boolean(object.turnstile_enabled) : false,
             turnstile: isSet(object.turnstile) ? exports.ServiceTurnstileConfig.fromJSON(object.turnstile) : undefined,
+            ai_guard_enabled: isSet(object.ai_guard_enabled) ? globalThis.Boolean(object.ai_guard_enabled) : false,
+            ai_guard: isSet(object.ai_guard) ? exports.ServiceAiGuardConfig.fromJSON(object.ai_guard) : undefined,
         };
     },
     toJSON(message) {
@@ -1393,6 +2582,12 @@ exports.ServiceMiddlewareConfig = {
         if (message.turnstile !== undefined) {
             obj.turnstile = exports.ServiceTurnstileConfig.toJSON(message.turnstile);
         }
+        if (message.ai_guard_enabled !== false) {
+            obj.ai_guard_enabled = message.ai_guard_enabled;
+        }
+        if (message.ai_guard !== undefined) {
+            obj.ai_guard = exports.ServiceAiGuardConfig.toJSON(message.ai_guard);
+        }
         return obj;
     },
     create(base) {
@@ -1415,6 +2610,10 @@ exports.ServiceMiddlewareConfig = {
         message.turnstile = (object.turnstile !== undefined && object.turnstile !== null)
             ? exports.ServiceTurnstileConfig.fromPartial(object.turnstile)
             : undefined;
+        message.ai_guard_enabled = object.ai_guard_enabled ?? false;
+        message.ai_guard = (object.ai_guard !== undefined && object.ai_guard !== null)
+            ? exports.ServiceAiGuardConfig.fromPartial(object.ai_guard)
+            : undefined;
         return message;
     },
 };
@@ -1424,7 +2623,7 @@ function createBaseServiceInstance() {
         instance_id: "",
         lb: undefined,
         version: "",
-        metadata: undefined,
+        metadata: {},
         health_endpoint: "",
         health_check_config: undefined,
         registered_at: undefined,
@@ -1451,9 +2650,9 @@ exports.ServiceInstance = {
         if (message.version !== "") {
             writer.uint32(42).string(message.version);
         }
-        if (message.metadata !== undefined) {
-            struct_1.Struct.encode(struct_1.Struct.wrap(message.metadata), writer.uint32(50).fork()).join();
-        }
+        globalThis.Object.entries(message.metadata).forEach(([key, value]) => {
+            exports.ServiceInstance_MetadataEntry.encode({ key: key, value }, writer.uint32(50).fork()).join();
+        });
         if (message.health_endpoint !== "") {
             writer.uint32(58).string(message.health_endpoint);
         }
@@ -1525,7 +2724,10 @@ exports.ServiceInstance = {
                     if (tag !== 50) {
                         break;
                     }
-                    message.metadata = struct_1.Struct.unwrap(struct_1.Struct.decode(reader, reader.uint32()));
+                    const entry6 = exports.ServiceInstance_MetadataEntry.decode(reader, reader.uint32());
+                    if (entry6.value !== undefined) {
+                        message.metadata[entry6.key] = entry6.value;
+                    }
                     continue;
                 }
                 case 7: {
@@ -1615,7 +2817,12 @@ exports.ServiceInstance = {
             instance_id: isSet(object.instance_id) ? globalThis.String(object.instance_id) : "",
             lb: isSet(object.lb) ? exports.LoadBalancer.fromJSON(object.lb) : undefined,
             version: isSet(object.version) ? globalThis.String(object.version) : "",
-            metadata: isObject(object.metadata) ? object.metadata : undefined,
+            metadata: isObject(object.metadata)
+                ? globalThis.Object.entries(object.metadata).reduce((acc, [key, value]) => {
+                    acc[key] = any_1.Any.fromJSON(value);
+                    return acc;
+                }, {})
+                : {},
             health_endpoint: isSet(object.health_endpoint) ? globalThis.String(object.health_endpoint) : "",
             health_check_config: isSet(object.health_check_config)
                 ? exports.HealthCheckConfig.fromJSON(object.health_check_config)
@@ -1653,8 +2860,14 @@ exports.ServiceInstance = {
         if (message.version !== "") {
             obj.version = message.version;
         }
-        if (message.metadata !== undefined) {
-            obj.metadata = message.metadata;
+        if (message.metadata) {
+            const entries = globalThis.Object.entries(message.metadata);
+            if (entries.length > 0) {
+                obj.metadata = {};
+                entries.forEach(([k, v]) => {
+                    obj.metadata[k] = any_1.Any.toJSON(v);
+                });
+            }
         }
         if (message.health_endpoint !== "") {
             obj.health_endpoint = message.health_endpoint;
@@ -1703,7 +2916,12 @@ exports.ServiceInstance = {
         message.instance_id = object.instance_id ?? "";
         message.lb = (object.lb !== undefined && object.lb !== null) ? exports.LoadBalancer.fromPartial(object.lb) : undefined;
         message.version = object.version ?? "";
-        message.metadata = object.metadata ?? undefined;
+        message.metadata = globalThis.Object.entries(object.metadata ?? {}).reduce((acc, [key, value]) => {
+            if (value !== undefined) {
+                acc[key] = any_1.Any.fromPartial(value);
+            }
+            return acc;
+        }, {});
         message.health_endpoint = object.health_endpoint ?? "";
         message.health_check_config = (object.health_check_config !== undefined && object.health_check_config !== null)
             ? exports.HealthCheckConfig.fromPartial(object.health_check_config)
@@ -1723,6 +2941,74 @@ exports.ServiceInstance = {
         message.middleware_config = (object.middleware_config !== undefined && object.middleware_config !== null)
             ? exports.ServiceMiddlewareConfig.fromPartial(object.middleware_config)
             : undefined;
+        return message;
+    },
+};
+function createBaseServiceInstance_MetadataEntry() {
+    return { key: "", value: undefined };
+}
+exports.ServiceInstance_MetadataEntry = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.key !== "") {
+            writer.uint32(10).string(message.key);
+        }
+        if (message.value !== undefined) {
+            any_1.Any.encode(message.value, writer.uint32(18).fork()).join();
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseServiceInstance_MetadataEntry();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.key = reader.string();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.value = any_1.Any.decode(reader, reader.uint32());
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            key: isSet(object.key) ? globalThis.String(object.key) : "",
+            value: isSet(object.value) ? any_1.Any.fromJSON(object.value) : undefined,
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.key !== "") {
+            obj.key = message.key;
+        }
+        if (message.value !== undefined) {
+            obj.value = any_1.Any.toJSON(message.value);
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.ServiceInstance_MetadataEntry.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseServiceInstance_MetadataEntry();
+        message.key = object.key ?? "";
+        message.value = (object.value !== undefined && object.value !== null) ? any_1.Any.fromPartial(object.value) : undefined;
         return message;
     },
 };
@@ -1791,6 +3077,202 @@ exports.ServiceInstance_TagsEntry = {
         const message = createBaseServiceInstance_TagsEntry();
         message.key = object.key ?? "";
         message.value = object.value ?? "";
+        return message;
+    },
+};
+function createBaseInitServiceRequest() {
+    return { service_name: "", description: "", protocol: "" };
+}
+exports.InitServiceRequest = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.service_name !== "") {
+            writer.uint32(10).string(message.service_name);
+        }
+        if (message.description !== "") {
+            writer.uint32(18).string(message.description);
+        }
+        if (message.protocol !== "") {
+            writer.uint32(26).string(message.protocol);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseInitServiceRequest();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.service_name = reader.string();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.description = reader.string();
+                    continue;
+                }
+                case 3: {
+                    if (tag !== 26) {
+                        break;
+                    }
+                    message.protocol = reader.string();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            service_name: isSet(object.service_name) ? globalThis.String(object.service_name) : "",
+            description: isSet(object.description) ? globalThis.String(object.description) : "",
+            protocol: isSet(object.protocol) ? globalThis.String(object.protocol) : "",
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.service_name !== "") {
+            obj.service_name = message.service_name;
+        }
+        if (message.description !== "") {
+            obj.description = message.description;
+        }
+        if (message.protocol !== "") {
+            obj.protocol = message.protocol;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.InitServiceRequest.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseInitServiceRequest();
+        message.service_name = object.service_name ?? "";
+        message.description = object.description ?? "";
+        message.protocol = object.protocol ?? "";
+        return message;
+    },
+};
+function createBaseInitServiceResponse() {
+    return { success: false, message: "", app_id: "", app_secret: "", service_name: "" };
+}
+exports.InitServiceResponse = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.success !== false) {
+            writer.uint32(8).bool(message.success);
+        }
+        if (message.message !== "") {
+            writer.uint32(18).string(message.message);
+        }
+        if (message.app_id !== "") {
+            writer.uint32(26).string(message.app_id);
+        }
+        if (message.app_secret !== "") {
+            writer.uint32(34).string(message.app_secret);
+        }
+        if (message.service_name !== "") {
+            writer.uint32(42).string(message.service_name);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseInitServiceResponse();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 8) {
+                        break;
+                    }
+                    message.success = reader.bool();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.message = reader.string();
+                    continue;
+                }
+                case 3: {
+                    if (tag !== 26) {
+                        break;
+                    }
+                    message.app_id = reader.string();
+                    continue;
+                }
+                case 4: {
+                    if (tag !== 34) {
+                        break;
+                    }
+                    message.app_secret = reader.string();
+                    continue;
+                }
+                case 5: {
+                    if (tag !== 42) {
+                        break;
+                    }
+                    message.service_name = reader.string();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
+            message: isSet(object.message) ? globalThis.String(object.message) : "",
+            app_id: isSet(object.app_id) ? globalThis.String(object.app_id) : "",
+            app_secret: isSet(object.app_secret) ? globalThis.String(object.app_secret) : "",
+            service_name: isSet(object.service_name) ? globalThis.String(object.service_name) : "",
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.success !== false) {
+            obj.success = message.success;
+        }
+        if (message.message !== "") {
+            obj.message = message.message;
+        }
+        if (message.app_id !== "") {
+            obj.app_id = message.app_id;
+        }
+        if (message.app_secret !== "") {
+            obj.app_secret = message.app_secret;
+        }
+        if (message.service_name !== "") {
+            obj.service_name = message.service_name;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.InitServiceResponse.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseInitServiceResponse();
+        message.success = object.success ?? false;
+        message.message = object.message ?? "";
+        message.app_id = object.app_id ?? "";
+        message.app_secret = object.app_secret ?? "";
+        message.service_name = object.service_name ?? "";
         return message;
     },
 };
@@ -1865,7 +3347,7 @@ exports.RegisterServiceRequest = {
     },
 };
 function createBaseRegisterServiceResponse() {
-    return { success: false, message: "", lease_id: "" };
+    return { success: false, message: "", lease_id: "", instance_id: "" };
 }
 exports.RegisterServiceResponse = {
     encode(message, writer = new wire_1.BinaryWriter()) {
@@ -1877,6 +3359,9 @@ exports.RegisterServiceResponse = {
         }
         if (message.lease_id !== "") {
             writer.uint32(26).string(message.lease_id);
+        }
+        if (message.instance_id !== "") {
+            writer.uint32(34).string(message.instance_id);
         }
         return writer;
     },
@@ -1908,6 +3393,13 @@ exports.RegisterServiceResponse = {
                     message.lease_id = reader.string();
                     continue;
                 }
+                case 4: {
+                    if (tag !== 34) {
+                        break;
+                    }
+                    message.instance_id = reader.string();
+                    continue;
+                }
             }
             if ((tag & 7) === 4 || tag === 0) {
                 break;
@@ -1921,6 +3413,7 @@ exports.RegisterServiceResponse = {
             success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
             message: isSet(object.message) ? globalThis.String(object.message) : "",
             lease_id: isSet(object.lease_id) ? globalThis.String(object.lease_id) : "",
+            instance_id: isSet(object.instance_id) ? globalThis.String(object.instance_id) : "",
         };
     },
     toJSON(message) {
@@ -1934,6 +3427,9 @@ exports.RegisterServiceResponse = {
         if (message.lease_id !== "") {
             obj.lease_id = message.lease_id;
         }
+        if (message.instance_id !== "") {
+            obj.instance_id = message.instance_id;
+        }
         return obj;
     },
     create(base) {
@@ -1944,6 +3440,7 @@ exports.RegisterServiceResponse = {
         message.success = object.success ?? false;
         message.message = object.message ?? "";
         message.lease_id = object.lease_id ?? "";
+        message.instance_id = object.instance_id ?? "";
         return message;
     },
 };
@@ -3657,7 +5154,15 @@ exports.GetServiceConfigResponse = {
     },
 };
 function createBaseUploadProtobufDescriptorRequest() {
-    return { service_name: "", descriptor_version: "", descriptor_data: new Uint8Array(0), description: "" };
+    return {
+        service_name: "",
+        descriptor_version: "",
+        descriptor_data: new Uint8Array(0),
+        description: "",
+        signature: "",
+        force: false,
+        previous_version: "",
+    };
 }
 exports.UploadProtobufDescriptorRequest = {
     encode(message, writer = new wire_1.BinaryWriter()) {
@@ -3672,6 +5177,15 @@ exports.UploadProtobufDescriptorRequest = {
         }
         if (message.description !== "") {
             writer.uint32(34).string(message.description);
+        }
+        if (message.signature !== "") {
+            writer.uint32(42).string(message.signature);
+        }
+        if (message.force !== false) {
+            writer.uint32(48).bool(message.force);
+        }
+        if (message.previous_version !== "") {
+            writer.uint32(58).string(message.previous_version);
         }
         return writer;
     },
@@ -3710,6 +5224,27 @@ exports.UploadProtobufDescriptorRequest = {
                     message.description = reader.string();
                     continue;
                 }
+                case 5: {
+                    if (tag !== 42) {
+                        break;
+                    }
+                    message.signature = reader.string();
+                    continue;
+                }
+                case 6: {
+                    if (tag !== 48) {
+                        break;
+                    }
+                    message.force = reader.bool();
+                    continue;
+                }
+                case 7: {
+                    if (tag !== 58) {
+                        break;
+                    }
+                    message.previous_version = reader.string();
+                    continue;
+                }
             }
             if ((tag & 7) === 4 || tag === 0) {
                 break;
@@ -3724,6 +5259,9 @@ exports.UploadProtobufDescriptorRequest = {
             descriptor_version: isSet(object.descriptor_version) ? globalThis.String(object.descriptor_version) : "",
             descriptor_data: isSet(object.descriptor_data) ? bytesFromBase64(object.descriptor_data) : new Uint8Array(0),
             description: isSet(object.description) ? globalThis.String(object.description) : "",
+            signature: isSet(object.signature) ? globalThis.String(object.signature) : "",
+            force: isSet(object.force) ? globalThis.Boolean(object.force) : false,
+            previous_version: isSet(object.previous_version) ? globalThis.String(object.previous_version) : "",
         };
     },
     toJSON(message) {
@@ -3740,6 +5278,15 @@ exports.UploadProtobufDescriptorRequest = {
         if (message.description !== "") {
             obj.description = message.description;
         }
+        if (message.signature !== "") {
+            obj.signature = message.signature;
+        }
+        if (message.force !== false) {
+            obj.force = message.force;
+        }
+        if (message.previous_version !== "") {
+            obj.previous_version = message.previous_version;
+        }
         return obj;
     },
     create(base) {
@@ -3751,11 +5298,22 @@ exports.UploadProtobufDescriptorRequest = {
         message.descriptor_version = object.descriptor_version ?? "";
         message.descriptor_data = object.descriptor_data ?? new Uint8Array(0);
         message.description = object.description ?? "";
+        message.signature = object.signature ?? "";
+        message.force = object.force ?? false;
+        message.previous_version = object.previous_version ?? "";
         return message;
     },
 };
 function createBaseUploadProtobufDescriptorResponse() {
-    return { success: false, message: "", descriptor_key: "", discovered_services: [] };
+    return {
+        success: false,
+        message: "",
+        descriptor_key: "",
+        discovered_services: [],
+        compatibility_warnings: [],
+        applied_version: "",
+        descriptor_hash: "",
+    };
 }
 exports.UploadProtobufDescriptorResponse = {
     encode(message, writer = new wire_1.BinaryWriter()) {
@@ -3770,6 +5328,15 @@ exports.UploadProtobufDescriptorResponse = {
         }
         for (const v of message.discovered_services) {
             writer.uint32(34).string(v);
+        }
+        for (const v of message.compatibility_warnings) {
+            writer.uint32(42).string(v);
+        }
+        if (message.applied_version !== "") {
+            writer.uint32(50).string(message.applied_version);
+        }
+        if (message.descriptor_hash !== "") {
+            writer.uint32(58).string(message.descriptor_hash);
         }
         return writer;
     },
@@ -3808,6 +5375,27 @@ exports.UploadProtobufDescriptorResponse = {
                     message.discovered_services.push(reader.string());
                     continue;
                 }
+                case 5: {
+                    if (tag !== 42) {
+                        break;
+                    }
+                    message.compatibility_warnings.push(reader.string());
+                    continue;
+                }
+                case 6: {
+                    if (tag !== 50) {
+                        break;
+                    }
+                    message.applied_version = reader.string();
+                    continue;
+                }
+                case 7: {
+                    if (tag !== 58) {
+                        break;
+                    }
+                    message.descriptor_hash = reader.string();
+                    continue;
+                }
             }
             if ((tag & 7) === 4 || tag === 0) {
                 break;
@@ -3824,6 +5412,11 @@ exports.UploadProtobufDescriptorResponse = {
             discovered_services: globalThis.Array.isArray(object?.discovered_services)
                 ? object.discovered_services.map((e) => globalThis.String(e))
                 : [],
+            compatibility_warnings: globalThis.Array.isArray(object?.compatibility_warnings)
+                ? object.compatibility_warnings.map((e) => globalThis.String(e))
+                : [],
+            applied_version: isSet(object.applied_version) ? globalThis.String(object.applied_version) : "",
+            descriptor_hash: isSet(object.descriptor_hash) ? globalThis.String(object.descriptor_hash) : "",
         };
     },
     toJSON(message) {
@@ -3840,6 +5433,15 @@ exports.UploadProtobufDescriptorResponse = {
         if (message.discovered_services?.length) {
             obj.discovered_services = message.discovered_services;
         }
+        if (message.compatibility_warnings?.length) {
+            obj.compatibility_warnings = message.compatibility_warnings;
+        }
+        if (message.applied_version !== "") {
+            obj.applied_version = message.applied_version;
+        }
+        if (message.descriptor_hash !== "") {
+            obj.descriptor_hash = message.descriptor_hash;
+        }
         return obj;
     },
     create(base) {
@@ -3851,6 +5453,9 @@ exports.UploadProtobufDescriptorResponse = {
         message.message = object.message ?? "";
         message.descriptor_key = object.descriptor_key ?? "";
         message.discovered_services = object.discovered_services?.map((e) => e) || [];
+        message.compatibility_warnings = object.compatibility_warnings?.map((e) => e) || [];
+        message.applied_version = object.applied_version ?? "";
+        message.descriptor_hash = object.descriptor_hash ?? "";
         return message;
     },
 };
@@ -4157,6 +5762,8 @@ function createBaseProtobufDescriptorInfo() {
         description: "",
         services: [],
         size_bytes: 0,
+        descriptor_hash: "",
+        is_active: false,
     };
 }
 exports.ProtobufDescriptorInfo = {
@@ -4178,6 +5785,12 @@ exports.ProtobufDescriptorInfo = {
         }
         if (message.size_bytes !== 0) {
             writer.uint32(48).uint64(message.size_bytes);
+        }
+        if (message.descriptor_hash !== "") {
+            writer.uint32(58).string(message.descriptor_hash);
+        }
+        if (message.is_active !== false) {
+            writer.uint32(64).bool(message.is_active);
         }
         return writer;
     },
@@ -4230,6 +5843,20 @@ exports.ProtobufDescriptorInfo = {
                     message.size_bytes = longToNumber(reader.uint64());
                     continue;
                 }
+                case 7: {
+                    if (tag !== 58) {
+                        break;
+                    }
+                    message.descriptor_hash = reader.string();
+                    continue;
+                }
+                case 8: {
+                    if (tag !== 64) {
+                        break;
+                    }
+                    message.is_active = reader.bool();
+                    continue;
+                }
             }
             if ((tag & 7) === 4 || tag === 0) {
                 break;
@@ -4246,6 +5873,8 @@ exports.ProtobufDescriptorInfo = {
             description: isSet(object.description) ? globalThis.String(object.description) : "",
             services: globalThis.Array.isArray(object?.services) ? object.services.map((e) => globalThis.String(e)) : [],
             size_bytes: isSet(object.size_bytes) ? globalThis.Number(object.size_bytes) : 0,
+            descriptor_hash: isSet(object.descriptor_hash) ? globalThis.String(object.descriptor_hash) : "",
+            is_active: isSet(object.is_active) ? globalThis.Boolean(object.is_active) : false,
         };
     },
     toJSON(message) {
@@ -4268,6 +5897,12 @@ exports.ProtobufDescriptorInfo = {
         if (message.size_bytes !== 0) {
             obj.size_bytes = Math.round(message.size_bytes);
         }
+        if (message.descriptor_hash !== "") {
+            obj.descriptor_hash = message.descriptor_hash;
+        }
+        if (message.is_active !== false) {
+            obj.is_active = message.is_active;
+        }
         return obj;
     },
     create(base) {
@@ -4281,6 +5916,448 @@ exports.ProtobufDescriptorInfo = {
         message.description = object.description ?? "";
         message.services = object.services?.map((e) => e) || [];
         message.size_bytes = object.size_bytes ?? 0;
+        message.descriptor_hash = object.descriptor_hash ?? "";
+        message.is_active = object.is_active ?? false;
+        return message;
+    },
+};
+function createBaseDescriptorVersionInfo() {
+    return {
+        version: "",
+        descriptor_hash: "",
+        created_at: undefined,
+        description: "",
+        services: [],
+        size_bytes: 0,
+        is_active: false,
+    };
+}
+exports.DescriptorVersionInfo = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.version !== "") {
+            writer.uint32(10).string(message.version);
+        }
+        if (message.descriptor_hash !== "") {
+            writer.uint32(18).string(message.descriptor_hash);
+        }
+        if (message.created_at !== undefined) {
+            timestamp_1.Timestamp.encode(toTimestamp(message.created_at), writer.uint32(26).fork()).join();
+        }
+        if (message.description !== "") {
+            writer.uint32(34).string(message.description);
+        }
+        for (const v of message.services) {
+            writer.uint32(42).string(v);
+        }
+        if (message.size_bytes !== 0) {
+            writer.uint32(48).uint64(message.size_bytes);
+        }
+        if (message.is_active !== false) {
+            writer.uint32(56).bool(message.is_active);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseDescriptorVersionInfo();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.version = reader.string();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.descriptor_hash = reader.string();
+                    continue;
+                }
+                case 3: {
+                    if (tag !== 26) {
+                        break;
+                    }
+                    message.created_at = fromTimestamp(timestamp_1.Timestamp.decode(reader, reader.uint32()));
+                    continue;
+                }
+                case 4: {
+                    if (tag !== 34) {
+                        break;
+                    }
+                    message.description = reader.string();
+                    continue;
+                }
+                case 5: {
+                    if (tag !== 42) {
+                        break;
+                    }
+                    message.services.push(reader.string());
+                    continue;
+                }
+                case 6: {
+                    if (tag !== 48) {
+                        break;
+                    }
+                    message.size_bytes = longToNumber(reader.uint64());
+                    continue;
+                }
+                case 7: {
+                    if (tag !== 56) {
+                        break;
+                    }
+                    message.is_active = reader.bool();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            version: isSet(object.version) ? globalThis.String(object.version) : "",
+            descriptor_hash: isSet(object.descriptor_hash) ? globalThis.String(object.descriptor_hash) : "",
+            created_at: isSet(object.created_at) ? fromJsonTimestamp(object.created_at) : undefined,
+            description: isSet(object.description) ? globalThis.String(object.description) : "",
+            services: globalThis.Array.isArray(object?.services) ? object.services.map((e) => globalThis.String(e)) : [],
+            size_bytes: isSet(object.size_bytes) ? globalThis.Number(object.size_bytes) : 0,
+            is_active: isSet(object.is_active) ? globalThis.Boolean(object.is_active) : false,
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.version !== "") {
+            obj.version = message.version;
+        }
+        if (message.descriptor_hash !== "") {
+            obj.descriptor_hash = message.descriptor_hash;
+        }
+        if (message.created_at !== undefined) {
+            obj.created_at = message.created_at.toISOString();
+        }
+        if (message.description !== "") {
+            obj.description = message.description;
+        }
+        if (message.services?.length) {
+            obj.services = message.services;
+        }
+        if (message.size_bytes !== 0) {
+            obj.size_bytes = Math.round(message.size_bytes);
+        }
+        if (message.is_active !== false) {
+            obj.is_active = message.is_active;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.DescriptorVersionInfo.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseDescriptorVersionInfo();
+        message.version = object.version ?? "";
+        message.descriptor_hash = object.descriptor_hash ?? "";
+        message.created_at = object.created_at ?? undefined;
+        message.description = object.description ?? "";
+        message.services = object.services?.map((e) => e) || [];
+        message.size_bytes = object.size_bytes ?? 0;
+        message.is_active = object.is_active ?? false;
+        return message;
+    },
+};
+function createBaseRollbackDescriptorRequest() {
+    return { service_name: "", target_version: "" };
+}
+exports.RollbackDescriptorRequest = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.service_name !== "") {
+            writer.uint32(10).string(message.service_name);
+        }
+        if (message.target_version !== "") {
+            writer.uint32(18).string(message.target_version);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseRollbackDescriptorRequest();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.service_name = reader.string();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.target_version = reader.string();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            service_name: isSet(object.service_name) ? globalThis.String(object.service_name) : "",
+            target_version: isSet(object.target_version) ? globalThis.String(object.target_version) : "",
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.service_name !== "") {
+            obj.service_name = message.service_name;
+        }
+        if (message.target_version !== "") {
+            obj.target_version = message.target_version;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.RollbackDescriptorRequest.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseRollbackDescriptorRequest();
+        message.service_name = object.service_name ?? "";
+        message.target_version = object.target_version ?? "";
+        return message;
+    },
+};
+function createBaseRollbackDescriptorResponse() {
+    return { success: false, message: "", active_version: "", discovered_services: [] };
+}
+exports.RollbackDescriptorResponse = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.success !== false) {
+            writer.uint32(8).bool(message.success);
+        }
+        if (message.message !== "") {
+            writer.uint32(18).string(message.message);
+        }
+        if (message.active_version !== "") {
+            writer.uint32(26).string(message.active_version);
+        }
+        for (const v of message.discovered_services) {
+            writer.uint32(34).string(v);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseRollbackDescriptorResponse();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 8) {
+                        break;
+                    }
+                    message.success = reader.bool();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.message = reader.string();
+                    continue;
+                }
+                case 3: {
+                    if (tag !== 26) {
+                        break;
+                    }
+                    message.active_version = reader.string();
+                    continue;
+                }
+                case 4: {
+                    if (tag !== 34) {
+                        break;
+                    }
+                    message.discovered_services.push(reader.string());
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
+            message: isSet(object.message) ? globalThis.String(object.message) : "",
+            active_version: isSet(object.active_version) ? globalThis.String(object.active_version) : "",
+            discovered_services: globalThis.Array.isArray(object?.discovered_services)
+                ? object.discovered_services.map((e) => globalThis.String(e))
+                : [],
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.success !== false) {
+            obj.success = message.success;
+        }
+        if (message.message !== "") {
+            obj.message = message.message;
+        }
+        if (message.active_version !== "") {
+            obj.active_version = message.active_version;
+        }
+        if (message.discovered_services?.length) {
+            obj.discovered_services = message.discovered_services;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.RollbackDescriptorResponse.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseRollbackDescriptorResponse();
+        message.success = object.success ?? false;
+        message.message = object.message ?? "";
+        message.active_version = object.active_version ?? "";
+        message.discovered_services = object.discovered_services?.map((e) => e) || [];
+        return message;
+    },
+};
+function createBaseListDescriptorVersionsRequest() {
+    return { service_name: "" };
+}
+exports.ListDescriptorVersionsRequest = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.service_name !== "") {
+            writer.uint32(10).string(message.service_name);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseListDescriptorVersionsRequest();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.service_name = reader.string();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return { service_name: isSet(object.service_name) ? globalThis.String(object.service_name) : "" };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.service_name !== "") {
+            obj.service_name = message.service_name;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.ListDescriptorVersionsRequest.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseListDescriptorVersionsRequest();
+        message.service_name = object.service_name ?? "";
+        return message;
+    },
+};
+function createBaseListDescriptorVersionsResponse() {
+    return { versions: [], active_version: "" };
+}
+exports.ListDescriptorVersionsResponse = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        for (const v of message.versions) {
+            exports.DescriptorVersionInfo.encode(v, writer.uint32(10).fork()).join();
+        }
+        if (message.active_version !== "") {
+            writer.uint32(18).string(message.active_version);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseListDescriptorVersionsResponse();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.versions.push(exports.DescriptorVersionInfo.decode(reader, reader.uint32()));
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.active_version = reader.string();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            versions: globalThis.Array.isArray(object?.versions)
+                ? object.versions.map((e) => exports.DescriptorVersionInfo.fromJSON(e))
+                : [],
+            active_version: isSet(object.active_version) ? globalThis.String(object.active_version) : "",
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.versions?.length) {
+            obj.versions = message.versions.map((e) => exports.DescriptorVersionInfo.toJSON(e));
+        }
+        if (message.active_version !== "") {
+            obj.active_version = message.active_version;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.ListDescriptorVersionsResponse.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseListDescriptorVersionsResponse();
+        message.versions = object.versions?.map((e) => exports.DescriptorVersionInfo.fromPartial(e)) || [];
+        message.active_version = object.active_version ?? "";
         return message;
     },
 };
@@ -4289,6 +6366,7 @@ class ServiceDiscoveryServiceClientImpl {
     constructor(rpc, opts) {
         this.service = opts?.service || exports.ServiceDiscoveryServiceServiceName;
         this.rpc = rpc;
+        this.InitService = this.InitService.bind(this);
         this.RegisterService = this.RegisterService.bind(this);
         this.DeregisterService = this.DeregisterService.bind(this);
         this.DeleteServiceRecord = this.DeleteServiceRecord.bind(this);
@@ -4302,6 +6380,13 @@ class ServiceDiscoveryServiceClientImpl {
         this.UploadProtobufDescriptor = this.UploadProtobufDescriptor.bind(this);
         this.GetProtobufDescriptor = this.GetProtobufDescriptor.bind(this);
         this.ListProtobufDescriptors = this.ListProtobufDescriptors.bind(this);
+        this.RollbackDescriptor = this.RollbackDescriptor.bind(this);
+        this.ListDescriptorVersions = this.ListDescriptorVersions.bind(this);
+    }
+    InitService(request) {
+        const data = exports.InitServiceRequest.encode(request).finish();
+        const promise = this.rpc.request(this.service, "InitService", data);
+        return promise.then((data) => exports.InitServiceResponse.decode(new wire_1.BinaryReader(data)));
     }
     RegisterService(request) {
         const data = exports.RegisterServiceRequest.encode(request).finish();
@@ -4367,6 +6452,16 @@ class ServiceDiscoveryServiceClientImpl {
         const data = exports.ListProtobufDescriptorsRequest.encode(request).finish();
         const promise = this.rpc.request(this.service, "ListProtobufDescriptors", data);
         return promise.then((data) => exports.ListProtobufDescriptorsResponse.decode(new wire_1.BinaryReader(data)));
+    }
+    RollbackDescriptor(request) {
+        const data = exports.RollbackDescriptorRequest.encode(request).finish();
+        const promise = this.rpc.request(this.service, "RollbackDescriptor", data);
+        return promise.then((data) => exports.RollbackDescriptorResponse.decode(new wire_1.BinaryReader(data)));
+    }
+    ListDescriptorVersions(request) {
+        const data = exports.ListDescriptorVersionsRequest.encode(request).finish();
+        const promise = this.rpc.request(this.service, "ListDescriptorVersions", data);
+        return promise.then((data) => exports.ListDescriptorVersionsResponse.decode(new wire_1.BinaryReader(data)));
     }
 }
 exports.ServiceDiscoveryServiceClientImpl = ServiceDiscoveryServiceClientImpl;

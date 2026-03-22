@@ -5,7 +5,7 @@
 //   protoc               v3.21.12
 // source: authentication.proto
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AuthServiceClientImpl = exports.AuthServiceServiceName = exports.RefreshTokenResponse = exports.RefreshTokenRequest = exports.ValidateSessionResponse = exports.ValidateSessionRequest = exports.CurrentUserResponse = exports.GetCurrentUserRequest = exports.AuthServiceUris = exports.LogoutCallbackRequest = exports.LogoutRequest = exports.LoginCallbackResponse = exports.LoginRequest = exports.OpenIDConnectCallbackRequest = exports.protobufPackage = void 0;
+exports.AuthServiceClientImpl = exports.AuthServiceServiceName = exports.AnonymousSessionResponse = exports.DeviceFingerprintRequest = exports.RefreshTokenResponse = exports.RefreshTokenRequest = exports.ValidateSessionResponse = exports.ValidateSessionRequest = exports.CurrentUserResponse = exports.GetCurrentUserRequest = exports.AuthServiceUris = exports.LogoutCallbackRequest = exports.LogoutRequest = exports.LoginCallbackResponse = exports.LoginRequest = exports.OpenIDConnectCallbackRequest = exports.protobufPackage = void 0;
 /* eslint-disable */
 const wire_1 = require("@bufbuild/protobuf/wire");
 const empty_1 = require("./google/protobuf/empty");
@@ -127,12 +127,15 @@ exports.OpenIDConnectCallbackRequest = {
     },
 };
 function createBaseLoginRequest() {
-    return { callback: "" };
+    return { callback: "", anonymous_id: "" };
 }
 exports.LoginRequest = {
     encode(message, writer = new wire_1.BinaryWriter()) {
         if (message.callback !== "") {
             writer.uint32(10).string(message.callback);
+        }
+        if (message.anonymous_id !== "") {
+            writer.uint32(18).string(message.anonymous_id);
         }
         return writer;
     },
@@ -150,6 +153,13 @@ exports.LoginRequest = {
                     message.callback = reader.string();
                     continue;
                 }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.anonymous_id = reader.string();
+                    continue;
+                }
             }
             if ((tag & 7) === 4 || tag === 0) {
                 break;
@@ -159,12 +169,18 @@ exports.LoginRequest = {
         return message;
     },
     fromJSON(object) {
-        return { callback: isSet(object.callback) ? globalThis.String(object.callback) : "" };
+        return {
+            callback: isSet(object.callback) ? globalThis.String(object.callback) : "",
+            anonymous_id: isSet(object.anonymous_id) ? globalThis.String(object.anonymous_id) : "",
+        };
     },
     toJSON(message) {
         const obj = {};
         if (message.callback !== "") {
             obj.callback = message.callback;
+        }
+        if (message.anonymous_id !== "") {
+            obj.anonymous_id = message.anonymous_id;
         }
         return obj;
     },
@@ -174,6 +190,7 @@ exports.LoginRequest = {
     fromPartial(object) {
         const message = createBaseLoginRequest();
         message.callback = object.callback ?? "";
+        message.anonymous_id = object.anonymous_id ?? "";
         return message;
     },
 };
@@ -841,6 +858,255 @@ exports.RefreshTokenResponse = {
         return message;
     },
 };
+function createBaseDeviceFingerprintRequest() {
+    return {
+        fingerprint_hash: "",
+        signature: "",
+        public_key: "",
+        timestamp: 0,
+        nonce: "",
+        anonymous_id: "",
+        components_count: 0,
+    };
+}
+exports.DeviceFingerprintRequest = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.fingerprint_hash !== "") {
+            writer.uint32(10).string(message.fingerprint_hash);
+        }
+        if (message.signature !== "") {
+            writer.uint32(18).string(message.signature);
+        }
+        if (message.public_key !== "") {
+            writer.uint32(26).string(message.public_key);
+        }
+        if (message.timestamp !== 0) {
+            writer.uint32(32).int64(message.timestamp);
+        }
+        if (message.nonce !== "") {
+            writer.uint32(42).string(message.nonce);
+        }
+        if (message.anonymous_id !== "") {
+            writer.uint32(50).string(message.anonymous_id);
+        }
+        if (message.components_count !== 0) {
+            writer.uint32(56).int32(message.components_count);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseDeviceFingerprintRequest();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.fingerprint_hash = reader.string();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.signature = reader.string();
+                    continue;
+                }
+                case 3: {
+                    if (tag !== 26) {
+                        break;
+                    }
+                    message.public_key = reader.string();
+                    continue;
+                }
+                case 4: {
+                    if (tag !== 32) {
+                        break;
+                    }
+                    message.timestamp = longToNumber(reader.int64());
+                    continue;
+                }
+                case 5: {
+                    if (tag !== 42) {
+                        break;
+                    }
+                    message.nonce = reader.string();
+                    continue;
+                }
+                case 6: {
+                    if (tag !== 50) {
+                        break;
+                    }
+                    message.anonymous_id = reader.string();
+                    continue;
+                }
+                case 7: {
+                    if (tag !== 56) {
+                        break;
+                    }
+                    message.components_count = reader.int32();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            fingerprint_hash: isSet(object.fingerprint_hash) ? globalThis.String(object.fingerprint_hash) : "",
+            signature: isSet(object.signature) ? globalThis.String(object.signature) : "",
+            public_key: isSet(object.public_key) ? globalThis.String(object.public_key) : "",
+            timestamp: isSet(object.timestamp) ? globalThis.Number(object.timestamp) : 0,
+            nonce: isSet(object.nonce) ? globalThis.String(object.nonce) : "",
+            anonymous_id: isSet(object.anonymous_id) ? globalThis.String(object.anonymous_id) : "",
+            components_count: isSet(object.components_count) ? globalThis.Number(object.components_count) : 0,
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.fingerprint_hash !== "") {
+            obj.fingerprint_hash = message.fingerprint_hash;
+        }
+        if (message.signature !== "") {
+            obj.signature = message.signature;
+        }
+        if (message.public_key !== "") {
+            obj.public_key = message.public_key;
+        }
+        if (message.timestamp !== 0) {
+            obj.timestamp = Math.round(message.timestamp);
+        }
+        if (message.nonce !== "") {
+            obj.nonce = message.nonce;
+        }
+        if (message.anonymous_id !== "") {
+            obj.anonymous_id = message.anonymous_id;
+        }
+        if (message.components_count !== 0) {
+            obj.components_count = Math.round(message.components_count);
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.DeviceFingerprintRequest.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseDeviceFingerprintRequest();
+        message.fingerprint_hash = object.fingerprint_hash ?? "";
+        message.signature = object.signature ?? "";
+        message.public_key = object.public_key ?? "";
+        message.timestamp = object.timestamp ?? 0;
+        message.nonce = object.nonce ?? "";
+        message.anonymous_id = object.anonymous_id ?? "";
+        message.components_count = object.components_count ?? 0;
+        return message;
+    },
+};
+function createBaseAnonymousSessionResponse() {
+    return { anonymous_id: "", session_token: "", expires_at: 0, is_suspicious: false };
+}
+exports.AnonymousSessionResponse = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.anonymous_id !== "") {
+            writer.uint32(10).string(message.anonymous_id);
+        }
+        if (message.session_token !== "") {
+            writer.uint32(18).string(message.session_token);
+        }
+        if (message.expires_at !== 0) {
+            writer.uint32(24).int64(message.expires_at);
+        }
+        if (message.is_suspicious !== false) {
+            writer.uint32(32).bool(message.is_suspicious);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseAnonymousSessionResponse();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.anonymous_id = reader.string();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.session_token = reader.string();
+                    continue;
+                }
+                case 3: {
+                    if (tag !== 24) {
+                        break;
+                    }
+                    message.expires_at = longToNumber(reader.int64());
+                    continue;
+                }
+                case 4: {
+                    if (tag !== 32) {
+                        break;
+                    }
+                    message.is_suspicious = reader.bool();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            anonymous_id: isSet(object.anonymous_id) ? globalThis.String(object.anonymous_id) : "",
+            session_token: isSet(object.session_token) ? globalThis.String(object.session_token) : "",
+            expires_at: isSet(object.expires_at) ? globalThis.Number(object.expires_at) : 0,
+            is_suspicious: isSet(object.is_suspicious) ? globalThis.Boolean(object.is_suspicious) : false,
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.anonymous_id !== "") {
+            obj.anonymous_id = message.anonymous_id;
+        }
+        if (message.session_token !== "") {
+            obj.session_token = message.session_token;
+        }
+        if (message.expires_at !== 0) {
+            obj.expires_at = Math.round(message.expires_at);
+        }
+        if (message.is_suspicious !== false) {
+            obj.is_suspicious = message.is_suspicious;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.AnonymousSessionResponse.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseAnonymousSessionResponse();
+        message.anonymous_id = object.anonymous_id ?? "";
+        message.session_token = object.session_token ?? "";
+        message.expires_at = object.expires_at ?? 0;
+        message.is_suspicious = object.is_suspicious ?? false;
+        return message;
+    },
+};
 exports.AuthServiceServiceName = "stew.api.v1.AuthService";
 class AuthServiceClientImpl {
     constructor(rpc, opts) {
@@ -854,6 +1120,7 @@ class AuthServiceClientImpl {
         this.GetCurrentUser = this.GetCurrentUser.bind(this);
         this.ValidateSession = this.ValidateSession.bind(this);
         this.RefreshToken = this.RefreshToken.bind(this);
+        this.CreateAnonymousSession = this.CreateAnonymousSession.bind(this);
     }
     Callback(request) {
         const data = exports.OpenIDConnectCallbackRequest.encode(request).finish();
@@ -894,6 +1161,11 @@ class AuthServiceClientImpl {
         const data = exports.RefreshTokenRequest.encode(request).finish();
         const promise = this.rpc.request(this.service, "RefreshToken", data);
         return promise.then((data) => exports.RefreshTokenResponse.decode(new wire_1.BinaryReader(data)));
+    }
+    CreateAnonymousSession(request) {
+        const data = exports.DeviceFingerprintRequest.encode(request).finish();
+        const promise = this.rpc.request(this.service, "CreateAnonymousSession", data);
+        return promise.then((data) => exports.AnonymousSessionResponse.decode(new wire_1.BinaryReader(data)));
     }
 }
 exports.AuthServiceClientImpl = AuthServiceClientImpl;

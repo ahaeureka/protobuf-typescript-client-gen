@@ -11,6 +11,12 @@ export * as Authorization from "./proto/authorization";
 export * as ApiKey from "./proto/apikey";
 export * as Audit from "./proto/audit";
 
+// Anonymous user session management
+export { AnonymousUserClient } from './anonymous_client';
+export type { AnonymousSession, AnonymousUserClientOptions } from './anonymous_client';
+export type { FingerprintComponents } from './fingerprint-utils';
+export { hashComponents, collectFingerprintComponents } from './fingerprint-utils';
+
 // Optional utility exports (for advanced usage)
 export * from './websocket-utils';
 export * from './sse-utils';

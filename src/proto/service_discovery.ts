@@ -6,6 +6,7 @@
 
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { Any } from "./google/protobuf/any";
 import { Struct } from "./google/protobuf/struct";
 import { Timestamp } from "./google/protobuf/timestamp";
 
@@ -240,6 +241,117 @@ export interface ServiceTurnstileConfig {
 }
 
 /**
+ * AI Guard: configurable body field path mapping (Tier 2 extraction strategy).
+ * When set, the gateway uses these paths to locate user messages, model name,
+ * etc. in the JSON request body. Leave empty to fall back to heuristic detection.
+ */
+export interface AiBodyFieldMap {
+  messages_path: string;
+  role_field: string;
+  content_field: string;
+  user_role_value: string;
+  prompt_path: string;
+  model_path: string;
+  max_tokens_path: string;
+}
+
+/**
+ * AI SaaS abuse prevention configuration (per-service).
+ * Controls token quotas, intent classification, context truncation,
+ * and topic filtering for AI-related API endpoints.
+ */
+export interface ServiceAiGuardConfig {
+  enabled: boolean;
+  mode: string;
+  include_paths: string[];
+  request_body_max_bytes: number;
+  max_input_tokens: number;
+  max_output_tokens: number;
+  max_context_tokens: number;
+  history_policy: string;
+  daily_token_quota: number;
+  daily_request_quota: number;
+  minute_request_quota: number;
+  allow_free_chat: boolean;
+  allowed_topics: string[];
+  deny_keywords: string[];
+  enable_audit: boolean;
+  classifier_type: string;
+  llm_endpoint: string;
+  llm_model: string;
+  llm_system_prompt: string;
+  llm_timeout_ms: number;
+  llm_confidence_threshold: number;
+  body_map: AiBodyFieldMap | undefined;
+  quota_window_secs: number;
+  /**
+   * Business intent configuration for the LLM classifier.
+   * When llm_system_prompt is empty, these fields are used to automatically
+   * build the intent classification prompt.
+   */
+  business_description: string;
+  valid_intent_examples: string[];
+  invalid_intent_examples: string[];
+  /**
+   * Per-endpoint configuration overrides (v2.0).
+   * Each entry can override service-level defaults for a specific API endpoint.
+   * Non-zero/non-empty fields override the parent ServiceAiGuardConfig value.
+   * Matching priority: exact_paths > pattern_paths (by literal score) > longest prefix_paths > service-level default.
+   */
+  endpoint_overrides: AiGuardEndpointConfig[];
+}
+
+/**
+ * Per-endpoint AI Guard configuration override.
+ * Binds to specific API paths via exact or prefix matching.
+ * Non-zero/non-empty fields override the parent ServiceAiGuardConfig value;
+ * zero/empty fields inherit the service-level default.
+ */
+export interface AiGuardEndpointConfig {
+  /**
+   * Endpoint identifier (admin-assigned, used in Redis keys and audit logs).
+   * Must be unique within the same service.
+   */
+  endpoint_id: string;
+  /** Exact path matches, e.g. ["/stew.api.v1.ChatService/SendMessage", "/v1/chat/completions"] */
+  exact_paths: string[];
+  /** Prefix path matches, e.g. ["/stew.api.v1.Chat"] matches all methods under that prefix */
+  prefix_paths: string[];
+  /**
+   * Path template matches using {param} placeholders for single-segment wildcards,
+   * e.g. ["/api/v1/sessions/{session_id}/reflection"] matches any session ID.
+   * Matching priority: exact_paths > pattern_paths (by literal score) > prefix_paths.
+   */
+  pattern_paths: string[];
+  /** Disable AI Guard for this endpoint (true = skip even if service-level is enabled) */
+  disabled?: boolean | undefined;
+  mode: string;
+  request_body_max_bytes: number;
+  max_input_tokens: number;
+  max_output_tokens: number;
+  max_context_tokens: number;
+  history_policy: string;
+  daily_token_quota: number;
+  daily_request_quota: number;
+  minute_request_quota: number;
+  quota_window_secs: number;
+  allow_free_chat?: boolean | undefined;
+  allowed_topics: string[];
+  deny_keywords: string[];
+  enable_audit?: boolean | undefined;
+  classifier_type: string;
+  llm_endpoint: string;
+  llm_model: string;
+  llm_system_prompt: string;
+  business_description: string;
+  valid_intent_examples: string[];
+  invalid_intent_examples: string[];
+  llm_timeout_ms: number;
+  llm_confidence_threshold: number;
+  body_map: AiBodyFieldMap | undefined;
+}
+
+/**
  * 每个下游服务的中间件开关配置
  * 注册或编辑服务时可单独控制各中间件的启用状态和参数。
  * 配置随 ServiceInstance 一起存储在 ETCD，运行时热生效。
@@ -257,6 +369,8 @@ export interface ServiceMiddlewareConfig {
   risk: ServiceRiskConfig | undefined;
   turnstile_enabled: boolean;
   turnstile: ServiceTurnstileConfig | undefined;
+  ai_guard_enabled: boolean;
+  ai_guard: ServiceAiGuardConfig | undefined;
 }
 
 /** 服务实例定义 */
@@ -275,9 +389,7 @@ export interface ServiceInstance {
   /** 服务版本 */
   version: string;
   /** 服务元数据 */
-  metadata:
-    | { [key: string]: any }
-    | undefined;
+  metadata: { [key: string]: Any };
   /** 健康检查端点 */
   health_endpoint: string;
   /** 健康检查配置（新增） */
@@ -304,9 +416,34 @@ export interface ServiceInstance {
   middleware_config: ServiceMiddlewareConfig | undefined;
 }
 
+export interface ServiceInstance_MetadataEntry {
+  key: string;
+  value: Any | undefined;
+}
+
 export interface ServiceInstance_TagsEntry {
   key: string;
   value: string;
+}
+
+/**
+ * 初始化服务请求（管理端专属）
+ * 管理员在管理端初始化服务后，系统生成 app_id + app_secret 凭证供业务侧使用
+ */
+export interface InitServiceRequest {
+  /** Globally unique service name. Duplicate names are rejected. */
+  service_name: string;
+  description: string;
+  protocol: string;
+}
+
+/** 初始化服务响应 */
+export interface InitServiceResponse {
+  success: boolean;
+  message: string;
+  app_id: string;
+  app_secret: string;
+  service_name: string;
 }
 
 /** 注册服务请求 */
@@ -323,6 +460,7 @@ export interface RegisterServiceResponse {
   success: boolean;
   message: string;
   lease_id: string;
+  instance_id: string;
 }
 
 /** 注销服务请求 */
@@ -482,6 +620,12 @@ export interface UploadProtobufDescriptorRequest {
   descriptor_version: string;
   descriptor_data: Uint8Array;
   description: string;
+  /** HMAC-SHA256(descriptor_data, shared_secret) - optional integrity verification */
+  signature: string;
+  /** Force update, skip compatibility warnings */
+  force: boolean;
+  /** Previous version for optimistic locking (reject if active version != previous_version) */
+  previous_version: string;
 }
 
 /** 上传 protobuf 描述符响应 */
@@ -490,6 +634,12 @@ export interface UploadProtobufDescriptorResponse {
   message: string;
   descriptor_key: string;
   discovered_services: string[];
+  /** Compatibility warnings (breaking changes detected but not blocked) */
+  compatibility_warnings: string[];
+  /** Actual version applied (may differ from requested if auto-generated) */
+  applied_version: string;
+  /** SHA-256 hash of the descriptor data */
+  descriptor_hash: string;
 }
 
 /** 获取 protobuf 描述符请求 */
@@ -525,6 +675,44 @@ export interface ProtobufDescriptorInfo {
   description: string;
   services: string[];
   size_bytes: number;
+  descriptor_hash: string;
+  is_active: boolean;
+}
+
+/** 描述符版本详细信息 */
+export interface DescriptorVersionInfo {
+  version: string;
+  descriptor_hash: string;
+  created_at: Date | undefined;
+  description: string;
+  services: string[];
+  size_bytes: number;
+  is_active: boolean;
+}
+
+/** 回滚描述符请求 */
+export interface RollbackDescriptorRequest {
+  service_name: string;
+  target_version: string;
+}
+
+/** 回滚描述符响应 */
+export interface RollbackDescriptorResponse {
+  success: boolean;
+  message: string;
+  active_version: string;
+  discovered_services: string[];
+}
+
+/** 列出描述符版本请求 */
+export interface ListDescriptorVersionsRequest {
+  service_name: string;
+}
+
+/** 列出描述符版本响应 */
+export interface ListDescriptorVersionsResponse {
+  versions: DescriptorVersionInfo[];
+  active_version: string;
 }
 
 function createBaseEndpoint(): Endpoint {
@@ -1689,6 +1877,1250 @@ export const ServiceTurnstileConfig: MessageFns<ServiceTurnstileConfig> = {
   },
 };
 
+function createBaseAiBodyFieldMap(): AiBodyFieldMap {
+  return {
+    messages_path: "",
+    role_field: "",
+    content_field: "",
+    user_role_value: "",
+    prompt_path: "",
+    model_path: "",
+    max_tokens_path: "",
+  };
+}
+
+export const AiBodyFieldMap: MessageFns<AiBodyFieldMap> = {
+  encode(message: AiBodyFieldMap, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.messages_path !== "") {
+      writer.uint32(10).string(message.messages_path);
+    }
+    if (message.role_field !== "") {
+      writer.uint32(18).string(message.role_field);
+    }
+    if (message.content_field !== "") {
+      writer.uint32(26).string(message.content_field);
+    }
+    if (message.user_role_value !== "") {
+      writer.uint32(34).string(message.user_role_value);
+    }
+    if (message.prompt_path !== "") {
+      writer.uint32(42).string(message.prompt_path);
+    }
+    if (message.model_path !== "") {
+      writer.uint32(50).string(message.model_path);
+    }
+    if (message.max_tokens_path !== "") {
+      writer.uint32(58).string(message.max_tokens_path);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AiBodyFieldMap {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAiBodyFieldMap();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.messages_path = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.role_field = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.content_field = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.user_role_value = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.prompt_path = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.model_path = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.max_tokens_path = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AiBodyFieldMap {
+    return {
+      messages_path: isSet(object.messages_path) ? globalThis.String(object.messages_path) : "",
+      role_field: isSet(object.role_field) ? globalThis.String(object.role_field) : "",
+      content_field: isSet(object.content_field) ? globalThis.String(object.content_field) : "",
+      user_role_value: isSet(object.user_role_value) ? globalThis.String(object.user_role_value) : "",
+      prompt_path: isSet(object.prompt_path) ? globalThis.String(object.prompt_path) : "",
+      model_path: isSet(object.model_path) ? globalThis.String(object.model_path) : "",
+      max_tokens_path: isSet(object.max_tokens_path) ? globalThis.String(object.max_tokens_path) : "",
+    };
+  },
+
+  toJSON(message: AiBodyFieldMap): unknown {
+    const obj: any = {};
+    if (message.messages_path !== "") {
+      obj.messages_path = message.messages_path;
+    }
+    if (message.role_field !== "") {
+      obj.role_field = message.role_field;
+    }
+    if (message.content_field !== "") {
+      obj.content_field = message.content_field;
+    }
+    if (message.user_role_value !== "") {
+      obj.user_role_value = message.user_role_value;
+    }
+    if (message.prompt_path !== "") {
+      obj.prompt_path = message.prompt_path;
+    }
+    if (message.model_path !== "") {
+      obj.model_path = message.model_path;
+    }
+    if (message.max_tokens_path !== "") {
+      obj.max_tokens_path = message.max_tokens_path;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AiBodyFieldMap>, I>>(base?: I): AiBodyFieldMap {
+    return AiBodyFieldMap.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AiBodyFieldMap>, I>>(object: I): AiBodyFieldMap {
+    const message = createBaseAiBodyFieldMap();
+    message.messages_path = object.messages_path ?? "";
+    message.role_field = object.role_field ?? "";
+    message.content_field = object.content_field ?? "";
+    message.user_role_value = object.user_role_value ?? "";
+    message.prompt_path = object.prompt_path ?? "";
+    message.model_path = object.model_path ?? "";
+    message.max_tokens_path = object.max_tokens_path ?? "";
+    return message;
+  },
+};
+
+function createBaseServiceAiGuardConfig(): ServiceAiGuardConfig {
+  return {
+    enabled: false,
+    mode: "",
+    include_paths: [],
+    request_body_max_bytes: 0,
+    max_input_tokens: 0,
+    max_output_tokens: 0,
+    max_context_tokens: 0,
+    history_policy: "",
+    daily_token_quota: 0,
+    daily_request_quota: 0,
+    minute_request_quota: 0,
+    allow_free_chat: false,
+    allowed_topics: [],
+    deny_keywords: [],
+    enable_audit: false,
+    classifier_type: "",
+    llm_endpoint: "",
+    llm_model: "",
+    llm_system_prompt: "",
+    llm_timeout_ms: 0,
+    llm_confidence_threshold: 0,
+    body_map: undefined,
+    quota_window_secs: 0,
+    business_description: "",
+    valid_intent_examples: [],
+    invalid_intent_examples: [],
+    endpoint_overrides: [],
+  };
+}
+
+export const ServiceAiGuardConfig: MessageFns<ServiceAiGuardConfig> = {
+  encode(message: ServiceAiGuardConfig, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.enabled !== false) {
+      writer.uint32(8).bool(message.enabled);
+    }
+    if (message.mode !== "") {
+      writer.uint32(18).string(message.mode);
+    }
+    for (const v of message.include_paths) {
+      writer.uint32(26).string(v!);
+    }
+    if (message.request_body_max_bytes !== 0) {
+      writer.uint32(32).uint32(message.request_body_max_bytes);
+    }
+    if (message.max_input_tokens !== 0) {
+      writer.uint32(40).uint32(message.max_input_tokens);
+    }
+    if (message.max_output_tokens !== 0) {
+      writer.uint32(48).uint32(message.max_output_tokens);
+    }
+    if (message.max_context_tokens !== 0) {
+      writer.uint32(56).uint32(message.max_context_tokens);
+    }
+    if (message.history_policy !== "") {
+      writer.uint32(66).string(message.history_policy);
+    }
+    if (message.daily_token_quota !== 0) {
+      writer.uint32(72).uint32(message.daily_token_quota);
+    }
+    if (message.daily_request_quota !== 0) {
+      writer.uint32(80).uint32(message.daily_request_quota);
+    }
+    if (message.minute_request_quota !== 0) {
+      writer.uint32(88).uint32(message.minute_request_quota);
+    }
+    if (message.allow_free_chat !== false) {
+      writer.uint32(96).bool(message.allow_free_chat);
+    }
+    for (const v of message.allowed_topics) {
+      writer.uint32(106).string(v!);
+    }
+    for (const v of message.deny_keywords) {
+      writer.uint32(114).string(v!);
+    }
+    if (message.enable_audit !== false) {
+      writer.uint32(120).bool(message.enable_audit);
+    }
+    if (message.classifier_type !== "") {
+      writer.uint32(130).string(message.classifier_type);
+    }
+    if (message.llm_endpoint !== "") {
+      writer.uint32(138).string(message.llm_endpoint);
+    }
+    if (message.llm_model !== "") {
+      writer.uint32(146).string(message.llm_model);
+    }
+    if (message.llm_system_prompt !== "") {
+      writer.uint32(154).string(message.llm_system_prompt);
+    }
+    if (message.llm_timeout_ms !== 0) {
+      writer.uint32(160).uint32(message.llm_timeout_ms);
+    }
+    if (message.llm_confidence_threshold !== 0) {
+      writer.uint32(173).float(message.llm_confidence_threshold);
+    }
+    if (message.body_map !== undefined) {
+      AiBodyFieldMap.encode(message.body_map, writer.uint32(178).fork()).join();
+    }
+    if (message.quota_window_secs !== 0) {
+      writer.uint32(184).uint32(message.quota_window_secs);
+    }
+    if (message.business_description !== "") {
+      writer.uint32(194).string(message.business_description);
+    }
+    for (const v of message.valid_intent_examples) {
+      writer.uint32(202).string(v!);
+    }
+    for (const v of message.invalid_intent_examples) {
+      writer.uint32(210).string(v!);
+    }
+    for (const v of message.endpoint_overrides) {
+      AiGuardEndpointConfig.encode(v!, writer.uint32(218).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ServiceAiGuardConfig {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseServiceAiGuardConfig();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.enabled = reader.bool();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.mode = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.include_paths.push(reader.string());
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.request_body_max_bytes = reader.uint32();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.max_input_tokens = reader.uint32();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.max_output_tokens = reader.uint32();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.max_context_tokens = reader.uint32();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.history_policy = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.daily_token_quota = reader.uint32();
+          continue;
+        }
+        case 10: {
+          if (tag !== 80) {
+            break;
+          }
+
+          message.daily_request_quota = reader.uint32();
+          continue;
+        }
+        case 11: {
+          if (tag !== 88) {
+            break;
+          }
+
+          message.minute_request_quota = reader.uint32();
+          continue;
+        }
+        case 12: {
+          if (tag !== 96) {
+            break;
+          }
+
+          message.allow_free_chat = reader.bool();
+          continue;
+        }
+        case 13: {
+          if (tag !== 106) {
+            break;
+          }
+
+          message.allowed_topics.push(reader.string());
+          continue;
+        }
+        case 14: {
+          if (tag !== 114) {
+            break;
+          }
+
+          message.deny_keywords.push(reader.string());
+          continue;
+        }
+        case 15: {
+          if (tag !== 120) {
+            break;
+          }
+
+          message.enable_audit = reader.bool();
+          continue;
+        }
+        case 16: {
+          if (tag !== 130) {
+            break;
+          }
+
+          message.classifier_type = reader.string();
+          continue;
+        }
+        case 17: {
+          if (tag !== 138) {
+            break;
+          }
+
+          message.llm_endpoint = reader.string();
+          continue;
+        }
+        case 18: {
+          if (tag !== 146) {
+            break;
+          }
+
+          message.llm_model = reader.string();
+          continue;
+        }
+        case 19: {
+          if (tag !== 154) {
+            break;
+          }
+
+          message.llm_system_prompt = reader.string();
+          continue;
+        }
+        case 20: {
+          if (tag !== 160) {
+            break;
+          }
+
+          message.llm_timeout_ms = reader.uint32();
+          continue;
+        }
+        case 21: {
+          if (tag !== 173) {
+            break;
+          }
+
+          message.llm_confidence_threshold = reader.float();
+          continue;
+        }
+        case 22: {
+          if (tag !== 178) {
+            break;
+          }
+
+          message.body_map = AiBodyFieldMap.decode(reader, reader.uint32());
+          continue;
+        }
+        case 23: {
+          if (tag !== 184) {
+            break;
+          }
+
+          message.quota_window_secs = reader.uint32();
+          continue;
+        }
+        case 24: {
+          if (tag !== 194) {
+            break;
+          }
+
+          message.business_description = reader.string();
+          continue;
+        }
+        case 25: {
+          if (tag !== 202) {
+            break;
+          }
+
+          message.valid_intent_examples.push(reader.string());
+          continue;
+        }
+        case 26: {
+          if (tag !== 210) {
+            break;
+          }
+
+          message.invalid_intent_examples.push(reader.string());
+          continue;
+        }
+        case 27: {
+          if (tag !== 218) {
+            break;
+          }
+
+          message.endpoint_overrides.push(AiGuardEndpointConfig.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ServiceAiGuardConfig {
+    return {
+      enabled: isSet(object.enabled) ? globalThis.Boolean(object.enabled) : false,
+      mode: isSet(object.mode) ? globalThis.String(object.mode) : "",
+      include_paths: globalThis.Array.isArray(object?.include_paths)
+        ? object.include_paths.map((e: any) => globalThis.String(e))
+        : [],
+      request_body_max_bytes: isSet(object.request_body_max_bytes)
+        ? globalThis.Number(object.request_body_max_bytes)
+        : 0,
+      max_input_tokens: isSet(object.max_input_tokens) ? globalThis.Number(object.max_input_tokens) : 0,
+      max_output_tokens: isSet(object.max_output_tokens) ? globalThis.Number(object.max_output_tokens) : 0,
+      max_context_tokens: isSet(object.max_context_tokens) ? globalThis.Number(object.max_context_tokens) : 0,
+      history_policy: isSet(object.history_policy) ? globalThis.String(object.history_policy) : "",
+      daily_token_quota: isSet(object.daily_token_quota) ? globalThis.Number(object.daily_token_quota) : 0,
+      daily_request_quota: isSet(object.daily_request_quota) ? globalThis.Number(object.daily_request_quota) : 0,
+      minute_request_quota: isSet(object.minute_request_quota) ? globalThis.Number(object.minute_request_quota) : 0,
+      allow_free_chat: isSet(object.allow_free_chat) ? globalThis.Boolean(object.allow_free_chat) : false,
+      allowed_topics: globalThis.Array.isArray(object?.allowed_topics)
+        ? object.allowed_topics.map((e: any) => globalThis.String(e))
+        : [],
+      deny_keywords: globalThis.Array.isArray(object?.deny_keywords)
+        ? object.deny_keywords.map((e: any) => globalThis.String(e))
+        : [],
+      enable_audit: isSet(object.enable_audit) ? globalThis.Boolean(object.enable_audit) : false,
+      classifier_type: isSet(object.classifier_type) ? globalThis.String(object.classifier_type) : "",
+      llm_endpoint: isSet(object.llm_endpoint) ? globalThis.String(object.llm_endpoint) : "",
+      llm_model: isSet(object.llm_model) ? globalThis.String(object.llm_model) : "",
+      llm_system_prompt: isSet(object.llm_system_prompt) ? globalThis.String(object.llm_system_prompt) : "",
+      llm_timeout_ms: isSet(object.llm_timeout_ms) ? globalThis.Number(object.llm_timeout_ms) : 0,
+      llm_confidence_threshold: isSet(object.llm_confidence_threshold)
+        ? globalThis.Number(object.llm_confidence_threshold)
+        : 0,
+      body_map: isSet(object.body_map) ? AiBodyFieldMap.fromJSON(object.body_map) : undefined,
+      quota_window_secs: isSet(object.quota_window_secs) ? globalThis.Number(object.quota_window_secs) : 0,
+      business_description: isSet(object.business_description) ? globalThis.String(object.business_description) : "",
+      valid_intent_examples: globalThis.Array.isArray(object?.valid_intent_examples)
+        ? object.valid_intent_examples.map((e: any) => globalThis.String(e))
+        : [],
+      invalid_intent_examples: globalThis.Array.isArray(object?.invalid_intent_examples)
+        ? object.invalid_intent_examples.map((e: any) => globalThis.String(e))
+        : [],
+      endpoint_overrides: globalThis.Array.isArray(object?.endpoint_overrides)
+        ? object.endpoint_overrides.map((e: any) => AiGuardEndpointConfig.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: ServiceAiGuardConfig): unknown {
+    const obj: any = {};
+    if (message.enabled !== false) {
+      obj.enabled = message.enabled;
+    }
+    if (message.mode !== "") {
+      obj.mode = message.mode;
+    }
+    if (message.include_paths?.length) {
+      obj.include_paths = message.include_paths;
+    }
+    if (message.request_body_max_bytes !== 0) {
+      obj.request_body_max_bytes = Math.round(message.request_body_max_bytes);
+    }
+    if (message.max_input_tokens !== 0) {
+      obj.max_input_tokens = Math.round(message.max_input_tokens);
+    }
+    if (message.max_output_tokens !== 0) {
+      obj.max_output_tokens = Math.round(message.max_output_tokens);
+    }
+    if (message.max_context_tokens !== 0) {
+      obj.max_context_tokens = Math.round(message.max_context_tokens);
+    }
+    if (message.history_policy !== "") {
+      obj.history_policy = message.history_policy;
+    }
+    if (message.daily_token_quota !== 0) {
+      obj.daily_token_quota = Math.round(message.daily_token_quota);
+    }
+    if (message.daily_request_quota !== 0) {
+      obj.daily_request_quota = Math.round(message.daily_request_quota);
+    }
+    if (message.minute_request_quota !== 0) {
+      obj.minute_request_quota = Math.round(message.minute_request_quota);
+    }
+    if (message.allow_free_chat !== false) {
+      obj.allow_free_chat = message.allow_free_chat;
+    }
+    if (message.allowed_topics?.length) {
+      obj.allowed_topics = message.allowed_topics;
+    }
+    if (message.deny_keywords?.length) {
+      obj.deny_keywords = message.deny_keywords;
+    }
+    if (message.enable_audit !== false) {
+      obj.enable_audit = message.enable_audit;
+    }
+    if (message.classifier_type !== "") {
+      obj.classifier_type = message.classifier_type;
+    }
+    if (message.llm_endpoint !== "") {
+      obj.llm_endpoint = message.llm_endpoint;
+    }
+    if (message.llm_model !== "") {
+      obj.llm_model = message.llm_model;
+    }
+    if (message.llm_system_prompt !== "") {
+      obj.llm_system_prompt = message.llm_system_prompt;
+    }
+    if (message.llm_timeout_ms !== 0) {
+      obj.llm_timeout_ms = Math.round(message.llm_timeout_ms);
+    }
+    if (message.llm_confidence_threshold !== 0) {
+      obj.llm_confidence_threshold = message.llm_confidence_threshold;
+    }
+    if (message.body_map !== undefined) {
+      obj.body_map = AiBodyFieldMap.toJSON(message.body_map);
+    }
+    if (message.quota_window_secs !== 0) {
+      obj.quota_window_secs = Math.round(message.quota_window_secs);
+    }
+    if (message.business_description !== "") {
+      obj.business_description = message.business_description;
+    }
+    if (message.valid_intent_examples?.length) {
+      obj.valid_intent_examples = message.valid_intent_examples;
+    }
+    if (message.invalid_intent_examples?.length) {
+      obj.invalid_intent_examples = message.invalid_intent_examples;
+    }
+    if (message.endpoint_overrides?.length) {
+      obj.endpoint_overrides = message.endpoint_overrides.map((e) => AiGuardEndpointConfig.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ServiceAiGuardConfig>, I>>(base?: I): ServiceAiGuardConfig {
+    return ServiceAiGuardConfig.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ServiceAiGuardConfig>, I>>(object: I): ServiceAiGuardConfig {
+    const message = createBaseServiceAiGuardConfig();
+    message.enabled = object.enabled ?? false;
+    message.mode = object.mode ?? "";
+    message.include_paths = object.include_paths?.map((e) => e) || [];
+    message.request_body_max_bytes = object.request_body_max_bytes ?? 0;
+    message.max_input_tokens = object.max_input_tokens ?? 0;
+    message.max_output_tokens = object.max_output_tokens ?? 0;
+    message.max_context_tokens = object.max_context_tokens ?? 0;
+    message.history_policy = object.history_policy ?? "";
+    message.daily_token_quota = object.daily_token_quota ?? 0;
+    message.daily_request_quota = object.daily_request_quota ?? 0;
+    message.minute_request_quota = object.minute_request_quota ?? 0;
+    message.allow_free_chat = object.allow_free_chat ?? false;
+    message.allowed_topics = object.allowed_topics?.map((e) => e) || [];
+    message.deny_keywords = object.deny_keywords?.map((e) => e) || [];
+    message.enable_audit = object.enable_audit ?? false;
+    message.classifier_type = object.classifier_type ?? "";
+    message.llm_endpoint = object.llm_endpoint ?? "";
+    message.llm_model = object.llm_model ?? "";
+    message.llm_system_prompt = object.llm_system_prompt ?? "";
+    message.llm_timeout_ms = object.llm_timeout_ms ?? 0;
+    message.llm_confidence_threshold = object.llm_confidence_threshold ?? 0;
+    message.body_map = (object.body_map !== undefined && object.body_map !== null)
+      ? AiBodyFieldMap.fromPartial(object.body_map)
+      : undefined;
+    message.quota_window_secs = object.quota_window_secs ?? 0;
+    message.business_description = object.business_description ?? "";
+    message.valid_intent_examples = object.valid_intent_examples?.map((e) => e) || [];
+    message.invalid_intent_examples = object.invalid_intent_examples?.map((e) => e) || [];
+    message.endpoint_overrides = object.endpoint_overrides?.map((e) => AiGuardEndpointConfig.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseAiGuardEndpointConfig(): AiGuardEndpointConfig {
+  return {
+    endpoint_id: "",
+    exact_paths: [],
+    prefix_paths: [],
+    pattern_paths: [],
+    disabled: undefined,
+    mode: "",
+    request_body_max_bytes: 0,
+    max_input_tokens: 0,
+    max_output_tokens: 0,
+    max_context_tokens: 0,
+    history_policy: "",
+    daily_token_quota: 0,
+    daily_request_quota: 0,
+    minute_request_quota: 0,
+    quota_window_secs: 0,
+    allow_free_chat: undefined,
+    allowed_topics: [],
+    deny_keywords: [],
+    enable_audit: undefined,
+    classifier_type: "",
+    llm_endpoint: "",
+    llm_model: "",
+    llm_system_prompt: "",
+    business_description: "",
+    valid_intent_examples: [],
+    invalid_intent_examples: [],
+    llm_timeout_ms: 0,
+    llm_confidence_threshold: 0,
+    body_map: undefined,
+  };
+}
+
+export const AiGuardEndpointConfig: MessageFns<AiGuardEndpointConfig> = {
+  encode(message: AiGuardEndpointConfig, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.endpoint_id !== "") {
+      writer.uint32(10).string(message.endpoint_id);
+    }
+    for (const v of message.exact_paths) {
+      writer.uint32(18).string(v!);
+    }
+    for (const v of message.prefix_paths) {
+      writer.uint32(26).string(v!);
+    }
+    for (const v of message.pattern_paths) {
+      writer.uint32(234).string(v!);
+    }
+    if (message.disabled !== undefined) {
+      writer.uint32(32).bool(message.disabled);
+    }
+    if (message.mode !== "") {
+      writer.uint32(42).string(message.mode);
+    }
+    if (message.request_body_max_bytes !== 0) {
+      writer.uint32(48).uint32(message.request_body_max_bytes);
+    }
+    if (message.max_input_tokens !== 0) {
+      writer.uint32(56).uint32(message.max_input_tokens);
+    }
+    if (message.max_output_tokens !== 0) {
+      writer.uint32(64).uint32(message.max_output_tokens);
+    }
+    if (message.max_context_tokens !== 0) {
+      writer.uint32(72).uint32(message.max_context_tokens);
+    }
+    if (message.history_policy !== "") {
+      writer.uint32(82).string(message.history_policy);
+    }
+    if (message.daily_token_quota !== 0) {
+      writer.uint32(88).uint32(message.daily_token_quota);
+    }
+    if (message.daily_request_quota !== 0) {
+      writer.uint32(96).uint32(message.daily_request_quota);
+    }
+    if (message.minute_request_quota !== 0) {
+      writer.uint32(104).uint32(message.minute_request_quota);
+    }
+    if (message.quota_window_secs !== 0) {
+      writer.uint32(112).uint32(message.quota_window_secs);
+    }
+    if (message.allow_free_chat !== undefined) {
+      writer.uint32(120).bool(message.allow_free_chat);
+    }
+    for (const v of message.allowed_topics) {
+      writer.uint32(130).string(v!);
+    }
+    for (const v of message.deny_keywords) {
+      writer.uint32(138).string(v!);
+    }
+    if (message.enable_audit !== undefined) {
+      writer.uint32(144).bool(message.enable_audit);
+    }
+    if (message.classifier_type !== "") {
+      writer.uint32(154).string(message.classifier_type);
+    }
+    if (message.llm_endpoint !== "") {
+      writer.uint32(162).string(message.llm_endpoint);
+    }
+    if (message.llm_model !== "") {
+      writer.uint32(170).string(message.llm_model);
+    }
+    if (message.llm_system_prompt !== "") {
+      writer.uint32(178).string(message.llm_system_prompt);
+    }
+    if (message.business_description !== "") {
+      writer.uint32(186).string(message.business_description);
+    }
+    for (const v of message.valid_intent_examples) {
+      writer.uint32(194).string(v!);
+    }
+    for (const v of message.invalid_intent_examples) {
+      writer.uint32(202).string(v!);
+    }
+    if (message.llm_timeout_ms !== 0) {
+      writer.uint32(208).uint32(message.llm_timeout_ms);
+    }
+    if (message.llm_confidence_threshold !== 0) {
+      writer.uint32(221).float(message.llm_confidence_threshold);
+    }
+    if (message.body_map !== undefined) {
+      AiBodyFieldMap.encode(message.body_map, writer.uint32(226).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AiGuardEndpointConfig {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAiGuardEndpointConfig();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.endpoint_id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.exact_paths.push(reader.string());
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.prefix_paths.push(reader.string());
+          continue;
+        }
+        case 29: {
+          if (tag !== 234) {
+            break;
+          }
+
+          message.pattern_paths.push(reader.string());
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.disabled = reader.bool();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.mode = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.request_body_max_bytes = reader.uint32();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.max_input_tokens = reader.uint32();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.max_output_tokens = reader.uint32();
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.max_context_tokens = reader.uint32();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.history_policy = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 88) {
+            break;
+          }
+
+          message.daily_token_quota = reader.uint32();
+          continue;
+        }
+        case 12: {
+          if (tag !== 96) {
+            break;
+          }
+
+          message.daily_request_quota = reader.uint32();
+          continue;
+        }
+        case 13: {
+          if (tag !== 104) {
+            break;
+          }
+
+          message.minute_request_quota = reader.uint32();
+          continue;
+        }
+        case 14: {
+          if (tag !== 112) {
+            break;
+          }
+
+          message.quota_window_secs = reader.uint32();
+          continue;
+        }
+        case 15: {
+          if (tag !== 120) {
+            break;
+          }
+
+          message.allow_free_chat = reader.bool();
+          continue;
+        }
+        case 16: {
+          if (tag !== 130) {
+            break;
+          }
+
+          message.allowed_topics.push(reader.string());
+          continue;
+        }
+        case 17: {
+          if (tag !== 138) {
+            break;
+          }
+
+          message.deny_keywords.push(reader.string());
+          continue;
+        }
+        case 18: {
+          if (tag !== 144) {
+            break;
+          }
+
+          message.enable_audit = reader.bool();
+          continue;
+        }
+        case 19: {
+          if (tag !== 154) {
+            break;
+          }
+
+          message.classifier_type = reader.string();
+          continue;
+        }
+        case 20: {
+          if (tag !== 162) {
+            break;
+          }
+
+          message.llm_endpoint = reader.string();
+          continue;
+        }
+        case 21: {
+          if (tag !== 170) {
+            break;
+          }
+
+          message.llm_model = reader.string();
+          continue;
+        }
+        case 22: {
+          if (tag !== 178) {
+            break;
+          }
+
+          message.llm_system_prompt = reader.string();
+          continue;
+        }
+        case 23: {
+          if (tag !== 186) {
+            break;
+          }
+
+          message.business_description = reader.string();
+          continue;
+        }
+        case 24: {
+          if (tag !== 194) {
+            break;
+          }
+
+          message.valid_intent_examples.push(reader.string());
+          continue;
+        }
+        case 25: {
+          if (tag !== 202) {
+            break;
+          }
+
+          message.invalid_intent_examples.push(reader.string());
+          continue;
+        }
+        case 26: {
+          if (tag !== 208) {
+            break;
+          }
+
+          message.llm_timeout_ms = reader.uint32();
+          continue;
+        }
+        case 27: {
+          if (tag !== 221) {
+            break;
+          }
+
+          message.llm_confidence_threshold = reader.float();
+          continue;
+        }
+        case 28: {
+          if (tag !== 226) {
+            break;
+          }
+
+          message.body_map = AiBodyFieldMap.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AiGuardEndpointConfig {
+    return {
+      endpoint_id: isSet(object.endpoint_id) ? globalThis.String(object.endpoint_id) : "",
+      exact_paths: globalThis.Array.isArray(object?.exact_paths)
+        ? object.exact_paths.map((e: any) => globalThis.String(e))
+        : [],
+      prefix_paths: globalThis.Array.isArray(object?.prefix_paths)
+        ? object.prefix_paths.map((e: any) => globalThis.String(e))
+        : [],
+      pattern_paths: globalThis.Array.isArray(object?.pattern_paths)
+        ? object.pattern_paths.map((e: any) => globalThis.String(e))
+        : [],
+      disabled: isSet(object.disabled) ? globalThis.Boolean(object.disabled) : undefined,
+      mode: isSet(object.mode) ? globalThis.String(object.mode) : "",
+      request_body_max_bytes: isSet(object.request_body_max_bytes)
+        ? globalThis.Number(object.request_body_max_bytes)
+        : 0,
+      max_input_tokens: isSet(object.max_input_tokens) ? globalThis.Number(object.max_input_tokens) : 0,
+      max_output_tokens: isSet(object.max_output_tokens) ? globalThis.Number(object.max_output_tokens) : 0,
+      max_context_tokens: isSet(object.max_context_tokens) ? globalThis.Number(object.max_context_tokens) : 0,
+      history_policy: isSet(object.history_policy) ? globalThis.String(object.history_policy) : "",
+      daily_token_quota: isSet(object.daily_token_quota) ? globalThis.Number(object.daily_token_quota) : 0,
+      daily_request_quota: isSet(object.daily_request_quota) ? globalThis.Number(object.daily_request_quota) : 0,
+      minute_request_quota: isSet(object.minute_request_quota) ? globalThis.Number(object.minute_request_quota) : 0,
+      quota_window_secs: isSet(object.quota_window_secs) ? globalThis.Number(object.quota_window_secs) : 0,
+      allow_free_chat: isSet(object.allow_free_chat) ? globalThis.Boolean(object.allow_free_chat) : undefined,
+      allowed_topics: globalThis.Array.isArray(object?.allowed_topics)
+        ? object.allowed_topics.map((e: any) => globalThis.String(e))
+        : [],
+      deny_keywords: globalThis.Array.isArray(object?.deny_keywords)
+        ? object.deny_keywords.map((e: any) => globalThis.String(e))
+        : [],
+      enable_audit: isSet(object.enable_audit) ? globalThis.Boolean(object.enable_audit) : undefined,
+      classifier_type: isSet(object.classifier_type) ? globalThis.String(object.classifier_type) : "",
+      llm_endpoint: isSet(object.llm_endpoint) ? globalThis.String(object.llm_endpoint) : "",
+      llm_model: isSet(object.llm_model) ? globalThis.String(object.llm_model) : "",
+      llm_system_prompt: isSet(object.llm_system_prompt) ? globalThis.String(object.llm_system_prompt) : "",
+      business_description: isSet(object.business_description) ? globalThis.String(object.business_description) : "",
+      valid_intent_examples: globalThis.Array.isArray(object?.valid_intent_examples)
+        ? object.valid_intent_examples.map((e: any) => globalThis.String(e))
+        : [],
+      invalid_intent_examples: globalThis.Array.isArray(object?.invalid_intent_examples)
+        ? object.invalid_intent_examples.map((e: any) => globalThis.String(e))
+        : [],
+      llm_timeout_ms: isSet(object.llm_timeout_ms) ? globalThis.Number(object.llm_timeout_ms) : 0,
+      llm_confidence_threshold: isSet(object.llm_confidence_threshold)
+        ? globalThis.Number(object.llm_confidence_threshold)
+        : 0,
+      body_map: isSet(object.body_map) ? AiBodyFieldMap.fromJSON(object.body_map) : undefined,
+    };
+  },
+
+  toJSON(message: AiGuardEndpointConfig): unknown {
+    const obj: any = {};
+    if (message.endpoint_id !== "") {
+      obj.endpoint_id = message.endpoint_id;
+    }
+    if (message.exact_paths?.length) {
+      obj.exact_paths = message.exact_paths;
+    }
+    if (message.prefix_paths?.length) {
+      obj.prefix_paths = message.prefix_paths;
+    }
+    if (message.pattern_paths?.length) {
+      obj.pattern_paths = message.pattern_paths;
+    }
+    if (message.disabled !== undefined) {
+      obj.disabled = message.disabled;
+    }
+    if (message.mode !== "") {
+      obj.mode = message.mode;
+    }
+    if (message.request_body_max_bytes !== 0) {
+      obj.request_body_max_bytes = Math.round(message.request_body_max_bytes);
+    }
+    if (message.max_input_tokens !== 0) {
+      obj.max_input_tokens = Math.round(message.max_input_tokens);
+    }
+    if (message.max_output_tokens !== 0) {
+      obj.max_output_tokens = Math.round(message.max_output_tokens);
+    }
+    if (message.max_context_tokens !== 0) {
+      obj.max_context_tokens = Math.round(message.max_context_tokens);
+    }
+    if (message.history_policy !== "") {
+      obj.history_policy = message.history_policy;
+    }
+    if (message.daily_token_quota !== 0) {
+      obj.daily_token_quota = Math.round(message.daily_token_quota);
+    }
+    if (message.daily_request_quota !== 0) {
+      obj.daily_request_quota = Math.round(message.daily_request_quota);
+    }
+    if (message.minute_request_quota !== 0) {
+      obj.minute_request_quota = Math.round(message.minute_request_quota);
+    }
+    if (message.quota_window_secs !== 0) {
+      obj.quota_window_secs = Math.round(message.quota_window_secs);
+    }
+    if (message.allow_free_chat !== undefined) {
+      obj.allow_free_chat = message.allow_free_chat;
+    }
+    if (message.allowed_topics?.length) {
+      obj.allowed_topics = message.allowed_topics;
+    }
+    if (message.deny_keywords?.length) {
+      obj.deny_keywords = message.deny_keywords;
+    }
+    if (message.enable_audit !== undefined) {
+      obj.enable_audit = message.enable_audit;
+    }
+    if (message.classifier_type !== "") {
+      obj.classifier_type = message.classifier_type;
+    }
+    if (message.llm_endpoint !== "") {
+      obj.llm_endpoint = message.llm_endpoint;
+    }
+    if (message.llm_model !== "") {
+      obj.llm_model = message.llm_model;
+    }
+    if (message.llm_system_prompt !== "") {
+      obj.llm_system_prompt = message.llm_system_prompt;
+    }
+    if (message.business_description !== "") {
+      obj.business_description = message.business_description;
+    }
+    if (message.valid_intent_examples?.length) {
+      obj.valid_intent_examples = message.valid_intent_examples;
+    }
+    if (message.invalid_intent_examples?.length) {
+      obj.invalid_intent_examples = message.invalid_intent_examples;
+    }
+    if (message.llm_timeout_ms !== 0) {
+      obj.llm_timeout_ms = Math.round(message.llm_timeout_ms);
+    }
+    if (message.llm_confidence_threshold !== 0) {
+      obj.llm_confidence_threshold = message.llm_confidence_threshold;
+    }
+    if (message.body_map !== undefined) {
+      obj.body_map = AiBodyFieldMap.toJSON(message.body_map);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AiGuardEndpointConfig>, I>>(base?: I): AiGuardEndpointConfig {
+    return AiGuardEndpointConfig.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AiGuardEndpointConfig>, I>>(object: I): AiGuardEndpointConfig {
+    const message = createBaseAiGuardEndpointConfig();
+    message.endpoint_id = object.endpoint_id ?? "";
+    message.exact_paths = object.exact_paths?.map((e) => e) || [];
+    message.prefix_paths = object.prefix_paths?.map((e) => e) || [];
+    message.pattern_paths = object.pattern_paths?.map((e) => e) || [];
+    message.disabled = object.disabled ?? undefined;
+    message.mode = object.mode ?? "";
+    message.request_body_max_bytes = object.request_body_max_bytes ?? 0;
+    message.max_input_tokens = object.max_input_tokens ?? 0;
+    message.max_output_tokens = object.max_output_tokens ?? 0;
+    message.max_context_tokens = object.max_context_tokens ?? 0;
+    message.history_policy = object.history_policy ?? "";
+    message.daily_token_quota = object.daily_token_quota ?? 0;
+    message.daily_request_quota = object.daily_request_quota ?? 0;
+    message.minute_request_quota = object.minute_request_quota ?? 0;
+    message.quota_window_secs = object.quota_window_secs ?? 0;
+    message.allow_free_chat = object.allow_free_chat ?? undefined;
+    message.allowed_topics = object.allowed_topics?.map((e) => e) || [];
+    message.deny_keywords = object.deny_keywords?.map((e) => e) || [];
+    message.enable_audit = object.enable_audit ?? undefined;
+    message.classifier_type = object.classifier_type ?? "";
+    message.llm_endpoint = object.llm_endpoint ?? "";
+    message.llm_model = object.llm_model ?? "";
+    message.llm_system_prompt = object.llm_system_prompt ?? "";
+    message.business_description = object.business_description ?? "";
+    message.valid_intent_examples = object.valid_intent_examples?.map((e) => e) || [];
+    message.invalid_intent_examples = object.invalid_intent_examples?.map((e) => e) || [];
+    message.llm_timeout_ms = object.llm_timeout_ms ?? 0;
+    message.llm_confidence_threshold = object.llm_confidence_threshold ?? 0;
+    message.body_map = (object.body_map !== undefined && object.body_map !== null)
+      ? AiBodyFieldMap.fromPartial(object.body_map)
+      : undefined;
+    return message;
+  },
+};
+
 function createBaseServiceMiddlewareConfig(): ServiceMiddlewareConfig {
   return {
     rate_limit_enabled: false,
@@ -1700,6 +3132,8 @@ function createBaseServiceMiddlewareConfig(): ServiceMiddlewareConfig {
     risk: undefined,
     turnstile_enabled: false,
     turnstile: undefined,
+    ai_guard_enabled: false,
+    ai_guard: undefined,
   };
 }
 
@@ -1731,6 +3165,12 @@ export const ServiceMiddlewareConfig: MessageFns<ServiceMiddlewareConfig> = {
     }
     if (message.turnstile !== undefined) {
       ServiceTurnstileConfig.encode(message.turnstile, writer.uint32(250).fork()).join();
+    }
+    if (message.ai_guard_enabled !== false) {
+      writer.uint32(320).bool(message.ai_guard_enabled);
+    }
+    if (message.ai_guard !== undefined) {
+      ServiceAiGuardConfig.encode(message.ai_guard, writer.uint32(330).fork()).join();
     }
     return writer;
   },
@@ -1814,6 +3254,22 @@ export const ServiceMiddlewareConfig: MessageFns<ServiceMiddlewareConfig> = {
           message.turnstile = ServiceTurnstileConfig.decode(reader, reader.uint32());
           continue;
         }
+        case 40: {
+          if (tag !== 320) {
+            break;
+          }
+
+          message.ai_guard_enabled = reader.bool();
+          continue;
+        }
+        case 41: {
+          if (tag !== 330) {
+            break;
+          }
+
+          message.ai_guard = ServiceAiGuardConfig.decode(reader, reader.uint32());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1834,6 +3290,8 @@ export const ServiceMiddlewareConfig: MessageFns<ServiceMiddlewareConfig> = {
       risk: isSet(object.risk) ? ServiceRiskConfig.fromJSON(object.risk) : undefined,
       turnstile_enabled: isSet(object.turnstile_enabled) ? globalThis.Boolean(object.turnstile_enabled) : false,
       turnstile: isSet(object.turnstile) ? ServiceTurnstileConfig.fromJSON(object.turnstile) : undefined,
+      ai_guard_enabled: isSet(object.ai_guard_enabled) ? globalThis.Boolean(object.ai_guard_enabled) : false,
+      ai_guard: isSet(object.ai_guard) ? ServiceAiGuardConfig.fromJSON(object.ai_guard) : undefined,
     };
   },
 
@@ -1866,6 +3324,12 @@ export const ServiceMiddlewareConfig: MessageFns<ServiceMiddlewareConfig> = {
     if (message.turnstile !== undefined) {
       obj.turnstile = ServiceTurnstileConfig.toJSON(message.turnstile);
     }
+    if (message.ai_guard_enabled !== false) {
+      obj.ai_guard_enabled = message.ai_guard_enabled;
+    }
+    if (message.ai_guard !== undefined) {
+      obj.ai_guard = ServiceAiGuardConfig.toJSON(message.ai_guard);
+    }
     return obj;
   },
 
@@ -1889,6 +3353,10 @@ export const ServiceMiddlewareConfig: MessageFns<ServiceMiddlewareConfig> = {
     message.turnstile = (object.turnstile !== undefined && object.turnstile !== null)
       ? ServiceTurnstileConfig.fromPartial(object.turnstile)
       : undefined;
+    message.ai_guard_enabled = object.ai_guard_enabled ?? false;
+    message.ai_guard = (object.ai_guard !== undefined && object.ai_guard !== null)
+      ? ServiceAiGuardConfig.fromPartial(object.ai_guard)
+      : undefined;
     return message;
   },
 };
@@ -1899,7 +3367,7 @@ function createBaseServiceInstance(): ServiceInstance {
     instance_id: "",
     lb: undefined,
     version: "",
-    metadata: undefined,
+    metadata: {},
     health_endpoint: "",
     health_check_config: undefined,
     registered_at: undefined,
@@ -1927,9 +3395,9 @@ export const ServiceInstance: MessageFns<ServiceInstance> = {
     if (message.version !== "") {
       writer.uint32(42).string(message.version);
     }
-    if (message.metadata !== undefined) {
-      Struct.encode(Struct.wrap(message.metadata), writer.uint32(50).fork()).join();
-    }
+    globalThis.Object.entries(message.metadata).forEach(([key, value]: [string, Any]) => {
+      ServiceInstance_MetadataEntry.encode({ key: key as any, value }, writer.uint32(50).fork()).join();
+    });
     if (message.health_endpoint !== "") {
       writer.uint32(58).string(message.health_endpoint);
     }
@@ -2007,7 +3475,10 @@ export const ServiceInstance: MessageFns<ServiceInstance> = {
             break;
           }
 
-          message.metadata = Struct.unwrap(Struct.decode(reader, reader.uint32()));
+          const entry6 = ServiceInstance_MetadataEntry.decode(reader, reader.uint32());
+          if (entry6.value !== undefined) {
+            message.metadata[entry6.key] = entry6.value;
+          }
           continue;
         }
         case 7: {
@@ -2108,7 +3579,15 @@ export const ServiceInstance: MessageFns<ServiceInstance> = {
       instance_id: isSet(object.instance_id) ? globalThis.String(object.instance_id) : "",
       lb: isSet(object.lb) ? LoadBalancer.fromJSON(object.lb) : undefined,
       version: isSet(object.version) ? globalThis.String(object.version) : "",
-      metadata: isObject(object.metadata) ? object.metadata : undefined,
+      metadata: isObject(object.metadata)
+        ? (globalThis.Object.entries(object.metadata) as [string, any][]).reduce(
+          (acc: { [key: string]: Any }, [key, value]: [string, any]) => {
+            acc[key] = Any.fromJSON(value);
+            return acc;
+          },
+          {},
+        )
+        : {},
       health_endpoint: isSet(object.health_endpoint) ? globalThis.String(object.health_endpoint) : "",
       health_check_config: isSet(object.health_check_config)
         ? HealthCheckConfig.fromJSON(object.health_check_config)
@@ -2150,8 +3629,14 @@ export const ServiceInstance: MessageFns<ServiceInstance> = {
     if (message.version !== "") {
       obj.version = message.version;
     }
-    if (message.metadata !== undefined) {
-      obj.metadata = message.metadata;
+    if (message.metadata) {
+      const entries = globalThis.Object.entries(message.metadata) as [string, Any][];
+      if (entries.length > 0) {
+        obj.metadata = {};
+        entries.forEach(([k, v]) => {
+          obj.metadata[k] = Any.toJSON(v);
+        });
+      }
     }
     if (message.health_endpoint !== "") {
       obj.health_endpoint = message.health_endpoint;
@@ -2201,7 +3686,15 @@ export const ServiceInstance: MessageFns<ServiceInstance> = {
     message.instance_id = object.instance_id ?? "";
     message.lb = (object.lb !== undefined && object.lb !== null) ? LoadBalancer.fromPartial(object.lb) : undefined;
     message.version = object.version ?? "";
-    message.metadata = object.metadata ?? undefined;
+    message.metadata = (globalThis.Object.entries(object.metadata ?? {}) as [string, Any][]).reduce(
+      (acc: { [key: string]: Any }, [key, value]: [string, Any]) => {
+        if (value !== undefined) {
+          acc[key] = Any.fromPartial(value);
+        }
+        return acc;
+      },
+      {},
+    );
     message.health_endpoint = object.health_endpoint ?? "";
     message.health_check_config = (object.health_check_config !== undefined && object.health_check_config !== null)
       ? HealthCheckConfig.fromPartial(object.health_check_config)
@@ -2224,6 +3717,84 @@ export const ServiceInstance: MessageFns<ServiceInstance> = {
     message.middleware_config = (object.middleware_config !== undefined && object.middleware_config !== null)
       ? ServiceMiddlewareConfig.fromPartial(object.middleware_config)
       : undefined;
+    return message;
+  },
+};
+
+function createBaseServiceInstance_MetadataEntry(): ServiceInstance_MetadataEntry {
+  return { key: "", value: undefined };
+}
+
+export const ServiceInstance_MetadataEntry: MessageFns<ServiceInstance_MetadataEntry> = {
+  encode(message: ServiceInstance_MetadataEntry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.key !== "") {
+      writer.uint32(10).string(message.key);
+    }
+    if (message.value !== undefined) {
+      Any.encode(message.value, writer.uint32(18).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ServiceInstance_MetadataEntry {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseServiceInstance_MetadataEntry();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.key = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.value = Any.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ServiceInstance_MetadataEntry {
+    return {
+      key: isSet(object.key) ? globalThis.String(object.key) : "",
+      value: isSet(object.value) ? Any.fromJSON(object.value) : undefined,
+    };
+  },
+
+  toJSON(message: ServiceInstance_MetadataEntry): unknown {
+    const obj: any = {};
+    if (message.key !== "") {
+      obj.key = message.key;
+    }
+    if (message.value !== undefined) {
+      obj.value = Any.toJSON(message.value);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ServiceInstance_MetadataEntry>, I>>(base?: I): ServiceInstance_MetadataEntry {
+    return ServiceInstance_MetadataEntry.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ServiceInstance_MetadataEntry>, I>>(
+    object: I,
+  ): ServiceInstance_MetadataEntry {
+    const message = createBaseServiceInstance_MetadataEntry();
+    message.key = object.key ?? "";
+    message.value = (object.value !== undefined && object.value !== null) ? Any.fromPartial(object.value) : undefined;
     return message;
   },
 };
@@ -2300,6 +3871,222 @@ export const ServiceInstance_TagsEntry: MessageFns<ServiceInstance_TagsEntry> = 
     const message = createBaseServiceInstance_TagsEntry();
     message.key = object.key ?? "";
     message.value = object.value ?? "";
+    return message;
+  },
+};
+
+function createBaseInitServiceRequest(): InitServiceRequest {
+  return { service_name: "", description: "", protocol: "" };
+}
+
+export const InitServiceRequest: MessageFns<InitServiceRequest> = {
+  encode(message: InitServiceRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.service_name !== "") {
+      writer.uint32(10).string(message.service_name);
+    }
+    if (message.description !== "") {
+      writer.uint32(18).string(message.description);
+    }
+    if (message.protocol !== "") {
+      writer.uint32(26).string(message.protocol);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): InitServiceRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseInitServiceRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.service_name = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.description = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.protocol = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): InitServiceRequest {
+    return {
+      service_name: isSet(object.service_name) ? globalThis.String(object.service_name) : "",
+      description: isSet(object.description) ? globalThis.String(object.description) : "",
+      protocol: isSet(object.protocol) ? globalThis.String(object.protocol) : "",
+    };
+  },
+
+  toJSON(message: InitServiceRequest): unknown {
+    const obj: any = {};
+    if (message.service_name !== "") {
+      obj.service_name = message.service_name;
+    }
+    if (message.description !== "") {
+      obj.description = message.description;
+    }
+    if (message.protocol !== "") {
+      obj.protocol = message.protocol;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<InitServiceRequest>, I>>(base?: I): InitServiceRequest {
+    return InitServiceRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<InitServiceRequest>, I>>(object: I): InitServiceRequest {
+    const message = createBaseInitServiceRequest();
+    message.service_name = object.service_name ?? "";
+    message.description = object.description ?? "";
+    message.protocol = object.protocol ?? "";
+    return message;
+  },
+};
+
+function createBaseInitServiceResponse(): InitServiceResponse {
+  return { success: false, message: "", app_id: "", app_secret: "", service_name: "" };
+}
+
+export const InitServiceResponse: MessageFns<InitServiceResponse> = {
+  encode(message: InitServiceResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.success !== false) {
+      writer.uint32(8).bool(message.success);
+    }
+    if (message.message !== "") {
+      writer.uint32(18).string(message.message);
+    }
+    if (message.app_id !== "") {
+      writer.uint32(26).string(message.app_id);
+    }
+    if (message.app_secret !== "") {
+      writer.uint32(34).string(message.app_secret);
+    }
+    if (message.service_name !== "") {
+      writer.uint32(42).string(message.service_name);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): InitServiceResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseInitServiceResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.success = reader.bool();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.message = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.app_id = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.app_secret = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.service_name = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): InitServiceResponse {
+    return {
+      success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
+      message: isSet(object.message) ? globalThis.String(object.message) : "",
+      app_id: isSet(object.app_id) ? globalThis.String(object.app_id) : "",
+      app_secret: isSet(object.app_secret) ? globalThis.String(object.app_secret) : "",
+      service_name: isSet(object.service_name) ? globalThis.String(object.service_name) : "",
+    };
+  },
+
+  toJSON(message: InitServiceResponse): unknown {
+    const obj: any = {};
+    if (message.success !== false) {
+      obj.success = message.success;
+    }
+    if (message.message !== "") {
+      obj.message = message.message;
+    }
+    if (message.app_id !== "") {
+      obj.app_id = message.app_id;
+    }
+    if (message.app_secret !== "") {
+      obj.app_secret = message.app_secret;
+    }
+    if (message.service_name !== "") {
+      obj.service_name = message.service_name;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<InitServiceResponse>, I>>(base?: I): InitServiceResponse {
+    return InitServiceResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<InitServiceResponse>, I>>(object: I): InitServiceResponse {
+    const message = createBaseInitServiceResponse();
+    message.success = object.success ?? false;
+    message.message = object.message ?? "";
+    message.app_id = object.app_id ?? "";
+    message.app_secret = object.app_secret ?? "";
+    message.service_name = object.service_name ?? "";
     return message;
   },
 };
@@ -2383,7 +4170,7 @@ export const RegisterServiceRequest: MessageFns<RegisterServiceRequest> = {
 };
 
 function createBaseRegisterServiceResponse(): RegisterServiceResponse {
-  return { success: false, message: "", lease_id: "" };
+  return { success: false, message: "", lease_id: "", instance_id: "" };
 }
 
 export const RegisterServiceResponse: MessageFns<RegisterServiceResponse> = {
@@ -2396,6 +4183,9 @@ export const RegisterServiceResponse: MessageFns<RegisterServiceResponse> = {
     }
     if (message.lease_id !== "") {
       writer.uint32(26).string(message.lease_id);
+    }
+    if (message.instance_id !== "") {
+      writer.uint32(34).string(message.instance_id);
     }
     return writer;
   },
@@ -2431,6 +4221,14 @@ export const RegisterServiceResponse: MessageFns<RegisterServiceResponse> = {
           message.lease_id = reader.string();
           continue;
         }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.instance_id = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2445,6 +4243,7 @@ export const RegisterServiceResponse: MessageFns<RegisterServiceResponse> = {
       success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
       message: isSet(object.message) ? globalThis.String(object.message) : "",
       lease_id: isSet(object.lease_id) ? globalThis.String(object.lease_id) : "",
+      instance_id: isSet(object.instance_id) ? globalThis.String(object.instance_id) : "",
     };
   },
 
@@ -2459,6 +4258,9 @@ export const RegisterServiceResponse: MessageFns<RegisterServiceResponse> = {
     if (message.lease_id !== "") {
       obj.lease_id = message.lease_id;
     }
+    if (message.instance_id !== "") {
+      obj.instance_id = message.instance_id;
+    }
     return obj;
   },
 
@@ -2470,6 +4272,7 @@ export const RegisterServiceResponse: MessageFns<RegisterServiceResponse> = {
     message.success = object.success ?? false;
     message.message = object.message ?? "";
     message.lease_id = object.lease_id ?? "";
+    message.instance_id = object.instance_id ?? "";
     return message;
   },
 };
@@ -4393,7 +6196,15 @@ export const GetServiceConfigResponse: MessageFns<GetServiceConfigResponse> = {
 };
 
 function createBaseUploadProtobufDescriptorRequest(): UploadProtobufDescriptorRequest {
-  return { service_name: "", descriptor_version: "", descriptor_data: new Uint8Array(0), description: "" };
+  return {
+    service_name: "",
+    descriptor_version: "",
+    descriptor_data: new Uint8Array(0),
+    description: "",
+    signature: "",
+    force: false,
+    previous_version: "",
+  };
 }
 
 export const UploadProtobufDescriptorRequest: MessageFns<UploadProtobufDescriptorRequest> = {
@@ -4409,6 +6220,15 @@ export const UploadProtobufDescriptorRequest: MessageFns<UploadProtobufDescripto
     }
     if (message.description !== "") {
       writer.uint32(34).string(message.description);
+    }
+    if (message.signature !== "") {
+      writer.uint32(42).string(message.signature);
+    }
+    if (message.force !== false) {
+      writer.uint32(48).bool(message.force);
+    }
+    if (message.previous_version !== "") {
+      writer.uint32(58).string(message.previous_version);
     }
     return writer;
   },
@@ -4452,6 +6272,30 @@ export const UploadProtobufDescriptorRequest: MessageFns<UploadProtobufDescripto
           message.description = reader.string();
           continue;
         }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.signature = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.force = reader.bool();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.previous_version = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -4467,6 +6311,9 @@ export const UploadProtobufDescriptorRequest: MessageFns<UploadProtobufDescripto
       descriptor_version: isSet(object.descriptor_version) ? globalThis.String(object.descriptor_version) : "",
       descriptor_data: isSet(object.descriptor_data) ? bytesFromBase64(object.descriptor_data) : new Uint8Array(0),
       description: isSet(object.description) ? globalThis.String(object.description) : "",
+      signature: isSet(object.signature) ? globalThis.String(object.signature) : "",
+      force: isSet(object.force) ? globalThis.Boolean(object.force) : false,
+      previous_version: isSet(object.previous_version) ? globalThis.String(object.previous_version) : "",
     };
   },
 
@@ -4484,6 +6331,15 @@ export const UploadProtobufDescriptorRequest: MessageFns<UploadProtobufDescripto
     if (message.description !== "") {
       obj.description = message.description;
     }
+    if (message.signature !== "") {
+      obj.signature = message.signature;
+    }
+    if (message.force !== false) {
+      obj.force = message.force;
+    }
+    if (message.previous_version !== "") {
+      obj.previous_version = message.previous_version;
+    }
     return obj;
   },
 
@@ -4498,12 +6354,23 @@ export const UploadProtobufDescriptorRequest: MessageFns<UploadProtobufDescripto
     message.descriptor_version = object.descriptor_version ?? "";
     message.descriptor_data = object.descriptor_data ?? new Uint8Array(0);
     message.description = object.description ?? "";
+    message.signature = object.signature ?? "";
+    message.force = object.force ?? false;
+    message.previous_version = object.previous_version ?? "";
     return message;
   },
 };
 
 function createBaseUploadProtobufDescriptorResponse(): UploadProtobufDescriptorResponse {
-  return { success: false, message: "", descriptor_key: "", discovered_services: [] };
+  return {
+    success: false,
+    message: "",
+    descriptor_key: "",
+    discovered_services: [],
+    compatibility_warnings: [],
+    applied_version: "",
+    descriptor_hash: "",
+  };
 }
 
 export const UploadProtobufDescriptorResponse: MessageFns<UploadProtobufDescriptorResponse> = {
@@ -4519,6 +6386,15 @@ export const UploadProtobufDescriptorResponse: MessageFns<UploadProtobufDescript
     }
     for (const v of message.discovered_services) {
       writer.uint32(34).string(v!);
+    }
+    for (const v of message.compatibility_warnings) {
+      writer.uint32(42).string(v!);
+    }
+    if (message.applied_version !== "") {
+      writer.uint32(50).string(message.applied_version);
+    }
+    if (message.descriptor_hash !== "") {
+      writer.uint32(58).string(message.descriptor_hash);
     }
     return writer;
   },
@@ -4562,6 +6438,30 @@ export const UploadProtobufDescriptorResponse: MessageFns<UploadProtobufDescript
           message.discovered_services.push(reader.string());
           continue;
         }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.compatibility_warnings.push(reader.string());
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.applied_version = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.descriptor_hash = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -4579,6 +6479,11 @@ export const UploadProtobufDescriptorResponse: MessageFns<UploadProtobufDescript
       discovered_services: globalThis.Array.isArray(object?.discovered_services)
         ? object.discovered_services.map((e: any) => globalThis.String(e))
         : [],
+      compatibility_warnings: globalThis.Array.isArray(object?.compatibility_warnings)
+        ? object.compatibility_warnings.map((e: any) => globalThis.String(e))
+        : [],
+      applied_version: isSet(object.applied_version) ? globalThis.String(object.applied_version) : "",
+      descriptor_hash: isSet(object.descriptor_hash) ? globalThis.String(object.descriptor_hash) : "",
     };
   },
 
@@ -4596,6 +6501,15 @@ export const UploadProtobufDescriptorResponse: MessageFns<UploadProtobufDescript
     if (message.discovered_services?.length) {
       obj.discovered_services = message.discovered_services;
     }
+    if (message.compatibility_warnings?.length) {
+      obj.compatibility_warnings = message.compatibility_warnings;
+    }
+    if (message.applied_version !== "") {
+      obj.applied_version = message.applied_version;
+    }
+    if (message.descriptor_hash !== "") {
+      obj.descriptor_hash = message.descriptor_hash;
+    }
     return obj;
   },
 
@@ -4612,6 +6526,9 @@ export const UploadProtobufDescriptorResponse: MessageFns<UploadProtobufDescript
     message.message = object.message ?? "";
     message.descriptor_key = object.descriptor_key ?? "";
     message.discovered_services = object.discovered_services?.map((e) => e) || [];
+    message.compatibility_warnings = object.compatibility_warnings?.map((e) => e) || [];
+    message.applied_version = object.applied_version ?? "";
+    message.descriptor_hash = object.descriptor_hash ?? "";
     return message;
   },
 };
@@ -4958,6 +6875,8 @@ function createBaseProtobufDescriptorInfo(): ProtobufDescriptorInfo {
     description: "",
     services: [],
     size_bytes: 0,
+    descriptor_hash: "",
+    is_active: false,
   };
 }
 
@@ -4980,6 +6899,12 @@ export const ProtobufDescriptorInfo: MessageFns<ProtobufDescriptorInfo> = {
     }
     if (message.size_bytes !== 0) {
       writer.uint32(48).uint64(message.size_bytes);
+    }
+    if (message.descriptor_hash !== "") {
+      writer.uint32(58).string(message.descriptor_hash);
+    }
+    if (message.is_active !== false) {
+      writer.uint32(64).bool(message.is_active);
     }
     return writer;
   },
@@ -5039,6 +6964,22 @@ export const ProtobufDescriptorInfo: MessageFns<ProtobufDescriptorInfo> = {
           message.size_bytes = longToNumber(reader.uint64());
           continue;
         }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.descriptor_hash = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.is_active = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -5056,6 +6997,8 @@ export const ProtobufDescriptorInfo: MessageFns<ProtobufDescriptorInfo> = {
       description: isSet(object.description) ? globalThis.String(object.description) : "",
       services: globalThis.Array.isArray(object?.services) ? object.services.map((e: any) => globalThis.String(e)) : [],
       size_bytes: isSet(object.size_bytes) ? globalThis.Number(object.size_bytes) : 0,
+      descriptor_hash: isSet(object.descriptor_hash) ? globalThis.String(object.descriptor_hash) : "",
+      is_active: isSet(object.is_active) ? globalThis.Boolean(object.is_active) : false,
     };
   },
 
@@ -5079,6 +7022,12 @@ export const ProtobufDescriptorInfo: MessageFns<ProtobufDescriptorInfo> = {
     if (message.size_bytes !== 0) {
       obj.size_bytes = Math.round(message.size_bytes);
     }
+    if (message.descriptor_hash !== "") {
+      obj.descriptor_hash = message.descriptor_hash;
+    }
+    if (message.is_active !== false) {
+      obj.is_active = message.is_active;
+    }
     return obj;
   },
 
@@ -5093,12 +7042,506 @@ export const ProtobufDescriptorInfo: MessageFns<ProtobufDescriptorInfo> = {
     message.description = object.description ?? "";
     message.services = object.services?.map((e) => e) || [];
     message.size_bytes = object.size_bytes ?? 0;
+    message.descriptor_hash = object.descriptor_hash ?? "";
+    message.is_active = object.is_active ?? false;
+    return message;
+  },
+};
+
+function createBaseDescriptorVersionInfo(): DescriptorVersionInfo {
+  return {
+    version: "",
+    descriptor_hash: "",
+    created_at: undefined,
+    description: "",
+    services: [],
+    size_bytes: 0,
+    is_active: false,
+  };
+}
+
+export const DescriptorVersionInfo: MessageFns<DescriptorVersionInfo> = {
+  encode(message: DescriptorVersionInfo, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.version !== "") {
+      writer.uint32(10).string(message.version);
+    }
+    if (message.descriptor_hash !== "") {
+      writer.uint32(18).string(message.descriptor_hash);
+    }
+    if (message.created_at !== undefined) {
+      Timestamp.encode(toTimestamp(message.created_at), writer.uint32(26).fork()).join();
+    }
+    if (message.description !== "") {
+      writer.uint32(34).string(message.description);
+    }
+    for (const v of message.services) {
+      writer.uint32(42).string(v!);
+    }
+    if (message.size_bytes !== 0) {
+      writer.uint32(48).uint64(message.size_bytes);
+    }
+    if (message.is_active !== false) {
+      writer.uint32(56).bool(message.is_active);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DescriptorVersionInfo {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDescriptorVersionInfo();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.version = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.descriptor_hash = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.created_at = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.description = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.services.push(reader.string());
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.size_bytes = longToNumber(reader.uint64());
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.is_active = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DescriptorVersionInfo {
+    return {
+      version: isSet(object.version) ? globalThis.String(object.version) : "",
+      descriptor_hash: isSet(object.descriptor_hash) ? globalThis.String(object.descriptor_hash) : "",
+      created_at: isSet(object.created_at) ? fromJsonTimestamp(object.created_at) : undefined,
+      description: isSet(object.description) ? globalThis.String(object.description) : "",
+      services: globalThis.Array.isArray(object?.services) ? object.services.map((e: any) => globalThis.String(e)) : [],
+      size_bytes: isSet(object.size_bytes) ? globalThis.Number(object.size_bytes) : 0,
+      is_active: isSet(object.is_active) ? globalThis.Boolean(object.is_active) : false,
+    };
+  },
+
+  toJSON(message: DescriptorVersionInfo): unknown {
+    const obj: any = {};
+    if (message.version !== "") {
+      obj.version = message.version;
+    }
+    if (message.descriptor_hash !== "") {
+      obj.descriptor_hash = message.descriptor_hash;
+    }
+    if (message.created_at !== undefined) {
+      obj.created_at = message.created_at.toISOString();
+    }
+    if (message.description !== "") {
+      obj.description = message.description;
+    }
+    if (message.services?.length) {
+      obj.services = message.services;
+    }
+    if (message.size_bytes !== 0) {
+      obj.size_bytes = Math.round(message.size_bytes);
+    }
+    if (message.is_active !== false) {
+      obj.is_active = message.is_active;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DescriptorVersionInfo>, I>>(base?: I): DescriptorVersionInfo {
+    return DescriptorVersionInfo.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DescriptorVersionInfo>, I>>(object: I): DescriptorVersionInfo {
+    const message = createBaseDescriptorVersionInfo();
+    message.version = object.version ?? "";
+    message.descriptor_hash = object.descriptor_hash ?? "";
+    message.created_at = object.created_at ?? undefined;
+    message.description = object.description ?? "";
+    message.services = object.services?.map((e) => e) || [];
+    message.size_bytes = object.size_bytes ?? 0;
+    message.is_active = object.is_active ?? false;
+    return message;
+  },
+};
+
+function createBaseRollbackDescriptorRequest(): RollbackDescriptorRequest {
+  return { service_name: "", target_version: "" };
+}
+
+export const RollbackDescriptorRequest: MessageFns<RollbackDescriptorRequest> = {
+  encode(message: RollbackDescriptorRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.service_name !== "") {
+      writer.uint32(10).string(message.service_name);
+    }
+    if (message.target_version !== "") {
+      writer.uint32(18).string(message.target_version);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RollbackDescriptorRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRollbackDescriptorRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.service_name = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.target_version = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RollbackDescriptorRequest {
+    return {
+      service_name: isSet(object.service_name) ? globalThis.String(object.service_name) : "",
+      target_version: isSet(object.target_version) ? globalThis.String(object.target_version) : "",
+    };
+  },
+
+  toJSON(message: RollbackDescriptorRequest): unknown {
+    const obj: any = {};
+    if (message.service_name !== "") {
+      obj.service_name = message.service_name;
+    }
+    if (message.target_version !== "") {
+      obj.target_version = message.target_version;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RollbackDescriptorRequest>, I>>(base?: I): RollbackDescriptorRequest {
+    return RollbackDescriptorRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RollbackDescriptorRequest>, I>>(object: I): RollbackDescriptorRequest {
+    const message = createBaseRollbackDescriptorRequest();
+    message.service_name = object.service_name ?? "";
+    message.target_version = object.target_version ?? "";
+    return message;
+  },
+};
+
+function createBaseRollbackDescriptorResponse(): RollbackDescriptorResponse {
+  return { success: false, message: "", active_version: "", discovered_services: [] };
+}
+
+export const RollbackDescriptorResponse: MessageFns<RollbackDescriptorResponse> = {
+  encode(message: RollbackDescriptorResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.success !== false) {
+      writer.uint32(8).bool(message.success);
+    }
+    if (message.message !== "") {
+      writer.uint32(18).string(message.message);
+    }
+    if (message.active_version !== "") {
+      writer.uint32(26).string(message.active_version);
+    }
+    for (const v of message.discovered_services) {
+      writer.uint32(34).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RollbackDescriptorResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRollbackDescriptorResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.success = reader.bool();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.message = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.active_version = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.discovered_services.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RollbackDescriptorResponse {
+    return {
+      success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
+      message: isSet(object.message) ? globalThis.String(object.message) : "",
+      active_version: isSet(object.active_version) ? globalThis.String(object.active_version) : "",
+      discovered_services: globalThis.Array.isArray(object?.discovered_services)
+        ? object.discovered_services.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: RollbackDescriptorResponse): unknown {
+    const obj: any = {};
+    if (message.success !== false) {
+      obj.success = message.success;
+    }
+    if (message.message !== "") {
+      obj.message = message.message;
+    }
+    if (message.active_version !== "") {
+      obj.active_version = message.active_version;
+    }
+    if (message.discovered_services?.length) {
+      obj.discovered_services = message.discovered_services;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RollbackDescriptorResponse>, I>>(base?: I): RollbackDescriptorResponse {
+    return RollbackDescriptorResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RollbackDescriptorResponse>, I>>(object: I): RollbackDescriptorResponse {
+    const message = createBaseRollbackDescriptorResponse();
+    message.success = object.success ?? false;
+    message.message = object.message ?? "";
+    message.active_version = object.active_version ?? "";
+    message.discovered_services = object.discovered_services?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBaseListDescriptorVersionsRequest(): ListDescriptorVersionsRequest {
+  return { service_name: "" };
+}
+
+export const ListDescriptorVersionsRequest: MessageFns<ListDescriptorVersionsRequest> = {
+  encode(message: ListDescriptorVersionsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.service_name !== "") {
+      writer.uint32(10).string(message.service_name);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListDescriptorVersionsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListDescriptorVersionsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.service_name = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListDescriptorVersionsRequest {
+    return { service_name: isSet(object.service_name) ? globalThis.String(object.service_name) : "" };
+  },
+
+  toJSON(message: ListDescriptorVersionsRequest): unknown {
+    const obj: any = {};
+    if (message.service_name !== "") {
+      obj.service_name = message.service_name;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListDescriptorVersionsRequest>, I>>(base?: I): ListDescriptorVersionsRequest {
+    return ListDescriptorVersionsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListDescriptorVersionsRequest>, I>>(
+    object: I,
+  ): ListDescriptorVersionsRequest {
+    const message = createBaseListDescriptorVersionsRequest();
+    message.service_name = object.service_name ?? "";
+    return message;
+  },
+};
+
+function createBaseListDescriptorVersionsResponse(): ListDescriptorVersionsResponse {
+  return { versions: [], active_version: "" };
+}
+
+export const ListDescriptorVersionsResponse: MessageFns<ListDescriptorVersionsResponse> = {
+  encode(message: ListDescriptorVersionsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.versions) {
+      DescriptorVersionInfo.encode(v!, writer.uint32(10).fork()).join();
+    }
+    if (message.active_version !== "") {
+      writer.uint32(18).string(message.active_version);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListDescriptorVersionsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListDescriptorVersionsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.versions.push(DescriptorVersionInfo.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.active_version = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListDescriptorVersionsResponse {
+    return {
+      versions: globalThis.Array.isArray(object?.versions)
+        ? object.versions.map((e: any) => DescriptorVersionInfo.fromJSON(e))
+        : [],
+      active_version: isSet(object.active_version) ? globalThis.String(object.active_version) : "",
+    };
+  },
+
+  toJSON(message: ListDescriptorVersionsResponse): unknown {
+    const obj: any = {};
+    if (message.versions?.length) {
+      obj.versions = message.versions.map((e) => DescriptorVersionInfo.toJSON(e));
+    }
+    if (message.active_version !== "") {
+      obj.active_version = message.active_version;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListDescriptorVersionsResponse>, I>>(base?: I): ListDescriptorVersionsResponse {
+    return ListDescriptorVersionsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListDescriptorVersionsResponse>, I>>(
+    object: I,
+  ): ListDescriptorVersionsResponse {
+    const message = createBaseListDescriptorVersionsResponse();
+    message.versions = object.versions?.map((e) => DescriptorVersionInfo.fromPartial(e)) || [];
+    message.active_version = object.active_version ?? "";
     return message;
   },
 };
 
 /** 服务注册和发现服务 */
 export interface ServiceDiscoveryService {
+  /** 初始化服务（管理端专属，生成 app_id + app_secret） */
+  InitService(request: InitServiceRequest): Promise<InitServiceResponse>;
   /** 注册服务实例 */
   RegisterService(request: RegisterServiceRequest): Promise<RegisterServiceResponse>;
   /** 注销服务实例 */
@@ -5125,6 +7568,10 @@ export interface ServiceDiscoveryService {
   GetProtobufDescriptor(request: GetProtobufDescriptorRequest): Promise<GetProtobufDescriptorResponse>;
   /** 列出可用的 protobuf 描述符 */
   ListProtobufDescriptors(request: ListProtobufDescriptorsRequest): Promise<ListProtobufDescriptorsResponse>;
+  /** 回滚描述符到指定版本 */
+  RollbackDescriptor(request: RollbackDescriptorRequest): Promise<RollbackDescriptorResponse>;
+  /** 列出描述符版本历史 */
+  ListDescriptorVersions(request: ListDescriptorVersionsRequest): Promise<ListDescriptorVersionsResponse>;
 }
 
 export const ServiceDiscoveryServiceServiceName = "stew.api.v1.ServiceDiscoveryService";
@@ -5134,6 +7581,7 @@ export class ServiceDiscoveryServiceClientImpl implements ServiceDiscoveryServic
   constructor(rpc: Rpc, opts?: { service?: string }) {
     this.service = opts?.service || ServiceDiscoveryServiceServiceName;
     this.rpc = rpc;
+    this.InitService = this.InitService.bind(this);
     this.RegisterService = this.RegisterService.bind(this);
     this.DeregisterService = this.DeregisterService.bind(this);
     this.DeleteServiceRecord = this.DeleteServiceRecord.bind(this);
@@ -5147,7 +7595,15 @@ export class ServiceDiscoveryServiceClientImpl implements ServiceDiscoveryServic
     this.UploadProtobufDescriptor = this.UploadProtobufDescriptor.bind(this);
     this.GetProtobufDescriptor = this.GetProtobufDescriptor.bind(this);
     this.ListProtobufDescriptors = this.ListProtobufDescriptors.bind(this);
+    this.RollbackDescriptor = this.RollbackDescriptor.bind(this);
+    this.ListDescriptorVersions = this.ListDescriptorVersions.bind(this);
   }
+  InitService(request: InitServiceRequest): Promise<InitServiceResponse> {
+    const data = InitServiceRequest.encode(request).finish();
+    const promise = this.rpc.request(this.service, "InitService", data);
+    return promise.then((data) => InitServiceResponse.decode(new BinaryReader(data)));
+  }
+
   RegisterService(request: RegisterServiceRequest): Promise<RegisterServiceResponse> {
     const data = RegisterServiceRequest.encode(request).finish();
     const promise = this.rpc.request(this.service, "RegisterService", data);
@@ -5224,6 +7680,18 @@ export class ServiceDiscoveryServiceClientImpl implements ServiceDiscoveryServic
     const data = ListProtobufDescriptorsRequest.encode(request).finish();
     const promise = this.rpc.request(this.service, "ListProtobufDescriptors", data);
     return promise.then((data) => ListProtobufDescriptorsResponse.decode(new BinaryReader(data)));
+  }
+
+  RollbackDescriptor(request: RollbackDescriptorRequest): Promise<RollbackDescriptorResponse> {
+    const data = RollbackDescriptorRequest.encode(request).finish();
+    const promise = this.rpc.request(this.service, "RollbackDescriptor", data);
+    return promise.then((data) => RollbackDescriptorResponse.decode(new BinaryReader(data)));
+  }
+
+  ListDescriptorVersions(request: ListDescriptorVersionsRequest): Promise<ListDescriptorVersionsResponse> {
+    const data = ListDescriptorVersionsRequest.encode(request).finish();
+    const promise = this.rpc.request(this.service, "ListDescriptorVersions", data);
+    return promise.then((data) => ListDescriptorVersionsResponse.decode(new BinaryReader(data)));
   }
 }
 

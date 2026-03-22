@@ -23,6 +23,7 @@ export interface OpenIDConnectCallbackRequest {
 
 export interface LoginRequest {
   callback: string;
+  anonymous_id: string;
 }
 
 export interface LoginCallbackResponse {
@@ -73,6 +74,29 @@ export interface RefreshTokenRequest {
 export interface RefreshTokenResponse {
   access_token: string;
   expires_in: number;
+}
+
+/**
+ * Device fingerprint request for anonymous session creation.
+ * The client generates an ECDSA-P256 key pair on first use (stored in IndexedDB),
+ * collects multi-signal fingerprint components, and signs hash:timestamp:nonce
+ * with the private key. The server verifies the signature and tracks anomaly signals.
+ */
+export interface DeviceFingerprintRequest {
+  fingerprint_hash: string;
+  signature: string;
+  public_key: string;
+  timestamp: number;
+  nonce: string;
+  anonymous_id: string;
+  components_count: number;
+}
+
+export interface AnonymousSessionResponse {
+  anonymous_id: string;
+  session_token: string;
+  expires_at: number;
+  is_suspicious: boolean;
 }
 
 function createBaseOpenIDConnectCallbackRequest(): OpenIDConnectCallbackRequest {
@@ -200,13 +224,16 @@ export const OpenIDConnectCallbackRequest: MessageFns<OpenIDConnectCallbackReque
 };
 
 function createBaseLoginRequest(): LoginRequest {
-  return { callback: "" };
+  return { callback: "", anonymous_id: "" };
 }
 
 export const LoginRequest: MessageFns<LoginRequest> = {
   encode(message: LoginRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.callback !== "") {
       writer.uint32(10).string(message.callback);
+    }
+    if (message.anonymous_id !== "") {
+      writer.uint32(18).string(message.anonymous_id);
     }
     return writer;
   },
@@ -226,6 +253,14 @@ export const LoginRequest: MessageFns<LoginRequest> = {
           message.callback = reader.string();
           continue;
         }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.anonymous_id = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -236,13 +271,19 @@ export const LoginRequest: MessageFns<LoginRequest> = {
   },
 
   fromJSON(object: any): LoginRequest {
-    return { callback: isSet(object.callback) ? globalThis.String(object.callback) : "" };
+    return {
+      callback: isSet(object.callback) ? globalThis.String(object.callback) : "",
+      anonymous_id: isSet(object.anonymous_id) ? globalThis.String(object.anonymous_id) : "",
+    };
   },
 
   toJSON(message: LoginRequest): unknown {
     const obj: any = {};
     if (message.callback !== "") {
       obj.callback = message.callback;
+    }
+    if (message.anonymous_id !== "") {
+      obj.anonymous_id = message.anonymous_id;
     }
     return obj;
   },
@@ -253,6 +294,7 @@ export const LoginRequest: MessageFns<LoginRequest> = {
   fromPartial<I extends Exact<DeepPartial<LoginRequest>, I>>(object: I): LoginRequest {
     const message = createBaseLoginRequest();
     message.callback = object.callback ?? "";
+    message.anonymous_id = object.anonymous_id ?? "";
     return message;
   },
 };
@@ -1000,6 +1042,278 @@ export const RefreshTokenResponse: MessageFns<RefreshTokenResponse> = {
   },
 };
 
+function createBaseDeviceFingerprintRequest(): DeviceFingerprintRequest {
+  return {
+    fingerprint_hash: "",
+    signature: "",
+    public_key: "",
+    timestamp: 0,
+    nonce: "",
+    anonymous_id: "",
+    components_count: 0,
+  };
+}
+
+export const DeviceFingerprintRequest: MessageFns<DeviceFingerprintRequest> = {
+  encode(message: DeviceFingerprintRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.fingerprint_hash !== "") {
+      writer.uint32(10).string(message.fingerprint_hash);
+    }
+    if (message.signature !== "") {
+      writer.uint32(18).string(message.signature);
+    }
+    if (message.public_key !== "") {
+      writer.uint32(26).string(message.public_key);
+    }
+    if (message.timestamp !== 0) {
+      writer.uint32(32).int64(message.timestamp);
+    }
+    if (message.nonce !== "") {
+      writer.uint32(42).string(message.nonce);
+    }
+    if (message.anonymous_id !== "") {
+      writer.uint32(50).string(message.anonymous_id);
+    }
+    if (message.components_count !== 0) {
+      writer.uint32(56).int32(message.components_count);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeviceFingerprintRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeviceFingerprintRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.fingerprint_hash = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.signature = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.public_key = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.timestamp = longToNumber(reader.int64());
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.nonce = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.anonymous_id = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.components_count = reader.int32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeviceFingerprintRequest {
+    return {
+      fingerprint_hash: isSet(object.fingerprint_hash) ? globalThis.String(object.fingerprint_hash) : "",
+      signature: isSet(object.signature) ? globalThis.String(object.signature) : "",
+      public_key: isSet(object.public_key) ? globalThis.String(object.public_key) : "",
+      timestamp: isSet(object.timestamp) ? globalThis.Number(object.timestamp) : 0,
+      nonce: isSet(object.nonce) ? globalThis.String(object.nonce) : "",
+      anonymous_id: isSet(object.anonymous_id) ? globalThis.String(object.anonymous_id) : "",
+      components_count: isSet(object.components_count) ? globalThis.Number(object.components_count) : 0,
+    };
+  },
+
+  toJSON(message: DeviceFingerprintRequest): unknown {
+    const obj: any = {};
+    if (message.fingerprint_hash !== "") {
+      obj.fingerprint_hash = message.fingerprint_hash;
+    }
+    if (message.signature !== "") {
+      obj.signature = message.signature;
+    }
+    if (message.public_key !== "") {
+      obj.public_key = message.public_key;
+    }
+    if (message.timestamp !== 0) {
+      obj.timestamp = Math.round(message.timestamp);
+    }
+    if (message.nonce !== "") {
+      obj.nonce = message.nonce;
+    }
+    if (message.anonymous_id !== "") {
+      obj.anonymous_id = message.anonymous_id;
+    }
+    if (message.components_count !== 0) {
+      obj.components_count = Math.round(message.components_count);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeviceFingerprintRequest>, I>>(base?: I): DeviceFingerprintRequest {
+    return DeviceFingerprintRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeviceFingerprintRequest>, I>>(object: I): DeviceFingerprintRequest {
+    const message = createBaseDeviceFingerprintRequest();
+    message.fingerprint_hash = object.fingerprint_hash ?? "";
+    message.signature = object.signature ?? "";
+    message.public_key = object.public_key ?? "";
+    message.timestamp = object.timestamp ?? 0;
+    message.nonce = object.nonce ?? "";
+    message.anonymous_id = object.anonymous_id ?? "";
+    message.components_count = object.components_count ?? 0;
+    return message;
+  },
+};
+
+function createBaseAnonymousSessionResponse(): AnonymousSessionResponse {
+  return { anonymous_id: "", session_token: "", expires_at: 0, is_suspicious: false };
+}
+
+export const AnonymousSessionResponse: MessageFns<AnonymousSessionResponse> = {
+  encode(message: AnonymousSessionResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.anonymous_id !== "") {
+      writer.uint32(10).string(message.anonymous_id);
+    }
+    if (message.session_token !== "") {
+      writer.uint32(18).string(message.session_token);
+    }
+    if (message.expires_at !== 0) {
+      writer.uint32(24).int64(message.expires_at);
+    }
+    if (message.is_suspicious !== false) {
+      writer.uint32(32).bool(message.is_suspicious);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AnonymousSessionResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAnonymousSessionResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.anonymous_id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.session_token = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.expires_at = longToNumber(reader.int64());
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.is_suspicious = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AnonymousSessionResponse {
+    return {
+      anonymous_id: isSet(object.anonymous_id) ? globalThis.String(object.anonymous_id) : "",
+      session_token: isSet(object.session_token) ? globalThis.String(object.session_token) : "",
+      expires_at: isSet(object.expires_at) ? globalThis.Number(object.expires_at) : 0,
+      is_suspicious: isSet(object.is_suspicious) ? globalThis.Boolean(object.is_suspicious) : false,
+    };
+  },
+
+  toJSON(message: AnonymousSessionResponse): unknown {
+    const obj: any = {};
+    if (message.anonymous_id !== "") {
+      obj.anonymous_id = message.anonymous_id;
+    }
+    if (message.session_token !== "") {
+      obj.session_token = message.session_token;
+    }
+    if (message.expires_at !== 0) {
+      obj.expires_at = Math.round(message.expires_at);
+    }
+    if (message.is_suspicious !== false) {
+      obj.is_suspicious = message.is_suspicious;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AnonymousSessionResponse>, I>>(base?: I): AnonymousSessionResponse {
+    return AnonymousSessionResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AnonymousSessionResponse>, I>>(object: I): AnonymousSessionResponse {
+    const message = createBaseAnonymousSessionResponse();
+    message.anonymous_id = object.anonymous_id ?? "";
+    message.session_token = object.session_token ?? "";
+    message.expires_at = object.expires_at ?? 0;
+    message.is_suspicious = object.is_suspicious ?? false;
+    return message;
+  },
+};
+
 export interface AuthService {
   /** OpenID Connect callback endpoint */
   Callback(request: OpenIDConnectCallbackRequest): Promise<RedirectResponse>;
@@ -1013,6 +1327,8 @@ export interface AuthService {
   ValidateSession(request: ValidateSessionRequest): Promise<ValidateSessionResponse>;
   /** 刷新 Access Token */
   RefreshToken(request: RefreshTokenRequest): Promise<RefreshTokenResponse>;
+  /** 创建或续期匿名用户会话（基于设备指纹 + ECDSA 设备绑定签名） */
+  CreateAnonymousSession(request: DeviceFingerprintRequest): Promise<AnonymousSessionResponse>;
 }
 
 export const AuthServiceServiceName = "stew.api.v1.AuthService";
@@ -1030,6 +1346,7 @@ export class AuthServiceClientImpl implements AuthService {
     this.GetCurrentUser = this.GetCurrentUser.bind(this);
     this.ValidateSession = this.ValidateSession.bind(this);
     this.RefreshToken = this.RefreshToken.bind(this);
+    this.CreateAnonymousSession = this.CreateAnonymousSession.bind(this);
   }
   Callback(request: OpenIDConnectCallbackRequest): Promise<RedirectResponse> {
     const data = OpenIDConnectCallbackRequest.encode(request).finish();
@@ -1077,6 +1394,12 @@ export class AuthServiceClientImpl implements AuthService {
     const data = RefreshTokenRequest.encode(request).finish();
     const promise = this.rpc.request(this.service, "RefreshToken", data);
     return promise.then((data) => RefreshTokenResponse.decode(new BinaryReader(data)));
+  }
+
+  CreateAnonymousSession(request: DeviceFingerprintRequest): Promise<AnonymousSessionResponse> {
+    const data = DeviceFingerprintRequest.encode(request).finish();
+    const promise = this.rpc.request(this.service, "CreateAnonymousSession", data);
+    return promise.then((data) => AnonymousSessionResponse.decode(new BinaryReader(data)));
   }
 }
 

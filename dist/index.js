@@ -39,7 +39,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Audit = exports.ApiKey = exports.Authorization = exports.APIResponse = exports.Address = exports.User = exports.LogoutCallbackRequest = exports.LoginCallbackResponse = exports.LogoutRequest = exports.LoginRequest = exports.OpenIDConnectCallbackRequest = exports.AuthServiceClient = void 0;
+exports.collectFingerprintComponents = exports.hashComponents = exports.AnonymousUserClient = exports.Audit = exports.ApiKey = exports.Authorization = exports.APIResponse = exports.Address = exports.User = exports.LogoutCallbackRequest = exports.LoginCallbackResponse = exports.LogoutRequest = exports.LoginRequest = exports.OpenIDConnectCallbackRequest = exports.AuthServiceClient = void 0;
 // Main exports for the protobuf TypeScript client generator
 __exportStar(require("./plugin"), exports);
 // Re-export auth client which should be browser-safe
@@ -59,6 +59,12 @@ Object.defineProperty(exports, "APIResponse", { enumerable: true, get: function 
 exports.Authorization = __importStar(require("./proto/authorization"));
 exports.ApiKey = __importStar(require("./proto/apikey"));
 exports.Audit = __importStar(require("./proto/audit"));
+// Anonymous user session management
+var anonymous_client_1 = require("./anonymous_client");
+Object.defineProperty(exports, "AnonymousUserClient", { enumerable: true, get: function () { return anonymous_client_1.AnonymousUserClient; } });
+var fingerprint_utils_1 = require("./fingerprint-utils");
+Object.defineProperty(exports, "hashComponents", { enumerable: true, get: function () { return fingerprint_utils_1.hashComponents; } });
+Object.defineProperty(exports, "collectFingerprintComponents", { enumerable: true, get: function () { return fingerprint_utils_1.collectFingerprintComponents; } });
 // Optional utility exports (for advanced usage)
 __exportStar(require("./websocket-utils"), exports);
 __exportStar(require("./sse-utils"), exports);

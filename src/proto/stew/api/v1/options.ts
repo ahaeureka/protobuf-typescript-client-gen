@@ -5,5 +5,247 @@
 // source: stew/api/v1/options.proto
 
 /* eslint-disable */
+import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
 
 export const protobufPackage = "stew.api.v1";
+
+/**
+ * AI Guard field semantic annotations.
+ * Service owners annotate their proto fields so that the gateway can
+ * automatically extract user messages, model name, and max_tokens
+ * without any runtime path configuration.
+ */
+export interface AiGuardFieldOptions {
+  /** The field is a messages array (conversation history) */
+  is_messages_array: boolean;
+  /** The field is the role identifier within a message (e.g. "role") */
+  is_role_field: boolean;
+  /** The field is the text content within a message (e.g. "content") */
+  is_content_field: boolean;
+  /** Only extract content when the role field equals this value (empty = all) */
+  role_filter: string;
+  /** The field is a single prompt string (non-chat format) */
+  is_prompt: boolean;
+  /** The field is the model name */
+  is_model: boolean;
+  /** The field is the max_tokens hint */
+  is_max_tokens: boolean;
+}
+
+function createBaseAiGuardFieldOptions(): AiGuardFieldOptions {
+  return {
+    is_messages_array: false,
+    is_role_field: false,
+    is_content_field: false,
+    role_filter: "",
+    is_prompt: false,
+    is_model: false,
+    is_max_tokens: false,
+  };
+}
+
+export const AiGuardFieldOptions: MessageFns<AiGuardFieldOptions> = {
+  encode(message: AiGuardFieldOptions, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.is_messages_array !== false) {
+      writer.uint32(8).bool(message.is_messages_array);
+    }
+    if (message.is_role_field !== false) {
+      writer.uint32(16).bool(message.is_role_field);
+    }
+    if (message.is_content_field !== false) {
+      writer.uint32(24).bool(message.is_content_field);
+    }
+    if (message.role_filter !== "") {
+      writer.uint32(34).string(message.role_filter);
+    }
+    if (message.is_prompt !== false) {
+      writer.uint32(40).bool(message.is_prompt);
+    }
+    if (message.is_model !== false) {
+      writer.uint32(48).bool(message.is_model);
+    }
+    if (message.is_max_tokens !== false) {
+      writer.uint32(56).bool(message.is_max_tokens);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AiGuardFieldOptions {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAiGuardFieldOptions();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.is_messages_array = reader.bool();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.is_role_field = reader.bool();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.is_content_field = reader.bool();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.role_filter = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.is_prompt = reader.bool();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.is_model = reader.bool();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.is_max_tokens = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AiGuardFieldOptions {
+    return {
+      is_messages_array: isSet(object.isMessagesArray)
+        ? globalThis.Boolean(object.isMessagesArray)
+        : isSet(object.is_messages_array)
+        ? globalThis.Boolean(object.is_messages_array)
+        : false,
+      is_role_field: isSet(object.isRoleField)
+        ? globalThis.Boolean(object.isRoleField)
+        : isSet(object.is_role_field)
+        ? globalThis.Boolean(object.is_role_field)
+        : false,
+      is_content_field: isSet(object.isContentField)
+        ? globalThis.Boolean(object.isContentField)
+        : isSet(object.is_content_field)
+        ? globalThis.Boolean(object.is_content_field)
+        : false,
+      role_filter: isSet(object.roleFilter)
+        ? globalThis.String(object.roleFilter)
+        : isSet(object.role_filter)
+        ? globalThis.String(object.role_filter)
+        : "",
+      is_prompt: isSet(object.isPrompt)
+        ? globalThis.Boolean(object.isPrompt)
+        : isSet(object.is_prompt)
+        ? globalThis.Boolean(object.is_prompt)
+        : false,
+      is_model: isSet(object.isModel)
+        ? globalThis.Boolean(object.isModel)
+        : isSet(object.is_model)
+        ? globalThis.Boolean(object.is_model)
+        : false,
+      is_max_tokens: isSet(object.isMaxTokens)
+        ? globalThis.Boolean(object.isMaxTokens)
+        : isSet(object.is_max_tokens)
+        ? globalThis.Boolean(object.is_max_tokens)
+        : false,
+    };
+  },
+
+  toJSON(message: AiGuardFieldOptions): unknown {
+    const obj: any = {};
+    if (message.is_messages_array !== false) {
+      obj.isMessagesArray = message.is_messages_array;
+    }
+    if (message.is_role_field !== false) {
+      obj.isRoleField = message.is_role_field;
+    }
+    if (message.is_content_field !== false) {
+      obj.isContentField = message.is_content_field;
+    }
+    if (message.role_filter !== "") {
+      obj.roleFilter = message.role_filter;
+    }
+    if (message.is_prompt !== false) {
+      obj.isPrompt = message.is_prompt;
+    }
+    if (message.is_model !== false) {
+      obj.isModel = message.is_model;
+    }
+    if (message.is_max_tokens !== false) {
+      obj.isMaxTokens = message.is_max_tokens;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AiGuardFieldOptions>, I>>(base?: I): AiGuardFieldOptions {
+    return AiGuardFieldOptions.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AiGuardFieldOptions>, I>>(object: I): AiGuardFieldOptions {
+    const message = createBaseAiGuardFieldOptions();
+    message.is_messages_array = object.is_messages_array ?? false;
+    message.is_role_field = object.is_role_field ?? false;
+    message.is_content_field = object.is_content_field ?? false;
+    message.role_filter = object.role_filter ?? "";
+    message.is_prompt = object.is_prompt ?? false;
+    message.is_model = object.is_model ?? false;
+    message.is_max_tokens = object.is_max_tokens ?? false;
+    return message;
+  },
+};
+
+type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
+
+export type DeepPartial<T> = T extends Builtin ? T
+  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends { $case: string } ? { [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]> } & { $case: T["$case"] }
+  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>;
+
+type KeysOfUnion<T> = T extends T ? keyof T : never;
+export type Exact<P, I extends P> = P extends Builtin ? P
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
+
+function isSet(value: any): boolean {
+  return value !== null && value !== undefined;
+}
+
+export interface MessageFns<T> {
+  encode(message: T, writer?: BinaryWriter): BinaryWriter;
+  decode(input: BinaryReader | Uint8Array, length?: number): T;
+  fromJSON(object: any): T;
+  toJSON(message: T): unknown;
+  create<I extends Exact<DeepPartial<T>, I>>(base?: I): T;
+  fromPartial<I extends Exact<DeepPartial<T>, I>>(object: I): T;
+}

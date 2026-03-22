@@ -13,6 +13,7 @@ export interface OpenIDConnectCallbackRequest {
 }
 export interface LoginRequest {
     callback: string;
+    anonymous_id: string;
 }
 export interface LoginCallbackResponse {
     user: User | undefined;
@@ -54,6 +55,27 @@ export interface RefreshTokenResponse {
     access_token: string;
     expires_in: number;
 }
+/**
+ * Device fingerprint request for anonymous session creation.
+ * The client generates an ECDSA-P256 key pair on first use (stored in IndexedDB),
+ * collects multi-signal fingerprint components, and signs hash:timestamp:nonce
+ * with the private key. The server verifies the signature and tracks anomaly signals.
+ */
+export interface DeviceFingerprintRequest {
+    fingerprint_hash: string;
+    signature: string;
+    public_key: string;
+    timestamp: number;
+    nonce: string;
+    anonymous_id: string;
+    components_count: number;
+}
+export interface AnonymousSessionResponse {
+    anonymous_id: string;
+    session_token: string;
+    expires_at: number;
+    is_suspicious: boolean;
+}
 export declare const OpenIDConnectCallbackRequest: MessageFns<OpenIDConnectCallbackRequest>;
 export declare const LoginRequest: MessageFns<LoginRequest>;
 export declare const LoginCallbackResponse: MessageFns<LoginCallbackResponse>;
@@ -66,6 +88,8 @@ export declare const ValidateSessionRequest: MessageFns<ValidateSessionRequest>;
 export declare const ValidateSessionResponse: MessageFns<ValidateSessionResponse>;
 export declare const RefreshTokenRequest: MessageFns<RefreshTokenRequest>;
 export declare const RefreshTokenResponse: MessageFns<RefreshTokenResponse>;
+export declare const DeviceFingerprintRequest: MessageFns<DeviceFingerprintRequest>;
+export declare const AnonymousSessionResponse: MessageFns<AnonymousSessionResponse>;
 export interface AuthService {
     /** OpenID Connect callback endpoint */
     Callback(request: OpenIDConnectCallbackRequest): Promise<RedirectResponse>;
@@ -79,6 +103,8 @@ export interface AuthService {
     ValidateSession(request: ValidateSessionRequest): Promise<ValidateSessionResponse>;
     /** 刷新 Access Token */
     RefreshToken(request: RefreshTokenRequest): Promise<RefreshTokenResponse>;
+    /** 创建或续期匿名用户会话（基于设备指纹 + ECDSA 设备绑定签名） */
+    CreateAnonymousSession(request: DeviceFingerprintRequest): Promise<AnonymousSessionResponse>;
 }
 export declare const AuthServiceServiceName = "stew.api.v1.AuthService";
 export declare class AuthServiceClientImpl implements AuthService {
@@ -95,6 +121,7 @@ export declare class AuthServiceClientImpl implements AuthService {
     GetCurrentUser(request: GetCurrentUserRequest): Promise<CurrentUserResponse>;
     ValidateSession(request: ValidateSessionRequest): Promise<ValidateSessionResponse>;
     RefreshToken(request: RefreshTokenRequest): Promise<RefreshTokenResponse>;
+    CreateAnonymousSession(request: DeviceFingerprintRequest): Promise<AnonymousSessionResponse>;
 }
 interface Rpc {
     request(service: string, method: string, data: Uint8Array): Promise<Uint8Array>;

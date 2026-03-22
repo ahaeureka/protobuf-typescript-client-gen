@@ -1,6 +1,8 @@
 import axios, { AxiosInstance } from 'axios';
 import { HttpResponse } from './proto/stew/api/v1/web';
 import { User } from './proto/user';
+import { AnonymousUserClient, AnonymousSession } from './anonymous_client';
+import type { AnonymousUserClientOptions } from './anonymous_client';
 
 // 浏览器环境检查
 const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
@@ -42,11 +44,13 @@ export default class AuthServiceClient {
     private loginCallbackUrl: string;
     private logoutCallbackUrl: string;
     private axiosInstance: AxiosInstance;
+    private anonymousClient: AnonymousUserClient | null = null;
 
     constructor(
         gwBaseUrl: string,
         loginCallbackUrl: string,
-        logoutCallbackUrl: string
+        logoutCallbackUrl: string,
+        anonymousOptions?: Omit<AnonymousUserClientOptions, 'baseUrl'>
     ) {
         this.gwBaseUrl = gwBaseUrl;
         this.loginCallbackUrl = loginCallbackUrl;
@@ -60,6 +64,13 @@ export default class AuthServiceClient {
             withCredentials: true // 重要：支持跨域 cookie
         });
 
+        if (isBrowser) {
+            this.anonymousClient = new AnonymousUserClient({
+                baseUrl: gwBaseUrl,
+                ...anonymousOptions,
+            });
+        }
+
         // 添加请求拦截器自动添加认证头
         this.axiosInstance.interceptors.request.use((config: any) => {
             return config;
@@ -69,15 +80,25 @@ export default class AuthServiceClient {
     /**
      * 发起登录流程
      * 服务端会返回 302 重定向到 OIDC provider
+     * 如果存在匿名会话，将 anonymous_id 作为查询参数透传，以便后端关联
      */
     async login(): Promise<void> {
         if (!isBrowser) {
             throw new Error('Login method requires browser environment');
         }
 
-        // 构造登录 URL，callback 参数告诉服务端登录成功后跳转到哪里
-        const loginUrl = `${this.gwBaseUrl}/auth/login?callback=${encodeURIComponent(this.loginCallbackUrl)}`;
+        let anonymousId = '';
+        if (this.anonymousClient) {
+            const payload = this.anonymousClient.getAssociationPayload();
+            if (payload) {
+                anonymousId = payload.anonymous_id;
+            }
+        }
 
+        let loginUrl = `${this.gwBaseUrl}/auth/login?callback=${encodeURIComponent(this.loginCallbackUrl)}`;
+        if (anonymousId) {
+            loginUrl += `&anonymous_id=${encodeURIComponent(anonymousId)}`;
+        }
         console.log('[AuthClient] Redirecting to login URL:', loginUrl);
         (window as any).location.href = loginUrl;
     }
@@ -306,8 +327,49 @@ export default class AuthServiceClient {
         (window as any).location.href = logoutUrl;
     }
 
+    // -------------------------------------------------------------------------
+    // Anonymous user session proxy methods
+    // -------------------------------------------------------------------------
+
     /**
-     * 清除所有本地认证信息
+     * Returns the underlying AnonymousUserClient instance.
+     * Can be used to access full anonymous session management API.
+     */
+    getAnonymousClient(): AnonymousUserClient | null {
+        return this.anonymousClient;
+    }
+
+    /**
+     * Get or create an anonymous session for the current device.
+     * Should be called when the user is not authenticated to provide
+     * a stable anonymous identity for analytics, personalization etc.
+     */
+    async getOrCreateAnonymousSession(): Promise<AnonymousSession> {
+        if (!this.anonymousClient) {
+            throw new Error('[AuthClient] AnonymousUserClient not available (non-browser environment)');
+        }
+        return this.anonymousClient.getOrCreateAnonymousSession();
+    }
+
+    /**
+     * Attach anonymous session headers to an outgoing request headers map.
+     * Injects X-Anonymous-Token and X-Device-Fingerprint headers.
+     */
+    attachAnonymousHeaders(headers: Record<string, string>): void {
+        this.anonymousClient?.attachHeaders(headers);
+    }
+
+    /**
+     * Returns the current anonymous_id if a session has been created.
+     */
+    getAnonymousId(): string | null {
+        return this.anonymousClient?.getAnonymousId() ?? null;
+    }
+
+    // -------------------------------------------------------------------------
+
+    /**
+     * \u6e05\u9664\u6240\u6709\u672c\u5730\u8ba4\u8bc1\u4fe1\u606f\uff08\u5305\u62ec\u533f\u540d\u4f1a\u8bdd\uff09
      * Cookie-only mode: HttpOnly session cookie is managed by server via /auth/logout.
      * Client only performs minimal cleanup.
      */
@@ -315,6 +377,7 @@ export default class AuthServiceClient {
         if (!isBrowser) {
             return;
         }
+        this.anonymousClient?.clear();
         console.log('[AuthClient] Local auth data cleared (session managed by server HttpOnly cookie)');
     }
 

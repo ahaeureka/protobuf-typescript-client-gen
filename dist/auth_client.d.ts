@@ -1,4 +1,6 @@
 import { User } from './proto/user';
+import { AnonymousUserClient, AnonymousSession } from './anonymous_client';
+import type { AnonymousUserClientOptions } from './anonymous_client';
 /**
  * 用户更新请求
  */
@@ -33,10 +35,12 @@ export default class AuthServiceClient {
     private loginCallbackUrl;
     private logoutCallbackUrl;
     private axiosInstance;
-    constructor(gwBaseUrl: string, loginCallbackUrl: string, logoutCallbackUrl: string);
+    private anonymousClient;
+    constructor(gwBaseUrl: string, loginCallbackUrl: string, logoutCallbackUrl: string, anonymousOptions?: Omit<AnonymousUserClientOptions, 'baseUrl'>);
     /**
      * 发起登录流程
      * 服务端会返回 302 重定向到 OIDC provider
+     * 如果存在匿名会话，将 anonymous_id 作为查询参数透传，以便后端关联
      */
     login(): Promise<void>;
     /**
@@ -117,7 +121,27 @@ export default class AuthServiceClient {
      */
     logout(): Promise<void>;
     /**
-     * 清除所有本地认证信息
+     * Returns the underlying AnonymousUserClient instance.
+     * Can be used to access full anonymous session management API.
+     */
+    getAnonymousClient(): AnonymousUserClient | null;
+    /**
+     * Get or create an anonymous session for the current device.
+     * Should be called when the user is not authenticated to provide
+     * a stable anonymous identity for analytics, personalization etc.
+     */
+    getOrCreateAnonymousSession(): Promise<AnonymousSession>;
+    /**
+     * Attach anonymous session headers to an outgoing request headers map.
+     * Injects X-Anonymous-Token and X-Device-Fingerprint headers.
+     */
+    attachAnonymousHeaders(headers: Record<string, string>): void;
+    /**
+     * Returns the current anonymous_id if a session has been created.
+     */
+    getAnonymousId(): string | null;
+    /**
+     * \u6e05\u9664\u6240\u6709\u672c\u5730\u8ba4\u8bc1\u4fe1\u606f\uff08\u5305\u62ec\u533f\u540d\u4f1a\u8bdd\uff09
      * Cookie-only mode: HttpOnly session cookie is managed by server via /auth/logout.
      * Client only performs minimal cleanup.
      */

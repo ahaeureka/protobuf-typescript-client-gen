@@ -352,6 +352,7 @@ function createBaseUser() {
         avatar: "",
         avatar_type: "",
         permanent_avatar: "",
+        is_admin: false,
         properties: {},
     };
 }
@@ -453,8 +454,11 @@ exports.User = {
         if (message.permanent_avatar !== "") {
             writer.uint32(258).string(message.permanent_avatar);
         }
+        if (message.is_admin !== false) {
+            writer.uint32(264).bool(message.is_admin);
+        }
         globalThis.Object.entries(message.properties).forEach(([key, value]) => {
-            exports.User_PropertiesEntry.encode({ key: key, value }, writer.uint32(266).fork()).join();
+            exports.User_PropertiesEntry.encode({ key: key, value }, writer.uint32(274).fork()).join();
         });
         return writer;
     },
@@ -690,12 +694,19 @@ exports.User = {
                     continue;
                 }
                 case 33: {
-                    if (tag !== 266) {
+                    if (tag !== 264) {
                         break;
                     }
-                    const entry33 = exports.User_PropertiesEntry.decode(reader, reader.uint32());
-                    if (entry33.value !== undefined) {
-                        message.properties[entry33.key] = entry33.value;
+                    message.is_admin = reader.bool();
+                    continue;
+                }
+                case 34: {
+                    if (tag !== 274) {
+                        break;
+                    }
+                    const entry34 = exports.User_PropertiesEntry.decode(reader, reader.uint32());
+                    if (entry34.value !== undefined) {
+                        message.properties[entry34.key] = entry34.value;
                     }
                     continue;
                 }
@@ -743,6 +754,7 @@ exports.User = {
             avatar: isSet(object.avatar) ? globalThis.String(object.avatar) : "",
             avatar_type: isSet(object.avatar_type) ? globalThis.String(object.avatar_type) : "",
             permanent_avatar: isSet(object.permanent_avatar) ? globalThis.String(object.permanent_avatar) : "",
+            is_admin: isSet(object.is_admin) ? globalThis.Boolean(object.is_admin) : false,
             properties: isObject(object.properties)
                 ? globalThis.Object.entries(object.properties).reduce((acc, [key, value]) => {
                     acc[key] = any_1.Any.fromJSON(value);
@@ -849,6 +861,9 @@ exports.User = {
         if (message.permanent_avatar !== "") {
             obj.permanent_avatar = message.permanent_avatar;
         }
+        if (message.is_admin !== false) {
+            obj.is_admin = message.is_admin;
+        }
         if (message.properties) {
             const entries = globalThis.Object.entries(message.properties);
             if (entries.length > 0) {
@@ -897,6 +912,7 @@ exports.User = {
         message.avatar = object.avatar ?? "";
         message.avatar_type = object.avatar_type ?? "";
         message.permanent_avatar = object.permanent_avatar ?? "";
+        message.is_admin = object.is_admin ?? false;
         message.properties = globalThis.Object.entries(object.properties ?? {}).reduce((acc, [key, value]) => {
             if (value !== undefined) {
                 acc[key] = any_1.Any.fromPartial(value);

@@ -14,6 +14,7 @@ export const protobufPackage = "stew.api.v1";
 /** API Key 信息 */
 export interface ApiKey {
   id: string;
+  /** Globally unique name for the API key */
   name: string;
   key: string;
   user_id: string;
@@ -33,6 +34,7 @@ export interface ApiKey_MetadataEntry {
 
 /** 创建 API Key 请求 */
 export interface CreateApiKeyRequest {
+  /** Globally unique name for the API key. Duplicate names are rejected. */
   name: string;
   user_id: string;
   scopes: string[];
