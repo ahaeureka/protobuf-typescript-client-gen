@@ -8,6 +8,7 @@
 import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
 import { Observable } from "rxjs";
 import { map } from "rxjs/operators";
+import { HttpBody } from "./google/api/httpbody";
 import { Empty } from "./google/protobuf/empty";
 import { Timestamp } from "./google/protobuf/timestamp";
 
@@ -198,6 +199,19 @@ export interface UploadedPartInfo {
 export interface DownloadFileRequest {
   /** File ID to download. */
   file_id: string;
+}
+
+/**
+ * HTTP metadata projected from google.api.HttpBody.extensions for download responses.
+ * The gateway renderer maps this metadata to concrete HTTP headers.
+ */
+export interface DownloadFileHttpMetadata {
+  /** Original filename. Preserved in the extension payload for downstream use. */
+  filename: string;
+  /** Full Content-Disposition header value to expose on the HTTP response. */
+  content_disposition: string;
+  /** Full ETag header value to expose on the HTTP response. */
+  etag: string;
 }
 
 export interface DownloadFileChunk {
@@ -1780,6 +1794,102 @@ export const DownloadFileRequest: MessageFns<DownloadFileRequest> = {
   },
 };
 
+function createBaseDownloadFileHttpMetadata(): DownloadFileHttpMetadata {
+  return { filename: "", content_disposition: "", etag: "" };
+}
+
+export const DownloadFileHttpMetadata: MessageFns<DownloadFileHttpMetadata> = {
+  encode(message: DownloadFileHttpMetadata, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.filename !== "") {
+      writer.uint32(10).string(message.filename);
+    }
+    if (message.content_disposition !== "") {
+      writer.uint32(18).string(message.content_disposition);
+    }
+    if (message.etag !== "") {
+      writer.uint32(26).string(message.etag);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DownloadFileHttpMetadata {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDownloadFileHttpMetadata();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.filename = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.content_disposition = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.etag = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DownloadFileHttpMetadata {
+    return {
+      filename: isSet(object.filename) ? globalThis.String(object.filename) : "",
+      content_disposition: isSet(object.contentDisposition)
+        ? globalThis.String(object.contentDisposition)
+        : isSet(object.content_disposition)
+        ? globalThis.String(object.content_disposition)
+        : "",
+      etag: isSet(object.etag) ? globalThis.String(object.etag) : "",
+    };
+  },
+
+  toJSON(message: DownloadFileHttpMetadata): unknown {
+    const obj: any = {};
+    if (message.filename !== "") {
+      obj.filename = message.filename;
+    }
+    if (message.content_disposition !== "") {
+      obj.contentDisposition = message.content_disposition;
+    }
+    if (message.etag !== "") {
+      obj.etag = message.etag;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DownloadFileHttpMetadata>, I>>(base?: I): DownloadFileHttpMetadata {
+    return DownloadFileHttpMetadata.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DownloadFileHttpMetadata>, I>>(object: I): DownloadFileHttpMetadata {
+    const message = createBaseDownloadFileHttpMetadata();
+    message.filename = object.filename ?? "";
+    message.content_disposition = object.content_disposition ?? "";
+    message.etag = object.etag ?? "";
+    return message;
+  },
+};
+
 function createBaseDownloadFileChunk(): DownloadFileChunk {
   return { data: new Uint8Array(0) };
 }
@@ -2575,7 +2685,7 @@ export interface FileStorageService {
    */
   GetUploadStatus(request: GetUploadStatusRequest): Promise<GetUploadStatusResponse>;
   /** Download a file via server streaming. */
-  DownloadFile(request: DownloadFileRequest): Observable<DownloadFileChunk>;
+  DownloadFile(request: DownloadFileRequest): Promise<HttpBody>;
   /** Delete a file owned by the current user. */
   DeleteFile(request: DeleteFileRequest): Promise<Empty>;
   /** List files owned by the current user, with optional folder filter. */
@@ -2638,10 +2748,10 @@ export class FileStorageServiceClientImpl implements FileStorageService {
     return promise.then((data) => GetUploadStatusResponse.decode(new BinaryReader(data)));
   }
 
-  DownloadFile(request: DownloadFileRequest): Observable<DownloadFileChunk> {
+  DownloadFile(request: DownloadFileRequest): Promise<HttpBody> {
     const data = DownloadFileRequest.encode(request).finish();
-    const result = this.rpc.serverStreamingRequest(this.service, "DownloadFile", data);
-    return result.pipe(map((data) => DownloadFileChunk.decode(new BinaryReader(data))));
+    const promise = this.rpc.request(this.service, "DownloadFile", data);
+    return promise.then((data) => HttpBody.decode(new BinaryReader(data)));
   }
 
   DeleteFile(request: DeleteFileRequest): Promise<Empty> {
