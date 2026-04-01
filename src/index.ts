@@ -22,3 +22,14 @@ export * from './websocket-utils';
 export * from './sse-utils';
 export * from './websocket-message-utils';
 
+// File storage client
+export { FileStorageClient } from './file_client';
+export type {
+    FileInfo,
+    UploadResponse,
+    ListFilesResponse,
+    UploadPartResult,
+    ResumableUploadProgress,
+    FileStorageClientOptions,
+} from './file_client';
+

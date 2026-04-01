@@ -13,3 +13,5 @@ export { hashComponents, collectFingerprintComponents } from './fingerprint-util
 export * from './websocket-utils';
 export * from './sse-utils';
 export * from './websocket-message-utils';
+export { FileStorageClient } from './file_client';
+export type { FileInfo, UploadResponse, ListFilesResponse, UploadPartResult, ResumableUploadProgress, FileStorageClientOptions, } from './file_client';
