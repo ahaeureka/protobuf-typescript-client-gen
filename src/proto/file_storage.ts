@@ -106,6 +106,8 @@ export interface InitResumableUploadRequest {
   part_size: number;
   /** Arbitrary business context (JSON string). Forwarded to the callback endpoint. */
   business_context: string;
+  /** Expected SHA-256 checksum computed by the client before multipart upload starts. */
+  checksum: string;
 }
 
 export interface InitResumableUploadResponse {
@@ -199,6 +201,10 @@ export interface UploadedPartInfo {
 export interface DownloadFileRequest {
   /** File ID to download. */
   file_id: string;
+  /** Expected SHA-256 checksum supplied by the client for post-download verification. */
+  checksum: string;
+  /** If true, the server verifies checksum and returns an empty body instead of file content. */
+  verify_only: boolean;
 }
 
 /**
@@ -583,7 +589,15 @@ export const UploadFileResponse: MessageFns<UploadFileResponse> = {
 };
 
 function createBaseInitResumableUploadRequest(): InitResumableUploadRequest {
-  return { filename: "", content_type: "", folder: "", total_size: 0, part_size: 0, business_context: "" };
+  return {
+    filename: "",
+    content_type: "",
+    folder: "",
+    total_size: 0,
+    part_size: 0,
+    business_context: "",
+    checksum: "",
+  };
 }
 
 export const InitResumableUploadRequest: MessageFns<InitResumableUploadRequest> = {
@@ -605,6 +619,9 @@ export const InitResumableUploadRequest: MessageFns<InitResumableUploadRequest> 
     }
     if (message.business_context !== "") {
       writer.uint32(50).string(message.business_context);
+    }
+    if (message.checksum !== "") {
+      writer.uint32(58).string(message.checksum);
     }
     return writer;
   },
@@ -664,6 +681,14 @@ export const InitResumableUploadRequest: MessageFns<InitResumableUploadRequest> 
           message.business_context = reader.string();
           continue;
         }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.checksum = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -697,6 +722,7 @@ export const InitResumableUploadRequest: MessageFns<InitResumableUploadRequest> 
         : isSet(object.business_context)
         ? globalThis.String(object.business_context)
         : "",
+      checksum: isSet(object.checksum) ? globalThis.String(object.checksum) : "",
     };
   },
 
@@ -720,6 +746,9 @@ export const InitResumableUploadRequest: MessageFns<InitResumableUploadRequest> 
     if (message.business_context !== "") {
       obj.businessContext = message.business_context;
     }
+    if (message.checksum !== "") {
+      obj.checksum = message.checksum;
+    }
     return obj;
   },
 
@@ -734,6 +763,7 @@ export const InitResumableUploadRequest: MessageFns<InitResumableUploadRequest> 
     message.total_size = object.total_size ?? 0;
     message.part_size = object.part_size ?? 0;
     message.business_context = object.business_context ?? "";
+    message.checksum = object.checksum ?? "";
     return message;
   },
 };
@@ -1731,13 +1761,19 @@ export const UploadedPartInfo: MessageFns<UploadedPartInfo> = {
 };
 
 function createBaseDownloadFileRequest(): DownloadFileRequest {
-  return { file_id: "" };
+  return { file_id: "", checksum: "", verify_only: false };
 }
 
 export const DownloadFileRequest: MessageFns<DownloadFileRequest> = {
   encode(message: DownloadFileRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.file_id !== "") {
       writer.uint32(10).string(message.file_id);
+    }
+    if (message.checksum !== "") {
+      writer.uint32(18).string(message.checksum);
+    }
+    if (message.verify_only !== false) {
+      writer.uint32(24).bool(message.verify_only);
     }
     return writer;
   },
@@ -1757,6 +1793,22 @@ export const DownloadFileRequest: MessageFns<DownloadFileRequest> = {
           message.file_id = reader.string();
           continue;
         }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.checksum = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.verify_only = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1773,6 +1825,12 @@ export const DownloadFileRequest: MessageFns<DownloadFileRequest> = {
         : isSet(object.file_id)
         ? globalThis.String(object.file_id)
         : "",
+      checksum: isSet(object.checksum) ? globalThis.String(object.checksum) : "",
+      verify_only: isSet(object.verifyOnly)
+        ? globalThis.Boolean(object.verifyOnly)
+        : isSet(object.verify_only)
+        ? globalThis.Boolean(object.verify_only)
+        : false,
     };
   },
 
@@ -1780,6 +1838,12 @@ export const DownloadFileRequest: MessageFns<DownloadFileRequest> = {
     const obj: any = {};
     if (message.file_id !== "") {
       obj.fileId = message.file_id;
+    }
+    if (message.checksum !== "") {
+      obj.checksum = message.checksum;
+    }
+    if (message.verify_only !== false) {
+      obj.verifyOnly = message.verify_only;
     }
     return obj;
   },
@@ -1790,6 +1854,8 @@ export const DownloadFileRequest: MessageFns<DownloadFileRequest> = {
   fromPartial<I extends Exact<DeepPartial<DownloadFileRequest>, I>>(object: I): DownloadFileRequest {
     const message = createBaseDownloadFileRequest();
     message.file_id = object.file_id ?? "";
+    message.checksum = object.checksum ?? "";
+    message.verify_only = object.verify_only ?? false;
     return message;
   },
 };

@@ -57,6 +57,8 @@ export interface InitResumableUploadRequest {
     part_size: number;
     /** Arbitrary business context (JSON string). Forwarded to the callback endpoint. */
     business_context: string;
+    /** Expected SHA-256 checksum computed by the client before multipart upload starts. */
+    checksum: string;
 }
 export interface InitResumableUploadResponse {
     /** Opaque upload session identifier. */
@@ -140,6 +142,10 @@ export interface UploadedPartInfo {
 export interface DownloadFileRequest {
     /** File ID to download. */
     file_id: string;
+    /** Expected SHA-256 checksum supplied by the client for post-download verification. */
+    checksum: string;
+    /** If true, the server verifies checksum and returns an empty body instead of file content. */
+    verify_only: boolean;
 }
 /**
  * HTTP metadata projected from google.api.HttpBody.extensions for download responses.

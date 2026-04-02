@@ -332,7 +332,15 @@ exports.UploadFileResponse = {
     },
 };
 function createBaseInitResumableUploadRequest() {
-    return { filename: "", content_type: "", folder: "", total_size: 0, part_size: 0, business_context: "" };
+    return {
+        filename: "",
+        content_type: "",
+        folder: "",
+        total_size: 0,
+        part_size: 0,
+        business_context: "",
+        checksum: "",
+    };
 }
 exports.InitResumableUploadRequest = {
     encode(message, writer = new wire_1.BinaryWriter()) {
@@ -353,6 +361,9 @@ exports.InitResumableUploadRequest = {
         }
         if (message.business_context !== "") {
             writer.uint32(50).string(message.business_context);
+        }
+        if (message.checksum !== "") {
+            writer.uint32(58).string(message.checksum);
         }
         return writer;
     },
@@ -405,6 +416,13 @@ exports.InitResumableUploadRequest = {
                     message.business_context = reader.string();
                     continue;
                 }
+                case 7: {
+                    if (tag !== 58) {
+                        break;
+                    }
+                    message.checksum = reader.string();
+                    continue;
+                }
             }
             if ((tag & 7) === 4 || tag === 0) {
                 break;
@@ -437,6 +455,7 @@ exports.InitResumableUploadRequest = {
                 : isSet(object.business_context)
                     ? globalThis.String(object.business_context)
                     : "",
+            checksum: isSet(object.checksum) ? globalThis.String(object.checksum) : "",
         };
     },
     toJSON(message) {
@@ -459,6 +478,9 @@ exports.InitResumableUploadRequest = {
         if (message.business_context !== "") {
             obj.businessContext = message.business_context;
         }
+        if (message.checksum !== "") {
+            obj.checksum = message.checksum;
+        }
         return obj;
     },
     create(base) {
@@ -472,6 +494,7 @@ exports.InitResumableUploadRequest = {
         message.total_size = object.total_size ?? 0;
         message.part_size = object.part_size ?? 0;
         message.business_context = object.business_context ?? "";
+        message.checksum = object.checksum ?? "";
         return message;
     },
 };
@@ -1379,12 +1402,18 @@ exports.UploadedPartInfo = {
     },
 };
 function createBaseDownloadFileRequest() {
-    return { file_id: "" };
+    return { file_id: "", checksum: "", verify_only: false };
 }
 exports.DownloadFileRequest = {
     encode(message, writer = new wire_1.BinaryWriter()) {
         if (message.file_id !== "") {
             writer.uint32(10).string(message.file_id);
+        }
+        if (message.checksum !== "") {
+            writer.uint32(18).string(message.checksum);
+        }
+        if (message.verify_only !== false) {
+            writer.uint32(24).bool(message.verify_only);
         }
         return writer;
     },
@@ -1402,6 +1431,20 @@ exports.DownloadFileRequest = {
                     message.file_id = reader.string();
                     continue;
                 }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.checksum = reader.string();
+                    continue;
+                }
+                case 3: {
+                    if (tag !== 24) {
+                        break;
+                    }
+                    message.verify_only = reader.bool();
+                    continue;
+                }
             }
             if ((tag & 7) === 4 || tag === 0) {
                 break;
@@ -1417,12 +1460,24 @@ exports.DownloadFileRequest = {
                 : isSet(object.file_id)
                     ? globalThis.String(object.file_id)
                     : "",
+            checksum: isSet(object.checksum) ? globalThis.String(object.checksum) : "",
+            verify_only: isSet(object.verifyOnly)
+                ? globalThis.Boolean(object.verifyOnly)
+                : isSet(object.verify_only)
+                    ? globalThis.Boolean(object.verify_only)
+                    : false,
         };
     },
     toJSON(message) {
         const obj = {};
         if (message.file_id !== "") {
             obj.fileId = message.file_id;
+        }
+        if (message.checksum !== "") {
+            obj.checksum = message.checksum;
+        }
+        if (message.verify_only !== false) {
+            obj.verifyOnly = message.verify_only;
         }
         return obj;
     },
@@ -1432,6 +1487,8 @@ exports.DownloadFileRequest = {
     fromPartial(object) {
         const message = createBaseDownloadFileRequest();
         message.file_id = object.file_id ?? "";
+        message.checksum = object.checksum ?? "";
+        message.verify_only = object.verify_only ?? false;
         return message;
     },
 };
