@@ -51,10 +51,34 @@ export interface UploadSession {
 export interface ResumableUploadProgress {
     uploadId: string;
     filename: string;
+    checksum: string;
     partSize: number;
     uploadedParts: number;
     totalParts: number;
     completedEtags: UploadPartResult[];
+}
+export interface UploadStatusResult {
+    uploadId: string;
+    status: number | string;
+    completedParts: UploadPartResult[];
+    totalParts: number;
+    expiresAt: string;
+    filename?: string;
+    totalSize?: number;
+}
+export interface ChunkDownloadProgress {
+    downloadedBytes: number;
+    totalBytes: number;
+    chunkIndex: number;
+    totalChunks: number;
+}
+export interface ChunkDownloadResult {
+    blob: Blob;
+    filename: string;
+    chunkCount: number;
+    totalBytes: number;
+    checksum: string;
+    verifiedByServer: boolean;
 }
 export interface FileStorageClientOptions {
     baseUrl: string;
@@ -66,6 +90,7 @@ export declare class FileStorageClient {
     private client;
     private partSize;
     constructor(options: FileStorageClientOptions);
+    computeChecksum(file: Blob): Promise<string>;
     /**
      * Simple file upload (for files smaller than partSize).
      * @param businessContext - Arbitrary JSON to forward to the business callback.
@@ -90,6 +115,7 @@ export declare class FileStorageClient {
         folder?: string;
         contentType?: string;
         partSize?: number;
+        checksum?: string;
         /** Arbitrary JSON context forwarded to the business callback on completion. */
         businessContext?: Record<string, unknown>;
         /** Per-request callback URL override (stored in session for completion). */
@@ -114,13 +140,7 @@ export declare class FileStorageClient {
     /**
      * Get upload session status from the server.
      */
-    getUploadStatus(uploadId: string): Promise<{
-        uploadId: string;
-        status: string;
-        completedParts: number;
-        totalParts: number;
-        expiresAt: string;
-    }>;
+    getUploadStatus(uploadId: string): Promise<UploadStatusResult>;
     /**
      * Download a file by its ID. Returns a Blob.
      */
@@ -128,6 +148,7 @@ export declare class FileStorageClient {
         blob: Blob;
         filename: string;
     }>;
+    verifyDownloadChecksum(fileId: string, checksum: string): Promise<boolean>;
     /**
      * Delete a file by its ID.
      */
@@ -144,6 +165,11 @@ export declare class FileStorageClient {
      * Get file metadata by its ID.
      */
     getFileInfo(fileId: string): Promise<FileInfo>;
+    downloadFileInChunks(file: FileInfo, options?: {
+        chunkSize?: number;
+        verifyChecksum?: boolean;
+        onProgress?: (progress: ChunkDownloadProgress) => void;
+    }): Promise<ChunkDownloadResult>;
     /**
      * Upload a large file with automatic chunking and resumable support.
      * Persists progress to localStorage for crash recovery.
@@ -152,11 +178,13 @@ export declare class FileStorageClient {
         folder?: string;
         contentType?: string;
         partSize?: number;
+        checksum?: string;
         businessContext?: Record<string, unknown>;
         callbackUrl?: string;
         onPartComplete?: (partNumber: number, totalParts: number) => void;
         onProgress?: (uploaded: number, total: number) => void;
     }): Promise<UploadResponse>;
+    listSavedResumableUploads(): ResumableUploadProgress[];
     private saveProgress;
     private loadProgress;
     private clearProgress;

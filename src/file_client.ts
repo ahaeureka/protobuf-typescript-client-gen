@@ -2,6 +2,8 @@ import axios, { AxiosInstance, AxiosProgressEvent } from 'axios';
 
 const STORAGE_PREFIX = 'stew_file_upload_';
 
+type UnknownRecord = Record<string, unknown>;
+
 export interface FileInfo {
     fileId: string;
     filename: string;
@@ -60,10 +62,37 @@ export interface UploadSession {
 export interface ResumableUploadProgress {
     uploadId: string;
     filename: string;
+    checksum: string;
     partSize: number;
     uploadedParts: number;
     totalParts: number;
     completedEtags: UploadPartResult[];
+}
+
+export interface UploadStatusResult {
+    uploadId: string;
+    status: number | string;
+    completedParts: UploadPartResult[];
+    totalParts: number;
+    expiresAt: string;
+    filename?: string;
+    totalSize?: number;
+}
+
+export interface ChunkDownloadProgress {
+    downloadedBytes: number;
+    totalBytes: number;
+    chunkIndex: number;
+    totalChunks: number;
+}
+
+export interface ChunkDownloadResult {
+    blob: Blob;
+    filename: string;
+    chunkCount: number;
+    totalBytes: number;
+    checksum: string;
+    verifiedByServer: boolean;
 }
 
 export interface FileStorageClientOptions {
@@ -71,6 +100,156 @@ export interface FileStorageClientOptions {
     timeout?: number;
     /** Part size for resumable uploads in bytes (default: 5MB) */
     partSize?: number;
+}
+
+function asRecord(value: unknown): UnknownRecord {
+    return value && typeof value === 'object' && !Array.isArray(value)
+        ? (value as UnknownRecord)
+        : {};
+}
+
+function readString(source: UnknownRecord, ...keys: string[]): string | undefined {
+    for (const key of keys) {
+        const value = source[key];
+        if (typeof value === 'string' && value.trim() !== '') {
+            return value;
+        }
+    }
+    return undefined;
+}
+
+function readNumber(source: UnknownRecord, ...keys: string[]): number | undefined {
+    for (const key of keys) {
+        const value = source[key];
+        if (typeof value === 'number' && Number.isFinite(value)) {
+            return value;
+        }
+        if (typeof value === 'string' && value.trim() !== '') {
+            const parsed = Number(value);
+            if (!Number.isNaN(parsed)) {
+                return parsed;
+            }
+        }
+    }
+    return undefined;
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+    return Array.from(bytes)
+        .map((value) => value.toString(16).padStart(2, '0'))
+        .join('');
+}
+
+function parseContentDispositionFilename(
+    header: string | undefined,
+    fallback: string,
+): string {
+    if (!header) {
+        return fallback;
+    }
+
+    const utf8Match = header.match(/filename\*=UTF-8''([^;]+)/i);
+    if (utf8Match?.[1]) {
+        try {
+            return decodeURIComponent(utf8Match[1]);
+        } catch {
+            return fallback;
+        }
+    }
+
+    const simpleMatch = header.match(/filename="?([^";]+)"?/i);
+    if (simpleMatch?.[1]) {
+        return simpleMatch[1];
+    }
+
+    return fallback;
+}
+
+function normalizeFileInfo(payload: unknown): FileInfo {
+    const source = asRecord(payload);
+    return {
+        fileId: readString(source, 'fileId', 'file_id', 'id') ?? '',
+        filename: readString(source, 'filename') ?? '',
+        contentType:
+            readString(source, 'contentType', 'content_type') ??
+            'application/octet-stream',
+        fileSize: readNumber(source, 'fileSize', 'file_size') ?? 0,
+        folder: readString(source, 'folder') ?? '/',
+        checksum: readString(source, 'checksum') ?? '',
+        createdAt: readString(source, 'createdAt', 'created_at') ?? '',
+        updatedAt: readString(source, 'updatedAt', 'updated_at') ?? '',
+        storageKey: readString(source, 'storageKey', 'storage_key'),
+        localPath: readString(source, 'localPath', 'local_path'),
+    };
+}
+
+function normalizeUploadResponse(payload: unknown): UploadResponse {
+    const source = asRecord(payload);
+    const fileInfo = asRecord(source.fileInfo);
+    const normalizedFile = normalizeFileInfo(
+        Object.keys(fileInfo).length > 0 ? fileInfo : source,
+    );
+    const callbackResult = asRecord(source.callbackResult);
+
+    return {
+        fileId: normalizedFile.fileId,
+        filename: normalizedFile.filename,
+        fileSize: normalizedFile.fileSize,
+        contentType: normalizedFile.contentType,
+        checksum: normalizedFile.checksum,
+        localPath: normalizedFile.localPath,
+        callbackResult:
+            Object.keys(callbackResult).length > 0
+                ? {
+                      accepted: Boolean(callbackResult.accepted),
+                      businessId: readString(callbackResult, 'businessId', 'business_id'),
+                      message: readString(callbackResult, 'message'),
+                  }
+                : undefined,
+    };
+}
+
+function normalizeUploadStatus(payload: unknown): UploadStatusResult {
+    const source = asRecord(payload);
+    const completedParts = Array.isArray(source.completedParts)
+        ? source.completedParts
+              .map((item) => {
+                  const record = asRecord(item);
+                  const partNumber = readNumber(
+                      record,
+                      'partNumber',
+                      'part_number',
+                  );
+                  const etag = readString(record, 'etag');
+                  if (!partNumber || !etag) {
+                      return null;
+                  }
+                  return { partNumber, etag };
+              })
+              .filter((item): item is UploadPartResult => item !== null)
+        : [];
+
+    return {
+        uploadId: readString(source, 'uploadId', 'upload_id') ?? '',
+        status:
+            source.status === undefined
+                ? ''
+                : (source.status as number | string),
+        completedParts,
+        totalParts: readNumber(source, 'totalParts', 'total_parts') ?? 0,
+        expiresAt: readString(source, 'expiresAt', 'expires_at') ?? '',
+        filename: readString(source, 'filename'),
+        totalSize: readNumber(source, 'totalSize', 'total_size'),
+    };
+}
+
+function isActiveUploadStatus(status: number | string): boolean {
+    return (
+        status === 1 ||
+        status === '1' ||
+        status === 'active' ||
+        status === 'UPLOAD_SESSION_STATUS_ACTIVE'
+    );
 }
 
 export class FileStorageClient {
@@ -84,6 +263,20 @@ export class FileStorageClient {
             timeout: options.timeout ?? 30000,
             withCredentials: true,
         });
+    }
+
+    async computeChecksum(file: Blob): Promise<string> {
+        if (!globalThis.crypto?.subtle) {
+            throw new Error(
+                'Current runtime does not support Web Crypto SHA-256.',
+            );
+        }
+
+        const digest = await globalThis.crypto.subtle.digest(
+            'SHA-256',
+            await file.arrayBuffer(),
+        );
+        return bytesToHex(new Uint8Array(digest));
     }
 
     /**
@@ -132,7 +325,7 @@ export class FileStorageClient {
                 headers,
             },
         );
-        return resp.data;
+        return normalizeUploadResponse(resp.data);
     }
 
     /**
@@ -147,6 +340,7 @@ export class FileStorageClient {
             folder?: string;
             contentType?: string;
             partSize?: number;
+            checksum?: string;
             /** Arbitrary JSON context forwarded to the business callback on completion. */
             businessContext?: Record<string, unknown>;
             /** Per-request callback URL override (stored in session for completion). */
@@ -162,21 +356,31 @@ export class FileStorageClient {
             '/api/v1/files/upload/init',
             {
                 filename,
-                totalSize: totalSize.toString(),
+                total_size: totalSize.toString(),
                 folder: options?.folder ?? '',
-                contentType: options?.contentType ?? 'application/octet-stream',
-                partSize: (options?.partSize ?? this.partSize).toString(),
-                businessContext: options?.businessContext
+                content_type:
+                    options?.contentType ?? 'application/octet-stream',
+                part_size: (options?.partSize ?? this.partSize).toString(),
+                business_context: options?.businessContext
                     ? JSON.stringify(options.businessContext)
                     : '',
+                checksum: options?.checksum ?? '',
             },
             { headers },
         );
 
-        const data = resp.data;
+        const source = asRecord(resp.data);
+        const data = {
+            uploadId: readString(source, 'uploadId', 'upload_id') ?? '',
+            partSize:
+                readNumber(source, 'partSize', 'part_size') ??
+                (options?.partSize ?? this.partSize),
+            totalParts: readNumber(source, 'totalParts', 'total_parts') ?? 0,
+        };
         this.saveProgress(data.uploadId, {
             uploadId: data.uploadId,
             filename,
+            checksum: options?.checksum ?? '',
             partSize: options?.partSize ?? this.partSize,
             uploadedParts: 0,
             totalParts: data.totalParts,
@@ -228,16 +432,16 @@ export class FileStorageClient {
         const resp = await this.client.post<UploadResponse>(
             `/api/v1/files/upload/${uploadId}/complete`,
             {
-                uploadId,
-                partEtags: partEtags.map((p) => ({
-                    partNumber: p.partNumber,
+                upload_id: uploadId,
+                parts: partEtags.map((p) => ({
+                    part_number: p.partNumber,
                     etag: p.etag,
                 })),
             },
         );
 
         this.clearProgress(uploadId);
-        return resp.data;
+        return normalizeUploadResponse(resp.data);
     }
 
     /**
@@ -253,17 +457,11 @@ export class FileStorageClient {
      */
     async getUploadStatus(
         uploadId: string,
-    ): Promise<{
-        uploadId: string;
-        status: string;
-        completedParts: number;
-        totalParts: number;
-        expiresAt: string;
-    }> {
+    ): Promise<UploadStatusResult> {
         const resp = await this.client.get(
             `/api/v1/files/upload/${uploadId}/status`,
         );
-        return resp.data;
+        return normalizeUploadStatus(resp.data);
     }
 
     /**
@@ -274,17 +472,34 @@ export class FileStorageClient {
             responseType: 'blob',
         });
 
-        // Try to extract filename from content-disposition header
-        const disposition = resp.headers['content-disposition'];
-        let filename = fileId;
-        if (disposition) {
-            const match = disposition.match(/filename="?(.+?)"?$/);
-            if (match) {
-                filename = match[1];
-            }
+        return {
+            blob: resp.data,
+            filename: parseContentDispositionFilename(
+                resp.headers['content-disposition'],
+                fileId,
+            ),
+        };
+    }
+
+    async verifyDownloadChecksum(
+        fileId: string,
+        checksum: string,
+    ): Promise<boolean> {
+        const resp = await this.client.get(`/api/v1/files/${fileId}/download`, {
+            params: {
+                checksum,
+                verify_only: 'true',
+            },
+            responseType: 'blob',
+            validateStatus: (status) =>
+                (status >= 200 && status < 300) || status === 412,
+        });
+
+        if (resp.status === 412) {
+            return false;
         }
 
-        return { blob: resp.data, filename };
+        return resp.headers['x-checksum-verified'] === 'true' || resp.status === 204;
     }
 
     /**
@@ -310,7 +525,16 @@ export class FileStorageClient {
         const resp = await this.client.get<ListFilesResponse>('/api/v1/files', {
             params,
         });
-        return resp.data;
+        const source = asRecord(resp.data);
+        const files = Array.isArray(source.files)
+            ? source.files.map((item) => normalizeFileInfo(item))
+            : [];
+        return {
+            files,
+            totalCount: readNumber(source, 'totalCount', 'total_count') ?? files.length,
+            nextPageToken:
+                readString(source, 'nextPageToken', 'next_page_token') ?? '',
+        };
     }
 
     /**
@@ -320,7 +544,69 @@ export class FileStorageClient {
         const resp = await this.client.get<FileInfo>(
             `/api/v1/files/${fileId}/info`,
         );
-        return resp.data;
+        return normalizeFileInfo(resp.data);
+    }
+
+    async downloadFileInChunks(
+        file: FileInfo,
+        options?: {
+            chunkSize?: number;
+            verifyChecksum?: boolean;
+            onProgress?: (progress: ChunkDownloadProgress) => void;
+        },
+    ): Promise<ChunkDownloadResult> {
+        const info = file.fileSize > 0 ? file : await this.getFileInfo(file.fileId);
+        if (info.fileSize <= 0) {
+            throw new Error('File size is unknown, cannot download in chunks.');
+        }
+
+        const chunkSize = Math.max(options?.chunkSize ?? 1024 * 1024, 256 * 1024);
+        const totalChunks = Math.ceil(info.fileSize / chunkSize);
+        const blobs: Blob[] = [];
+        let resolvedFilename = info.filename || info.fileId;
+
+        for (let index = 0; index < totalChunks; index += 1) {
+            const start = index * chunkSize;
+            const end = Math.min(info.fileSize - 1, start + chunkSize - 1);
+            const resp = await this.client.get(`/api/v1/files/${info.fileId}/download`, {
+                headers: {
+                    Range: `bytes=${start}-${end}`,
+                },
+                responseType: 'blob',
+                validateStatus: (status) => status === 200 || status === 206,
+            });
+
+            resolvedFilename = parseContentDispositionFilename(
+                resp.headers['content-disposition'],
+                resolvedFilename,
+            );
+            blobs.push(resp.data);
+
+            options?.onProgress?.({
+                downloadedBytes: Math.min(end + 1, info.fileSize),
+                totalBytes: info.fileSize,
+                chunkIndex: index + 1,
+                totalChunks,
+            });
+        }
+
+        const blob = new Blob(blobs, {
+            type: info.contentType || 'application/octet-stream',
+        });
+        const checksum = await this.computeChecksum(blob);
+        const verifiedByServer =
+            options?.verifyChecksum === false
+                ? false
+                : await this.verifyDownloadChecksum(info.fileId, checksum);
+
+        return {
+            blob,
+            filename: resolvedFilename,
+            chunkCount: totalChunks,
+            totalBytes: info.fileSize,
+            checksum,
+            verifiedByServer,
+        };
     }
 
     /**
@@ -333,6 +619,7 @@ export class FileStorageClient {
             folder?: string;
             contentType?: string;
             partSize?: number;
+            checksum?: string;
             businessContext?: Record<string, unknown>;
             callbackUrl?: string;
             onPartComplete?: (partNumber: number, totalParts: number) => void;
@@ -340,10 +627,11 @@ export class FileStorageClient {
         },
     ): Promise<UploadResponse> {
         const partSize = options?.partSize ?? this.partSize;
+        const checksum = options?.checksum ?? (await this.computeChecksum(file));
         const totalParts = Math.ceil(file.size / partSize);
 
         // Check if there is a saved session for this file
-        const existingProgress = this.findProgressForFile(file.name, file.size);
+        const existingProgress = this.findProgressForFile(file.name, file.size, checksum);
         let uploadId: string;
         let completedEtags: UploadPartResult[];
         let startPart: number;
@@ -351,10 +639,13 @@ export class FileStorageClient {
         if (existingProgress) {
             // Resume existing upload
             const status = await this.getUploadStatus(existingProgress.uploadId).catch(() => null);
-            if (status && status.status === 'in_progress') {
+            if (status && isActiveUploadStatus(status.status)) {
                 uploadId = existingProgress.uploadId;
-                completedEtags = existingProgress.completedEtags;
-                startPart = existingProgress.uploadedParts + 1;
+                completedEtags =
+                    status.completedParts.length > 0
+                        ? status.completedParts
+                        : existingProgress.completedEtags;
+                startPart = completedEtags.length + 1;
             } else {
                 // Session expired or invalid, start over
                 this.clearProgress(existingProgress.uploadId);
@@ -362,6 +653,7 @@ export class FileStorageClient {
                     folder: options?.folder,
                     contentType: options?.contentType ?? file.type,
                     partSize,
+                    checksum,
                     businessContext: options?.businessContext,
                     callbackUrl: options?.callbackUrl,
                 });
@@ -374,6 +666,7 @@ export class FileStorageClient {
                 folder: options?.folder,
                 contentType: options?.contentType ?? file.type,
                 partSize,
+                checksum,
                 businessContext: options?.businessContext,
                 callbackUrl: options?.callbackUrl,
             });
@@ -397,6 +690,33 @@ export class FileStorageClient {
 
         // Complete the upload
         return this.completeResumableUpload(uploadId, completedEtags);
+    }
+
+    listSavedResumableUploads(): ResumableUploadProgress[] {
+        const uploads: ResumableUploadProgress[] = [];
+        try {
+            if (typeof localStorage === 'undefined') {
+                return uploads;
+            }
+
+            for (let i = 0; i < localStorage.length; i += 1) {
+                const key = localStorage.key(i);
+                if (!key || !key.startsWith(STORAGE_PREFIX)) {
+                    continue;
+                }
+
+                const raw = localStorage.getItem(key);
+                if (!raw) {
+                    continue;
+                }
+
+                uploads.push(JSON.parse(raw) as ResumableUploadProgress);
+            }
+        } catch {
+            return uploads;
+        }
+
+        return uploads;
     }
 
     // -- localStorage persistence for crash recovery --
@@ -439,6 +759,7 @@ export class FileStorageClient {
     private findProgressForFile(
         filename: string,
         _fileSize: number,
+        checksum: string,
     ): ResumableUploadProgress | null {
         try {
             if (typeof localStorage === 'undefined') return null;
@@ -449,7 +770,10 @@ export class FileStorageClient {
                     const raw = localStorage.getItem(key);
                     if (raw) {
                         const progress: ResumableUploadProgress = JSON.parse(raw);
-                        if (progress.filename === filename) {
+                        if (
+                            progress.filename === filename &&
+                            (!progress.checksum || progress.checksum === checksum)
+                        ) {
                             return progress;
                         }
                     }
