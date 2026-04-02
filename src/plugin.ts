@@ -156,7 +156,7 @@ function preprocessRequest(obj: any): any {
 /**
  * Type guard to check if a value is an APIResponse structure
  */
-function isAPIResponse(data: any): data is APIResponse<unknown> {
+function isAPIResponse(data: any): data is APIResponse {
   return (
     data !== null &&
     typeof data === 'object' &&
@@ -553,7 +553,7 @@ private getToken(): string | null {
     headers?: Record<string, string>
   ): Promise<AsyncIterable<{{output_type}}>> {
     // Import SSE utilities only when needed
-    const { parseSSEChunk } = await import('./sse-utils');
+    const { parseSSEChunk } = await import('protobuf-typescript-client-gen/dist/sse-utils');
     
     // Preprocess request to convert Uint8Array to Base64
     const processedRequest = preprocessRequest(request);
