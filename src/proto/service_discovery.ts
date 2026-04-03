@@ -463,6 +463,35 @@ export interface RegisterServiceResponse {
   instance_id: string;
 }
 
+/** 业务侧追加单个服务 endpoint（不会覆盖已有 endpoint 配置） */
+export interface RegisterServiceEndpointRequest {
+  service_name: string;
+  endpoint_id: string;
+  endpoint: Endpoint | undefined;
+  version: string;
+  protocol: string;
+  tls_enabled: boolean;
+  protobuf_descriptor: Uint8Array;
+}
+
+export interface RegisterServiceEndpointResponse {
+  success: boolean;
+  message: string;
+  endpoint_id: string;
+  lease_id: string;
+  registered_service: ServiceInstance | undefined;
+}
+
+export interface DeregisterServiceEndpointRequest {
+  service_name: string;
+  endpoint_id: string;
+}
+
+export interface DeregisterServiceEndpointResponse {
+  success: boolean;
+  message: string;
+}
+
 /** 注销服务请求 */
 export interface DeregisterServiceRequest {
   service_name: string;
@@ -4277,6 +4306,466 @@ export const RegisterServiceResponse: MessageFns<RegisterServiceResponse> = {
   },
 };
 
+function createBaseRegisterServiceEndpointRequest(): RegisterServiceEndpointRequest {
+  return {
+    service_name: "",
+    endpoint_id: "",
+    endpoint: undefined,
+    version: "",
+    protocol: "",
+    tls_enabled: false,
+    protobuf_descriptor: new Uint8Array(0),
+  };
+}
+
+export const RegisterServiceEndpointRequest: MessageFns<RegisterServiceEndpointRequest> = {
+  encode(message: RegisterServiceEndpointRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.service_name !== "") {
+      writer.uint32(10).string(message.service_name);
+    }
+    if (message.endpoint_id !== "") {
+      writer.uint32(18).string(message.endpoint_id);
+    }
+    if (message.endpoint !== undefined) {
+      Endpoint.encode(message.endpoint, writer.uint32(26).fork()).join();
+    }
+    if (message.version !== "") {
+      writer.uint32(34).string(message.version);
+    }
+    if (message.protocol !== "") {
+      writer.uint32(42).string(message.protocol);
+    }
+    if (message.tls_enabled !== false) {
+      writer.uint32(48).bool(message.tls_enabled);
+    }
+    if (message.protobuf_descriptor.length !== 0) {
+      writer.uint32(58).bytes(message.protobuf_descriptor);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RegisterServiceEndpointRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRegisterServiceEndpointRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.service_name = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.endpoint_id = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.endpoint = Endpoint.decode(reader, reader.uint32());
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.version = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.protocol = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.tls_enabled = reader.bool();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.protobuf_descriptor = reader.bytes();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RegisterServiceEndpointRequest {
+    return {
+      service_name: isSet(object.service_name) ? globalThis.String(object.service_name) : "",
+      endpoint_id: isSet(object.endpoint_id) ? globalThis.String(object.endpoint_id) : "",
+      endpoint: isSet(object.endpoint) ? Endpoint.fromJSON(object.endpoint) : undefined,
+      version: isSet(object.version) ? globalThis.String(object.version) : "",
+      protocol: isSet(object.protocol) ? globalThis.String(object.protocol) : "",
+      tls_enabled: isSet(object.tls_enabled) ? globalThis.Boolean(object.tls_enabled) : false,
+      protobuf_descriptor: isSet(object.protobuf_descriptor)
+        ? bytesFromBase64(object.protobuf_descriptor)
+        : new Uint8Array(0),
+    };
+  },
+
+  toJSON(message: RegisterServiceEndpointRequest): unknown {
+    const obj: any = {};
+    if (message.service_name !== "") {
+      obj.service_name = message.service_name;
+    }
+    if (message.endpoint_id !== "") {
+      obj.endpoint_id = message.endpoint_id;
+    }
+    if (message.endpoint !== undefined) {
+      obj.endpoint = Endpoint.toJSON(message.endpoint);
+    }
+    if (message.version !== "") {
+      obj.version = message.version;
+    }
+    if (message.protocol !== "") {
+      obj.protocol = message.protocol;
+    }
+    if (message.tls_enabled !== false) {
+      obj.tls_enabled = message.tls_enabled;
+    }
+    if (message.protobuf_descriptor.length !== 0) {
+      obj.protobuf_descriptor = base64FromBytes(message.protobuf_descriptor);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RegisterServiceEndpointRequest>, I>>(base?: I): RegisterServiceEndpointRequest {
+    return RegisterServiceEndpointRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RegisterServiceEndpointRequest>, I>>(
+    object: I,
+  ): RegisterServiceEndpointRequest {
+    const message = createBaseRegisterServiceEndpointRequest();
+    message.service_name = object.service_name ?? "";
+    message.endpoint_id = object.endpoint_id ?? "";
+    message.endpoint = (object.endpoint !== undefined && object.endpoint !== null)
+      ? Endpoint.fromPartial(object.endpoint)
+      : undefined;
+    message.version = object.version ?? "";
+    message.protocol = object.protocol ?? "";
+    message.tls_enabled = object.tls_enabled ?? false;
+    message.protobuf_descriptor = object.protobuf_descriptor ?? new Uint8Array(0);
+    return message;
+  },
+};
+
+function createBaseRegisterServiceEndpointResponse(): RegisterServiceEndpointResponse {
+  return { success: false, message: "", endpoint_id: "", lease_id: "", registered_service: undefined };
+}
+
+export const RegisterServiceEndpointResponse: MessageFns<RegisterServiceEndpointResponse> = {
+  encode(message: RegisterServiceEndpointResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.success !== false) {
+      writer.uint32(8).bool(message.success);
+    }
+    if (message.message !== "") {
+      writer.uint32(18).string(message.message);
+    }
+    if (message.endpoint_id !== "") {
+      writer.uint32(26).string(message.endpoint_id);
+    }
+    if (message.lease_id !== "") {
+      writer.uint32(34).string(message.lease_id);
+    }
+    if (message.registered_service !== undefined) {
+      ServiceInstance.encode(message.registered_service, writer.uint32(42).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RegisterServiceEndpointResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRegisterServiceEndpointResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.success = reader.bool();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.message = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.endpoint_id = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.lease_id = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.registered_service = ServiceInstance.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RegisterServiceEndpointResponse {
+    return {
+      success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
+      message: isSet(object.message) ? globalThis.String(object.message) : "",
+      endpoint_id: isSet(object.endpoint_id) ? globalThis.String(object.endpoint_id) : "",
+      lease_id: isSet(object.lease_id) ? globalThis.String(object.lease_id) : "",
+      registered_service: isSet(object.registered_service)
+        ? ServiceInstance.fromJSON(object.registered_service)
+        : undefined,
+    };
+  },
+
+  toJSON(message: RegisterServiceEndpointResponse): unknown {
+    const obj: any = {};
+    if (message.success !== false) {
+      obj.success = message.success;
+    }
+    if (message.message !== "") {
+      obj.message = message.message;
+    }
+    if (message.endpoint_id !== "") {
+      obj.endpoint_id = message.endpoint_id;
+    }
+    if (message.lease_id !== "") {
+      obj.lease_id = message.lease_id;
+    }
+    if (message.registered_service !== undefined) {
+      obj.registered_service = ServiceInstance.toJSON(message.registered_service);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RegisterServiceEndpointResponse>, I>>(base?: I): RegisterServiceEndpointResponse {
+    return RegisterServiceEndpointResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RegisterServiceEndpointResponse>, I>>(
+    object: I,
+  ): RegisterServiceEndpointResponse {
+    const message = createBaseRegisterServiceEndpointResponse();
+    message.success = object.success ?? false;
+    message.message = object.message ?? "";
+    message.endpoint_id = object.endpoint_id ?? "";
+    message.lease_id = object.lease_id ?? "";
+    message.registered_service = (object.registered_service !== undefined && object.registered_service !== null)
+      ? ServiceInstance.fromPartial(object.registered_service)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseDeregisterServiceEndpointRequest(): DeregisterServiceEndpointRequest {
+  return { service_name: "", endpoint_id: "" };
+}
+
+export const DeregisterServiceEndpointRequest: MessageFns<DeregisterServiceEndpointRequest> = {
+  encode(message: DeregisterServiceEndpointRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.service_name !== "") {
+      writer.uint32(10).string(message.service_name);
+    }
+    if (message.endpoint_id !== "") {
+      writer.uint32(18).string(message.endpoint_id);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeregisterServiceEndpointRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeregisterServiceEndpointRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.service_name = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.endpoint_id = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeregisterServiceEndpointRequest {
+    return {
+      service_name: isSet(object.service_name) ? globalThis.String(object.service_name) : "",
+      endpoint_id: isSet(object.endpoint_id) ? globalThis.String(object.endpoint_id) : "",
+    };
+  },
+
+  toJSON(message: DeregisterServiceEndpointRequest): unknown {
+    const obj: any = {};
+    if (message.service_name !== "") {
+      obj.service_name = message.service_name;
+    }
+    if (message.endpoint_id !== "") {
+      obj.endpoint_id = message.endpoint_id;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeregisterServiceEndpointRequest>, I>>(
+    base?: I,
+  ): DeregisterServiceEndpointRequest {
+    return DeregisterServiceEndpointRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeregisterServiceEndpointRequest>, I>>(
+    object: I,
+  ): DeregisterServiceEndpointRequest {
+    const message = createBaseDeregisterServiceEndpointRequest();
+    message.service_name = object.service_name ?? "";
+    message.endpoint_id = object.endpoint_id ?? "";
+    return message;
+  },
+};
+
+function createBaseDeregisterServiceEndpointResponse(): DeregisterServiceEndpointResponse {
+  return { success: false, message: "" };
+}
+
+export const DeregisterServiceEndpointResponse: MessageFns<DeregisterServiceEndpointResponse> = {
+  encode(message: DeregisterServiceEndpointResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.success !== false) {
+      writer.uint32(8).bool(message.success);
+    }
+    if (message.message !== "") {
+      writer.uint32(18).string(message.message);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeregisterServiceEndpointResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeregisterServiceEndpointResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.success = reader.bool();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.message = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeregisterServiceEndpointResponse {
+    return {
+      success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
+      message: isSet(object.message) ? globalThis.String(object.message) : "",
+    };
+  },
+
+  toJSON(message: DeregisterServiceEndpointResponse): unknown {
+    const obj: any = {};
+    if (message.success !== false) {
+      obj.success = message.success;
+    }
+    if (message.message !== "") {
+      obj.message = message.message;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeregisterServiceEndpointResponse>, I>>(
+    base?: I,
+  ): DeregisterServiceEndpointResponse {
+    return DeregisterServiceEndpointResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeregisterServiceEndpointResponse>, I>>(
+    object: I,
+  ): DeregisterServiceEndpointResponse {
+    const message = createBaseDeregisterServiceEndpointResponse();
+    message.success = object.success ?? false;
+    message.message = object.message ?? "";
+    return message;
+  },
+};
+
 function createBaseDeregisterServiceRequest(): DeregisterServiceRequest {
   return { service_name: "", instance_id: "" };
 }
@@ -7544,6 +8033,10 @@ export interface ServiceDiscoveryService {
   InitService(request: InitServiceRequest): Promise<InitServiceResponse>;
   /** 注册服务实例 */
   RegisterService(request: RegisterServiceRequest): Promise<RegisterServiceResponse>;
+  /** 业务侧追加单个 endpoint（service-scoped） */
+  RegisterServiceEndpoint(request: RegisterServiceEndpointRequest): Promise<RegisterServiceEndpointResponse>;
+  /** 业务侧注销单个 endpoint（service-scoped） */
+  DeregisterServiceEndpoint(request: DeregisterServiceEndpointRequest): Promise<DeregisterServiceEndpointResponse>;
   /** 注销服务实例 */
   DeregisterService(request: DeregisterServiceRequest): Promise<DeregisterServiceResponse>;
   /** 删除持久化服务记录 */
@@ -7583,6 +8076,8 @@ export class ServiceDiscoveryServiceClientImpl implements ServiceDiscoveryServic
     this.rpc = rpc;
     this.InitService = this.InitService.bind(this);
     this.RegisterService = this.RegisterService.bind(this);
+    this.RegisterServiceEndpoint = this.RegisterServiceEndpoint.bind(this);
+    this.DeregisterServiceEndpoint = this.DeregisterServiceEndpoint.bind(this);
     this.DeregisterService = this.DeregisterService.bind(this);
     this.DeleteServiceRecord = this.DeleteServiceRecord.bind(this);
     this.UpdateServiceInstance = this.UpdateServiceInstance.bind(this);
@@ -7608,6 +8103,18 @@ export class ServiceDiscoveryServiceClientImpl implements ServiceDiscoveryServic
     const data = RegisterServiceRequest.encode(request).finish();
     const promise = this.rpc.request(this.service, "RegisterService", data);
     return promise.then((data) => RegisterServiceResponse.decode(new BinaryReader(data)));
+  }
+
+  RegisterServiceEndpoint(request: RegisterServiceEndpointRequest): Promise<RegisterServiceEndpointResponse> {
+    const data = RegisterServiceEndpointRequest.encode(request).finish();
+    const promise = this.rpc.request(this.service, "RegisterServiceEndpoint", data);
+    return promise.then((data) => RegisterServiceEndpointResponse.decode(new BinaryReader(data)));
+  }
+
+  DeregisterServiceEndpoint(request: DeregisterServiceEndpointRequest): Promise<DeregisterServiceEndpointResponse> {
+    const data = DeregisterServiceEndpointRequest.encode(request).finish();
+    const promise = this.rpc.request(this.service, "DeregisterServiceEndpoint", data);
+    return promise.then((data) => DeregisterServiceEndpointResponse.decode(new BinaryReader(data)));
   }
 
   DeregisterService(request: DeregisterServiceRequest): Promise<DeregisterServiceResponse> {

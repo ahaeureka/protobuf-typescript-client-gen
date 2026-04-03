@@ -333,6 +333,31 @@ export interface RegisterServiceResponse {
     lease_id: string;
     instance_id: string;
 }
+/** 业务侧追加单个服务 endpoint（不会覆盖已有 endpoint 配置） */
+export interface RegisterServiceEndpointRequest {
+    service_name: string;
+    endpoint_id: string;
+    endpoint: Endpoint | undefined;
+    version: string;
+    protocol: string;
+    tls_enabled: boolean;
+    protobuf_descriptor: Uint8Array;
+}
+export interface RegisterServiceEndpointResponse {
+    success: boolean;
+    message: string;
+    endpoint_id: string;
+    lease_id: string;
+    registered_service: ServiceInstance | undefined;
+}
+export interface DeregisterServiceEndpointRequest {
+    service_name: string;
+    endpoint_id: string;
+}
+export interface DeregisterServiceEndpointResponse {
+    success: boolean;
+    message: string;
+}
 /** 注销服务请求 */
 export interface DeregisterServiceRequest {
     service_name: string;
@@ -577,6 +602,10 @@ export declare const InitServiceRequest: MessageFns<InitServiceRequest>;
 export declare const InitServiceResponse: MessageFns<InitServiceResponse>;
 export declare const RegisterServiceRequest: MessageFns<RegisterServiceRequest>;
 export declare const RegisterServiceResponse: MessageFns<RegisterServiceResponse>;
+export declare const RegisterServiceEndpointRequest: MessageFns<RegisterServiceEndpointRequest>;
+export declare const RegisterServiceEndpointResponse: MessageFns<RegisterServiceEndpointResponse>;
+export declare const DeregisterServiceEndpointRequest: MessageFns<DeregisterServiceEndpointRequest>;
+export declare const DeregisterServiceEndpointResponse: MessageFns<DeregisterServiceEndpointResponse>;
 export declare const DeregisterServiceRequest: MessageFns<DeregisterServiceRequest>;
 export declare const DeregisterServiceResponse: MessageFns<DeregisterServiceResponse>;
 export declare const DeleteServiceRecordRequest: MessageFns<DeleteServiceRecordRequest>;
@@ -617,6 +646,10 @@ export interface ServiceDiscoveryService {
     InitService(request: InitServiceRequest): Promise<InitServiceResponse>;
     /** 注册服务实例 */
     RegisterService(request: RegisterServiceRequest): Promise<RegisterServiceResponse>;
+    /** 业务侧追加单个 endpoint（service-scoped） */
+    RegisterServiceEndpoint(request: RegisterServiceEndpointRequest): Promise<RegisterServiceEndpointResponse>;
+    /** 业务侧注销单个 endpoint（service-scoped） */
+    DeregisterServiceEndpoint(request: DeregisterServiceEndpointRequest): Promise<DeregisterServiceEndpointResponse>;
     /** 注销服务实例 */
     DeregisterService(request: DeregisterServiceRequest): Promise<DeregisterServiceResponse>;
     /** 删除持久化服务记录 */
@@ -655,6 +688,8 @@ export declare class ServiceDiscoveryServiceClientImpl implements ServiceDiscove
     });
     InitService(request: InitServiceRequest): Promise<InitServiceResponse>;
     RegisterService(request: RegisterServiceRequest): Promise<RegisterServiceResponse>;
+    RegisterServiceEndpoint(request: RegisterServiceEndpointRequest): Promise<RegisterServiceEndpointResponse>;
+    DeregisterServiceEndpoint(request: DeregisterServiceEndpointRequest): Promise<DeregisterServiceEndpointResponse>;
     DeregisterService(request: DeregisterServiceRequest): Promise<DeregisterServiceResponse>;
     DeleteServiceRecord(request: DeleteServiceRecordRequest): Promise<DeleteServiceRecordResponse>;
     UpdateServiceInstance(request: UpdateServiceInstanceRequest): Promise<ServiceInstance>;

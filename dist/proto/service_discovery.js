@@ -5,8 +5,8 @@
 //   protoc               v3.21.12
 // source: service_discovery.proto
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ProtobufDescriptorInfo = exports.ListProtobufDescriptorsResponse = exports.ListProtobufDescriptorsRequest = exports.GetProtobufDescriptorResponse = exports.GetProtobufDescriptorRequest = exports.UploadProtobufDescriptorResponse = exports.UploadProtobufDescriptorRequest = exports.GetServiceConfigResponse = exports.GetServiceConfigRequest = exports.UploadServiceConfigResponse = exports.UploadServiceConfigRequest = exports.ServiceInstanceHealth = exports.ServiceHealthCheckResponse = exports.ServiceHealthCheckRequest = exports.UpdateServiceHealthResponse = exports.UpdateServiceHealthRequest = exports.ServiceSummary = exports.ListServicesResponse = exports.ListServicesRequest_TagFiltersEntry = exports.ListServicesRequest = exports.GetServiceInstancesResponse = exports.GetServiceInstancesRequest_TagFiltersEntry = exports.GetServiceInstancesRequest = exports.UpdateServiceInstanceResponse = exports.UpdateServiceInstanceRequest = exports.DeleteServiceRecordResponse = exports.DeleteServiceRecordRequest = exports.DeregisterServiceResponse = exports.DeregisterServiceRequest = exports.RegisterServiceResponse = exports.RegisterServiceRequest = exports.InitServiceResponse = exports.InitServiceRequest = exports.ServiceInstance_TagsEntry = exports.ServiceInstance_MetadataEntry = exports.ServiceInstance = exports.ServiceMiddlewareConfig = exports.AiGuardEndpointConfig = exports.ServiceAiGuardConfig = exports.AiBodyFieldMap = exports.ServiceTurnstileConfig = exports.ServiceRiskConfig = exports.ServiceRiskRuleConfig = exports.ServiceCorsConfig = exports.HealthCheckConfig = exports.LoadBalancer = exports.Endpoint = exports.ServiceStatus = exports.BalanceType = exports.protobufPackage = void 0;
-exports.ServiceDiscoveryServiceClientImpl = exports.ServiceDiscoveryServiceServiceName = exports.ListDescriptorVersionsResponse = exports.ListDescriptorVersionsRequest = exports.RollbackDescriptorResponse = exports.RollbackDescriptorRequest = exports.DescriptorVersionInfo = void 0;
+exports.GetProtobufDescriptorRequest = exports.UploadProtobufDescriptorResponse = exports.UploadProtobufDescriptorRequest = exports.GetServiceConfigResponse = exports.GetServiceConfigRequest = exports.UploadServiceConfigResponse = exports.UploadServiceConfigRequest = exports.ServiceInstanceHealth = exports.ServiceHealthCheckResponse = exports.ServiceHealthCheckRequest = exports.UpdateServiceHealthResponse = exports.UpdateServiceHealthRequest = exports.ServiceSummary = exports.ListServicesResponse = exports.ListServicesRequest_TagFiltersEntry = exports.ListServicesRequest = exports.GetServiceInstancesResponse = exports.GetServiceInstancesRequest_TagFiltersEntry = exports.GetServiceInstancesRequest = exports.UpdateServiceInstanceResponse = exports.UpdateServiceInstanceRequest = exports.DeleteServiceRecordResponse = exports.DeleteServiceRecordRequest = exports.DeregisterServiceResponse = exports.DeregisterServiceRequest = exports.DeregisterServiceEndpointResponse = exports.DeregisterServiceEndpointRequest = exports.RegisterServiceEndpointResponse = exports.RegisterServiceEndpointRequest = exports.RegisterServiceResponse = exports.RegisterServiceRequest = exports.InitServiceResponse = exports.InitServiceRequest = exports.ServiceInstance_TagsEntry = exports.ServiceInstance_MetadataEntry = exports.ServiceInstance = exports.ServiceMiddlewareConfig = exports.AiGuardEndpointConfig = exports.ServiceAiGuardConfig = exports.AiBodyFieldMap = exports.ServiceTurnstileConfig = exports.ServiceRiskConfig = exports.ServiceRiskRuleConfig = exports.ServiceCorsConfig = exports.HealthCheckConfig = exports.LoadBalancer = exports.Endpoint = exports.ServiceStatus = exports.BalanceType = exports.protobufPackage = void 0;
+exports.ServiceDiscoveryServiceClientImpl = exports.ServiceDiscoveryServiceServiceName = exports.ListDescriptorVersionsResponse = exports.ListDescriptorVersionsRequest = exports.RollbackDescriptorResponse = exports.RollbackDescriptorRequest = exports.DescriptorVersionInfo = exports.ProtobufDescriptorInfo = exports.ListProtobufDescriptorsResponse = exports.ListProtobufDescriptorsRequest = exports.GetProtobufDescriptorResponse = void 0;
 exports.balanceTypeFromJSON = balanceTypeFromJSON;
 exports.balanceTypeToJSON = balanceTypeToJSON;
 exports.serviceStatusFromJSON = serviceStatusFromJSON;
@@ -3444,6 +3444,414 @@ exports.RegisterServiceResponse = {
         return message;
     },
 };
+function createBaseRegisterServiceEndpointRequest() {
+    return {
+        service_name: "",
+        endpoint_id: "",
+        endpoint: undefined,
+        version: "",
+        protocol: "",
+        tls_enabled: false,
+        protobuf_descriptor: new Uint8Array(0),
+    };
+}
+exports.RegisterServiceEndpointRequest = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.service_name !== "") {
+            writer.uint32(10).string(message.service_name);
+        }
+        if (message.endpoint_id !== "") {
+            writer.uint32(18).string(message.endpoint_id);
+        }
+        if (message.endpoint !== undefined) {
+            exports.Endpoint.encode(message.endpoint, writer.uint32(26).fork()).join();
+        }
+        if (message.version !== "") {
+            writer.uint32(34).string(message.version);
+        }
+        if (message.protocol !== "") {
+            writer.uint32(42).string(message.protocol);
+        }
+        if (message.tls_enabled !== false) {
+            writer.uint32(48).bool(message.tls_enabled);
+        }
+        if (message.protobuf_descriptor.length !== 0) {
+            writer.uint32(58).bytes(message.protobuf_descriptor);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseRegisterServiceEndpointRequest();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.service_name = reader.string();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.endpoint_id = reader.string();
+                    continue;
+                }
+                case 3: {
+                    if (tag !== 26) {
+                        break;
+                    }
+                    message.endpoint = exports.Endpoint.decode(reader, reader.uint32());
+                    continue;
+                }
+                case 4: {
+                    if (tag !== 34) {
+                        break;
+                    }
+                    message.version = reader.string();
+                    continue;
+                }
+                case 5: {
+                    if (tag !== 42) {
+                        break;
+                    }
+                    message.protocol = reader.string();
+                    continue;
+                }
+                case 6: {
+                    if (tag !== 48) {
+                        break;
+                    }
+                    message.tls_enabled = reader.bool();
+                    continue;
+                }
+                case 7: {
+                    if (tag !== 58) {
+                        break;
+                    }
+                    message.protobuf_descriptor = reader.bytes();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            service_name: isSet(object.service_name) ? globalThis.String(object.service_name) : "",
+            endpoint_id: isSet(object.endpoint_id) ? globalThis.String(object.endpoint_id) : "",
+            endpoint: isSet(object.endpoint) ? exports.Endpoint.fromJSON(object.endpoint) : undefined,
+            version: isSet(object.version) ? globalThis.String(object.version) : "",
+            protocol: isSet(object.protocol) ? globalThis.String(object.protocol) : "",
+            tls_enabled: isSet(object.tls_enabled) ? globalThis.Boolean(object.tls_enabled) : false,
+            protobuf_descriptor: isSet(object.protobuf_descriptor)
+                ? bytesFromBase64(object.protobuf_descriptor)
+                : new Uint8Array(0),
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.service_name !== "") {
+            obj.service_name = message.service_name;
+        }
+        if (message.endpoint_id !== "") {
+            obj.endpoint_id = message.endpoint_id;
+        }
+        if (message.endpoint !== undefined) {
+            obj.endpoint = exports.Endpoint.toJSON(message.endpoint);
+        }
+        if (message.version !== "") {
+            obj.version = message.version;
+        }
+        if (message.protocol !== "") {
+            obj.protocol = message.protocol;
+        }
+        if (message.tls_enabled !== false) {
+            obj.tls_enabled = message.tls_enabled;
+        }
+        if (message.protobuf_descriptor.length !== 0) {
+            obj.protobuf_descriptor = base64FromBytes(message.protobuf_descriptor);
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.RegisterServiceEndpointRequest.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseRegisterServiceEndpointRequest();
+        message.service_name = object.service_name ?? "";
+        message.endpoint_id = object.endpoint_id ?? "";
+        message.endpoint = (object.endpoint !== undefined && object.endpoint !== null)
+            ? exports.Endpoint.fromPartial(object.endpoint)
+            : undefined;
+        message.version = object.version ?? "";
+        message.protocol = object.protocol ?? "";
+        message.tls_enabled = object.tls_enabled ?? false;
+        message.protobuf_descriptor = object.protobuf_descriptor ?? new Uint8Array(0);
+        return message;
+    },
+};
+function createBaseRegisterServiceEndpointResponse() {
+    return { success: false, message: "", endpoint_id: "", lease_id: "", registered_service: undefined };
+}
+exports.RegisterServiceEndpointResponse = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.success !== false) {
+            writer.uint32(8).bool(message.success);
+        }
+        if (message.message !== "") {
+            writer.uint32(18).string(message.message);
+        }
+        if (message.endpoint_id !== "") {
+            writer.uint32(26).string(message.endpoint_id);
+        }
+        if (message.lease_id !== "") {
+            writer.uint32(34).string(message.lease_id);
+        }
+        if (message.registered_service !== undefined) {
+            exports.ServiceInstance.encode(message.registered_service, writer.uint32(42).fork()).join();
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseRegisterServiceEndpointResponse();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 8) {
+                        break;
+                    }
+                    message.success = reader.bool();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.message = reader.string();
+                    continue;
+                }
+                case 3: {
+                    if (tag !== 26) {
+                        break;
+                    }
+                    message.endpoint_id = reader.string();
+                    continue;
+                }
+                case 4: {
+                    if (tag !== 34) {
+                        break;
+                    }
+                    message.lease_id = reader.string();
+                    continue;
+                }
+                case 5: {
+                    if (tag !== 42) {
+                        break;
+                    }
+                    message.registered_service = exports.ServiceInstance.decode(reader, reader.uint32());
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
+            message: isSet(object.message) ? globalThis.String(object.message) : "",
+            endpoint_id: isSet(object.endpoint_id) ? globalThis.String(object.endpoint_id) : "",
+            lease_id: isSet(object.lease_id) ? globalThis.String(object.lease_id) : "",
+            registered_service: isSet(object.registered_service)
+                ? exports.ServiceInstance.fromJSON(object.registered_service)
+                : undefined,
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.success !== false) {
+            obj.success = message.success;
+        }
+        if (message.message !== "") {
+            obj.message = message.message;
+        }
+        if (message.endpoint_id !== "") {
+            obj.endpoint_id = message.endpoint_id;
+        }
+        if (message.lease_id !== "") {
+            obj.lease_id = message.lease_id;
+        }
+        if (message.registered_service !== undefined) {
+            obj.registered_service = exports.ServiceInstance.toJSON(message.registered_service);
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.RegisterServiceEndpointResponse.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseRegisterServiceEndpointResponse();
+        message.success = object.success ?? false;
+        message.message = object.message ?? "";
+        message.endpoint_id = object.endpoint_id ?? "";
+        message.lease_id = object.lease_id ?? "";
+        message.registered_service = (object.registered_service !== undefined && object.registered_service !== null)
+            ? exports.ServiceInstance.fromPartial(object.registered_service)
+            : undefined;
+        return message;
+    },
+};
+function createBaseDeregisterServiceEndpointRequest() {
+    return { service_name: "", endpoint_id: "" };
+}
+exports.DeregisterServiceEndpointRequest = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.service_name !== "") {
+            writer.uint32(10).string(message.service_name);
+        }
+        if (message.endpoint_id !== "") {
+            writer.uint32(18).string(message.endpoint_id);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseDeregisterServiceEndpointRequest();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.service_name = reader.string();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.endpoint_id = reader.string();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            service_name: isSet(object.service_name) ? globalThis.String(object.service_name) : "",
+            endpoint_id: isSet(object.endpoint_id) ? globalThis.String(object.endpoint_id) : "",
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.service_name !== "") {
+            obj.service_name = message.service_name;
+        }
+        if (message.endpoint_id !== "") {
+            obj.endpoint_id = message.endpoint_id;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.DeregisterServiceEndpointRequest.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseDeregisterServiceEndpointRequest();
+        message.service_name = object.service_name ?? "";
+        message.endpoint_id = object.endpoint_id ?? "";
+        return message;
+    },
+};
+function createBaseDeregisterServiceEndpointResponse() {
+    return { success: false, message: "" };
+}
+exports.DeregisterServiceEndpointResponse = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.success !== false) {
+            writer.uint32(8).bool(message.success);
+        }
+        if (message.message !== "") {
+            writer.uint32(18).string(message.message);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseDeregisterServiceEndpointResponse();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 8) {
+                        break;
+                    }
+                    message.success = reader.bool();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.message = reader.string();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
+            message: isSet(object.message) ? globalThis.String(object.message) : "",
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.success !== false) {
+            obj.success = message.success;
+        }
+        if (message.message !== "") {
+            obj.message = message.message;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.DeregisterServiceEndpointResponse.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseDeregisterServiceEndpointResponse();
+        message.success = object.success ?? false;
+        message.message = object.message ?? "";
+        return message;
+    },
+};
 function createBaseDeregisterServiceRequest() {
     return { service_name: "", instance_id: "" };
 }
@@ -6368,6 +6776,8 @@ class ServiceDiscoveryServiceClientImpl {
         this.rpc = rpc;
         this.InitService = this.InitService.bind(this);
         this.RegisterService = this.RegisterService.bind(this);
+        this.RegisterServiceEndpoint = this.RegisterServiceEndpoint.bind(this);
+        this.DeregisterServiceEndpoint = this.DeregisterServiceEndpoint.bind(this);
         this.DeregisterService = this.DeregisterService.bind(this);
         this.DeleteServiceRecord = this.DeleteServiceRecord.bind(this);
         this.UpdateServiceInstance = this.UpdateServiceInstance.bind(this);
@@ -6392,6 +6802,16 @@ class ServiceDiscoveryServiceClientImpl {
         const data = exports.RegisterServiceRequest.encode(request).finish();
         const promise = this.rpc.request(this.service, "RegisterService", data);
         return promise.then((data) => exports.RegisterServiceResponse.decode(new wire_1.BinaryReader(data)));
+    }
+    RegisterServiceEndpoint(request) {
+        const data = exports.RegisterServiceEndpointRequest.encode(request).finish();
+        const promise = this.rpc.request(this.service, "RegisterServiceEndpoint", data);
+        return promise.then((data) => exports.RegisterServiceEndpointResponse.decode(new wire_1.BinaryReader(data)));
+    }
+    DeregisterServiceEndpoint(request) {
+        const data = exports.DeregisterServiceEndpointRequest.encode(request).finish();
+        const promise = this.rpc.request(this.service, "DeregisterServiceEndpoint", data);
+        return promise.then((data) => exports.DeregisterServiceEndpointResponse.decode(new wire_1.BinaryReader(data)));
     }
     DeregisterService(request) {
         const data = exports.DeregisterServiceRequest.encode(request).finish();
