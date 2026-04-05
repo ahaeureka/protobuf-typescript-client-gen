@@ -4,6 +4,7 @@ Stew gRPC/HTTP 网关的 TypeScript 前端 SDK，提供：
 
 - **自动生成的业务服务客户端** — 基于 `.proto` 文件由 protoc 插件生成，封装 Axios，自动处理认证
 - **OIDC 认证客户端** (`AuthServiceClient`) — 完整的 Session 认证流程封装
+- **业务资产浏览客户端** (`AssetBrowserClient`) — 覆盖资产集合、版本树、草稿编辑、Diff 与导出下载
 - **TypeScript 类型定义** — 从 `.proto` 生成的 Protobuf 消息类型
 - **流式支持** — WebSocket（双向流/客户端流）和 SSE（服务端流）
 
@@ -59,6 +60,7 @@ protobuf-typescript-client-gen/
 ├── src/
 │   ├── index.ts                  # 主入口，统一导出
 │   ├── auth_client.ts            # OIDC 认证客户端
+│   ├── asset_browser_client.ts   # 业务资产浏览高层客户端
 │   ├── plugin.ts                 # protoc 插件（生成业务客户端代码）
 │   ├── sse-utils.ts              # Server-Sent Events 工具
 │   ├── websocket-utils.ts        # WebSocket 工具
@@ -69,6 +71,7 @@ protobuf-typescript-client-gen/
 │       ├── user.ts
 │       ├── apikey.ts
 │       ├── audit.ts
+│       ├── business_asset_browser.ts
 │       ├── authorization.ts
 │       ├── service_discovery.ts
 │       ├── helloworld.ts
@@ -196,7 +199,95 @@ const { access_token } = await authClient.refreshToken();
 
 ---
 
-### 二、使用生成的业务服务客户端
+### 二、业务资产浏览与导出
+
+资产浏览相关能力同时提供高层 REST 友好封装和低层生成式导出，适合浏览器页面、React UI 工作台以及已有 protobuf RPC 传输层的项目复用。
+
+统一导出协议：
+
+- gRPC：`ExportAssetEntry(ExportAssetEntryRequest) returns (google.api.HttpBody)`
+- HTTP：`GET /api/v1/assets/{asset_space}/{asset_id}/export?version_id=...&path=...`
+- 语义：文件返回原始内容；目录或根路径返回 zip
+
+#### 高层客户端
+
+```typescript
+import { AssetBrowserClient } from 'protobuf-typescript-client-gen';
+
+const client = new AssetBrowserClient({
+  baseUrl: window.location.origin,
+  timeout: 30000,
+});
+
+const tree = await client.listTree('configs', 'gateway-routing', {
+  versionId: 'v20260401',
+  folder: '/templates',
+});
+
+console.log(tree.entries.map((entry) => entry.path));
+
+const exported = await client.downloadEntry('configs', 'gateway-routing', {
+  versionId: 'v20260401',
+  path: '/templates',
+});
+
+console.log(exported.filename, exported.contentType, exported.blob.size);
+```
+
+高层 `AssetBrowserClient` 的特点：
+
+- 使用 camelCase 参数与返回值，适合前端业务代码直接调用
+- 下载接口返回浏览器友好的 `Blob`
+- 与 `stew-asset-browser-react` 的 `AssetBrowserWorkspace` 直接兼容
+
+#### 低层生成式导出入口
+
+以下符号已从包根导出，可直接用于已有 `Rpc` 适配层：
+
+- `BusinessAssetBrowserServiceClientImpl`
+- `BusinessAssetBrowserServiceServiceName`
+- `ExportAssetEntryRequest`
+- `HttpBody`
+- `BusinessAssetBrowser` 命名空间下的其余消息类型
+
+```typescript
+import {
+  BusinessAssetBrowserServiceClientImpl,
+  BusinessAssetBrowserServiceServiceName,
+  type ExportAssetEntryRequest,
+  type HttpBody,
+} from 'protobuf-typescript-client-gen';
+
+type Rpc = {
+  request(service: string, method: string, data: Uint8Array): Promise<Uint8Array>;
+};
+
+declare const rpc: Rpc;
+
+const rawClient = new BusinessAssetBrowserServiceClientImpl(rpc, {
+  service: BusinessAssetBrowserServiceServiceName,
+});
+
+const request: ExportAssetEntryRequest = {
+  asset_space: 'configs',
+  asset_id: 'gateway-routing',
+  version_id: 'v20260401',
+  path: '/templates',
+};
+
+const body: HttpBody = await rawClient.ExportAssetEntry(request);
+console.log(body.content_type, body.data.length);
+```
+
+低层使用约定：
+
+- 保留 protobuf 原始字段命名，如 `asset_space`、`version_id`
+- 直接返回 `HttpBody`，便于与自定义传输层、测试或中间件打通
+- 如果只是在浏览器中做页面集成，优先使用高层 `AssetBrowserClient`
+
+---
+
+### 三、使用生成的业务服务客户端
 
 业务客户端由 protoc 插件从 `.proto` 文件自动生成。生成后放入 `src/services/` 目录。
 
@@ -242,7 +333,7 @@ protoc \
 
 ---
 
-### 三、类型导入
+### 四、类型导入
 
 ```typescript
 // 认证相关类型
@@ -253,6 +344,18 @@ import {
   LoginCallbackResponse,
   User,
 } from 'protobuf-typescript-client-gen';
+
+// 资产浏览高层类型
+import type {
+  AssetCollection,
+  AssetTreeEntry,
+  DownloadEntryResult,
+} from 'protobuf-typescript-client-gen';
+
+// 资产浏览低层 protobuf 消息
+import { BusinessAssetBrowser } from 'protobuf-typescript-client-gen';
+
+type AssetVersionSummary = BusinessAssetBrowser.AssetVersionSummary;
 
 // 客户端上下文（网关注入，gRPC 服务端可读取）
 import type {
@@ -270,7 +373,7 @@ import * as ApiKey from 'protobuf-typescript-client-gen/src/proto/apikey';
 
 ---
 
-### 四、流式接口
+### 五、流式接口
 
 #### Server-Sent Events（服务端推送流）
 

@@ -1,4 +1,5 @@
 import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { HttpBody } from "./google/api/httpbody";
 import { Empty } from "./google/protobuf/empty";
 export declare const protobufPackage = "stew.api.v1";
 export declare enum AssetScopeKind {
@@ -353,6 +354,12 @@ export interface ActivateAssetVersionRequest {
     target_version_id: string;
     previous_version_id: string;
 }
+export interface ExportAssetEntryRequest {
+    asset_space: string;
+    asset_id: string;
+    version_id: string;
+    path: string;
+}
 export interface ActivateAssetVersionResponse {
     collection: AssetCollection | undefined;
     active_version_id: string;
@@ -393,6 +400,7 @@ export declare const GetAssetDiffEntryDetailResponse: MessageFns<GetAssetDiffEnt
 export declare const PublishDraftVersionRequest: MessageFns<PublishDraftVersionRequest>;
 export declare const PublishDraftVersionResponse: MessageFns<PublishDraftVersionResponse>;
 export declare const ActivateAssetVersionRequest: MessageFns<ActivateAssetVersionRequest>;
+export declare const ExportAssetEntryRequest: MessageFns<ExportAssetEntryRequest>;
 export declare const ActivateAssetVersionResponse: MessageFns<ActivateAssetVersionResponse>;
 /**
  * Business asset browsing service with versioning, draft editing, and diff support.
@@ -415,6 +423,7 @@ export interface BusinessAssetBrowserService {
     GetAssetDiffEntryDetail(request: GetAssetDiffEntryDetailRequest): Promise<GetAssetDiffEntryDetailResponse>;
     PublishDraftVersion(request: PublishDraftVersionRequest): Promise<PublishDraftVersionResponse>;
     ActivateAssetVersion(request: ActivateAssetVersionRequest): Promise<ActivateAssetVersionResponse>;
+    ExportAssetEntry(request: ExportAssetEntryRequest): Promise<HttpBody>;
 }
 export declare const BusinessAssetBrowserServiceServiceName = "stew.api.v1.BusinessAssetBrowserService";
 export declare class BusinessAssetBrowserServiceClientImpl implements BusinessAssetBrowserService {
@@ -439,6 +448,7 @@ export declare class BusinessAssetBrowserServiceClientImpl implements BusinessAs
     GetAssetDiffEntryDetail(request: GetAssetDiffEntryDetailRequest): Promise<GetAssetDiffEntryDetailResponse>;
     PublishDraftVersion(request: PublishDraftVersionRequest): Promise<PublishDraftVersionResponse>;
     ActivateAssetVersion(request: ActivateAssetVersionRequest): Promise<ActivateAssetVersionResponse>;
+    ExportAssetEntry(request: ExportAssetEntryRequest): Promise<HttpBody>;
 }
 interface Rpc {
     request(service: string, method: string, data: Uint8Array): Promise<Uint8Array>;

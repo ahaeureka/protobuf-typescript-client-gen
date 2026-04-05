@@ -10,6 +10,8 @@ export { APIResponse } from "./proto/stew/api/v1/web";
 export * as Authorization from "./proto/authorization";
 export * as ApiKey from "./proto/apikey";
 export * as Audit from "./proto/audit";
+export * as BusinessAssetBrowser from "./proto/business_asset_browser";
+export { HttpBody } from "./proto/google/api/httpbody";
 
 // Anonymous user session management
 export { AnonymousUserClient } from './anonymous_client';
@@ -52,5 +54,12 @@ export type {
     DiffEntryDetailResult,
     PublishResult,
     ActivateResult,
+    DownloadEntryResult,
 } from './asset_browser_client';
+
+export {
+    BusinessAssetBrowserServiceClientImpl,
+    BusinessAssetBrowserServiceServiceName,
+    ExportAssetEntryRequest,
+} from './proto/business_asset_browser';
 

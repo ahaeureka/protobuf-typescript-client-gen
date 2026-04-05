@@ -171,6 +171,12 @@ export interface ActivateResult {
     activeVersion: AssetVersionSummary;
 }
 
+export interface DownloadEntryResult {
+    blob: Blob;
+    filename: string;
+    contentType: string;
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -289,6 +295,31 @@ function normalizeSummary(raw: unknown): AssetDiffSummary {
         renamedCount: num(s, 'renamedCount', 'renamed_count'),
         typeChangedCount: num(s, 'typeChangedCount', 'type_changed_count'),
     };
+}
+
+function parseContentDispositionFilename(
+    header: string | undefined,
+    fallback: string,
+): string {
+    if (!header) {
+        return fallback;
+    }
+
+    const utf8Match = header.match(/filename\*=UTF-8''([^;]+)/i);
+    if (utf8Match?.[1]) {
+        try {
+            return decodeURIComponent(utf8Match[1]);
+        } catch {
+            return fallback;
+        }
+    }
+
+    const simpleMatch = header.match(/filename="?([^";]+)"?/i);
+    if (simpleMatch?.[1]) {
+        return simpleMatch[1];
+    }
+
+    return fallback;
 }
 
 /** Unwrap gateway `{ code, data, message }` envelope. */
@@ -715,6 +746,41 @@ export class AssetBrowserClient {
             collection: normalizeCollection(d.collection),
             activeVersionId: str(d, 'activeVersionId', 'active_version_id'),
             activeVersion: normalizeVersion(d.activeVersion ?? d.active_version),
+        };
+    }
+
+    async downloadEntry(
+        assetSpace: string,
+        assetId: string,
+        params?: {
+            versionId?: string;
+            path?: string;
+        },
+    ): Promise<DownloadEntryResult> {
+        const fallbackName = params?.path
+            ? params.path.split('/').filter(Boolean).pop() || `${assetId}.zip`
+            : `${assetId}.zip`;
+        const resp = await this.http.get(
+            `/api/v1/assets/${enc(assetSpace)}/${enc(assetId)}/export`,
+            {
+                params: {
+                    version_id: params?.versionId,
+                    path: params?.path,
+                },
+                responseType: 'blob',
+            },
+        );
+
+        return {
+            blob: resp.data,
+            filename: parseContentDispositionFilename(
+                resp.headers['content-disposition'],
+                fallbackName,
+            ),
+            contentType:
+                (typeof resp.headers['content-type'] === 'string'
+                    ? resp.headers['content-type']
+                    : '') || resp.data.type || 'application/octet-stream',
         };
     }
 

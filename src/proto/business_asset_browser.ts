@@ -6,6 +6,7 @@
 
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { HttpBody } from "./google/api/httpbody";
 import { Empty } from "./google/protobuf/empty";
 import { Timestamp } from "./google/protobuf/timestamp";
 
@@ -637,6 +638,13 @@ export interface ActivateAssetVersionRequest {
   asset_id: string;
   target_version_id: string;
   previous_version_id: string;
+}
+
+export interface ExportAssetEntryRequest {
+  asset_space: string;
+  asset_id: string;
+  version_id: string;
+  path: string;
 }
 
 export interface ActivateAssetVersionResponse {
@@ -6703,6 +6711,126 @@ export const ActivateAssetVersionRequest: MessageFns<ActivateAssetVersionRequest
   },
 };
 
+function createBaseExportAssetEntryRequest(): ExportAssetEntryRequest {
+  return { asset_space: "", asset_id: "", version_id: "", path: "" };
+}
+
+export const ExportAssetEntryRequest: MessageFns<ExportAssetEntryRequest> = {
+  encode(message: ExportAssetEntryRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.asset_space !== "") {
+      writer.uint32(10).string(message.asset_space);
+    }
+    if (message.asset_id !== "") {
+      writer.uint32(18).string(message.asset_id);
+    }
+    if (message.version_id !== "") {
+      writer.uint32(26).string(message.version_id);
+    }
+    if (message.path !== "") {
+      writer.uint32(34).string(message.path);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ExportAssetEntryRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseExportAssetEntryRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.asset_space = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.asset_id = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.version_id = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.path = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ExportAssetEntryRequest {
+    return {
+      asset_space: isSet(object.assetSpace)
+        ? globalThis.String(object.assetSpace)
+        : isSet(object.asset_space)
+        ? globalThis.String(object.asset_space)
+        : "",
+      asset_id: isSet(object.assetId)
+        ? globalThis.String(object.assetId)
+        : isSet(object.asset_id)
+        ? globalThis.String(object.asset_id)
+        : "",
+      version_id: isSet(object.versionId)
+        ? globalThis.String(object.versionId)
+        : isSet(object.version_id)
+        ? globalThis.String(object.version_id)
+        : "",
+      path: isSet(object.path) ? globalThis.String(object.path) : "",
+    };
+  },
+
+  toJSON(message: ExportAssetEntryRequest): unknown {
+    const obj: any = {};
+    if (message.asset_space !== "") {
+      obj.assetSpace = message.asset_space;
+    }
+    if (message.asset_id !== "") {
+      obj.assetId = message.asset_id;
+    }
+    if (message.version_id !== "") {
+      obj.versionId = message.version_id;
+    }
+    if (message.path !== "") {
+      obj.path = message.path;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ExportAssetEntryRequest>, I>>(base?: I): ExportAssetEntryRequest {
+    return ExportAssetEntryRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ExportAssetEntryRequest>, I>>(object: I): ExportAssetEntryRequest {
+    const message = createBaseExportAssetEntryRequest();
+    message.asset_space = object.asset_space ?? "";
+    message.asset_id = object.asset_id ?? "";
+    message.version_id = object.version_id ?? "";
+    message.path = object.path ?? "";
+    return message;
+  },
+};
+
 function createBaseActivateAssetVersionResponse(): ActivateAssetVersionResponse {
   return { collection: undefined, active_version_id: "", active_version: undefined };
 }
@@ -6828,6 +6956,7 @@ export interface BusinessAssetBrowserService {
   GetAssetDiffEntryDetail(request: GetAssetDiffEntryDetailRequest): Promise<GetAssetDiffEntryDetailResponse>;
   PublishDraftVersion(request: PublishDraftVersionRequest): Promise<PublishDraftVersionResponse>;
   ActivateAssetVersion(request: ActivateAssetVersionRequest): Promise<ActivateAssetVersionResponse>;
+  ExportAssetEntry(request: ExportAssetEntryRequest): Promise<HttpBody>;
 }
 
 export const BusinessAssetBrowserServiceServiceName = "stew.api.v1.BusinessAssetBrowserService";
@@ -6853,6 +6982,7 @@ export class BusinessAssetBrowserServiceClientImpl implements BusinessAssetBrows
     this.GetAssetDiffEntryDetail = this.GetAssetDiffEntryDetail.bind(this);
     this.PublishDraftVersion = this.PublishDraftVersion.bind(this);
     this.ActivateAssetVersion = this.ActivateAssetVersion.bind(this);
+    this.ExportAssetEntry = this.ExportAssetEntry.bind(this);
   }
   ListAssetCollections(request: ListAssetCollectionsRequest): Promise<ListAssetCollectionsResponse> {
     const data = ListAssetCollectionsRequest.encode(request).finish();
@@ -6948,6 +7078,12 @@ export class BusinessAssetBrowserServiceClientImpl implements BusinessAssetBrows
     const data = ActivateAssetVersionRequest.encode(request).finish();
     const promise = this.rpc.request(this.service, "ActivateAssetVersion", data);
     return promise.then((data) => ActivateAssetVersionResponse.decode(new BinaryReader(data)));
+  }
+
+  ExportAssetEntry(request: ExportAssetEntryRequest): Promise<HttpBody> {
+    const data = ExportAssetEntryRequest.encode(request).finish();
+    const promise = this.rpc.request(this.service, "ExportAssetEntry", data);
+    return promise.then((data) => HttpBody.decode(new BinaryReader(data)));
   }
 }
 

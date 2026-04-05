@@ -5,7 +5,7 @@
 //   protoc               v3.21.12
 // source: business_asset_browser.proto
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BusinessAssetBrowserServiceClientImpl = exports.BusinessAssetBrowserServiceServiceName = exports.ActivateAssetVersionResponse = exports.ActivateAssetVersionRequest = exports.PublishDraftVersionResponse = exports.PublishDraftVersionRequest = exports.GetAssetDiffEntryDetailResponse = exports.GetAssetDiffEntryDetailRequest = exports.DiffAssetDraftResponse = exports.DiffAssetDraftRequest = exports.DiffAssetVersionsResponse = exports.DiffAssetVersionsRequest = exports.DeleteDraftEntryResponse = exports.DeleteDraftEntryRequest = exports.RenameDraftEntryResponse = exports.RenameDraftEntryRequest = exports.UpdateDraftTextEntryResponse = exports.UpdateDraftTextEntryRequest = exports.GetAssetEntryTextResponse = exports.GetAssetEntryTextRequest = exports.DiscardDraftVersionRequest = exports.CreateDraftVersionResponse = exports.CreateDraftVersionRequest = exports.GetAssetVersionResponse = exports.GetAssetVersionRequest = exports.ListAssetVersionsResponse = exports.ListAssetVersionsRequest = exports.ListAssetTreeResponse = exports.ListAssetTreeRequest = exports.GetAssetCollectionRequest = exports.ListAssetCollectionsResponse = exports.ListAssetCollectionsRequest = exports.AssetDiffEntry = exports.AssetDiffSummary = exports.AssetTreeEntry = exports.AssetVersionSummary = exports.AssetCollection = exports.AssetCapabilities = exports.AssetTextDiffStatus = exports.AssetChangeType = exports.AssetDiffMode = exports.AssetEntryKind = exports.AssetVersionStatus = exports.AssetScopeKind = exports.protobufPackage = void 0;
+exports.BusinessAssetBrowserServiceClientImpl = exports.BusinessAssetBrowserServiceServiceName = exports.ActivateAssetVersionResponse = exports.ExportAssetEntryRequest = exports.ActivateAssetVersionRequest = exports.PublishDraftVersionResponse = exports.PublishDraftVersionRequest = exports.GetAssetDiffEntryDetailResponse = exports.GetAssetDiffEntryDetailRequest = exports.DiffAssetDraftResponse = exports.DiffAssetDraftRequest = exports.DiffAssetVersionsResponse = exports.DiffAssetVersionsRequest = exports.DeleteDraftEntryResponse = exports.DeleteDraftEntryRequest = exports.RenameDraftEntryResponse = exports.RenameDraftEntryRequest = exports.UpdateDraftTextEntryResponse = exports.UpdateDraftTextEntryRequest = exports.GetAssetEntryTextResponse = exports.GetAssetEntryTextRequest = exports.DiscardDraftVersionRequest = exports.CreateDraftVersionResponse = exports.CreateDraftVersionRequest = exports.GetAssetVersionResponse = exports.GetAssetVersionRequest = exports.ListAssetVersionsResponse = exports.ListAssetVersionsRequest = exports.ListAssetTreeResponse = exports.ListAssetTreeRequest = exports.GetAssetCollectionRequest = exports.ListAssetCollectionsResponse = exports.ListAssetCollectionsRequest = exports.AssetDiffEntry = exports.AssetDiffSummary = exports.AssetTreeEntry = exports.AssetVersionSummary = exports.AssetCollection = exports.AssetCapabilities = exports.AssetTextDiffStatus = exports.AssetChangeType = exports.AssetDiffMode = exports.AssetEntryKind = exports.AssetVersionStatus = exports.AssetScopeKind = exports.protobufPackage = void 0;
 exports.assetScopeKindFromJSON = assetScopeKindFromJSON;
 exports.assetScopeKindToJSON = assetScopeKindToJSON;
 exports.assetVersionStatusFromJSON = assetVersionStatusFromJSON;
@@ -20,6 +20,7 @@ exports.assetTextDiffStatusFromJSON = assetTextDiffStatusFromJSON;
 exports.assetTextDiffStatusToJSON = assetTextDiffStatusToJSON;
 /* eslint-disable */
 const wire_1 = require("@bufbuild/protobuf/wire");
+const httpbody_1 = require("./google/api/httpbody");
 const empty_1 = require("./google/protobuf/empty");
 const timestamp_1 = require("./google/protobuf/timestamp");
 exports.protobufPackage = "stew.api.v1";
@@ -5932,6 +5933,116 @@ exports.ActivateAssetVersionRequest = {
         return message;
     },
 };
+function createBaseExportAssetEntryRequest() {
+    return { asset_space: "", asset_id: "", version_id: "", path: "" };
+}
+exports.ExportAssetEntryRequest = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.asset_space !== "") {
+            writer.uint32(10).string(message.asset_space);
+        }
+        if (message.asset_id !== "") {
+            writer.uint32(18).string(message.asset_id);
+        }
+        if (message.version_id !== "") {
+            writer.uint32(26).string(message.version_id);
+        }
+        if (message.path !== "") {
+            writer.uint32(34).string(message.path);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseExportAssetEntryRequest();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.asset_space = reader.string();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.asset_id = reader.string();
+                    continue;
+                }
+                case 3: {
+                    if (tag !== 26) {
+                        break;
+                    }
+                    message.version_id = reader.string();
+                    continue;
+                }
+                case 4: {
+                    if (tag !== 34) {
+                        break;
+                    }
+                    message.path = reader.string();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            asset_space: isSet(object.assetSpace)
+                ? globalThis.String(object.assetSpace)
+                : isSet(object.asset_space)
+                    ? globalThis.String(object.asset_space)
+                    : "",
+            asset_id: isSet(object.assetId)
+                ? globalThis.String(object.assetId)
+                : isSet(object.asset_id)
+                    ? globalThis.String(object.asset_id)
+                    : "",
+            version_id: isSet(object.versionId)
+                ? globalThis.String(object.versionId)
+                : isSet(object.version_id)
+                    ? globalThis.String(object.version_id)
+                    : "",
+            path: isSet(object.path) ? globalThis.String(object.path) : "",
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.asset_space !== "") {
+            obj.assetSpace = message.asset_space;
+        }
+        if (message.asset_id !== "") {
+            obj.assetId = message.asset_id;
+        }
+        if (message.version_id !== "") {
+            obj.versionId = message.version_id;
+        }
+        if (message.path !== "") {
+            obj.path = message.path;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.ExportAssetEntryRequest.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseExportAssetEntryRequest();
+        message.asset_space = object.asset_space ?? "";
+        message.asset_id = object.asset_id ?? "";
+        message.version_id = object.version_id ?? "";
+        message.path = object.path ?? "";
+        return message;
+    },
+};
 function createBaseActivateAssetVersionResponse() {
     return { collection: undefined, active_version_id: "", active_version: undefined };
 }
@@ -6048,6 +6159,7 @@ class BusinessAssetBrowserServiceClientImpl {
         this.GetAssetDiffEntryDetail = this.GetAssetDiffEntryDetail.bind(this);
         this.PublishDraftVersion = this.PublishDraftVersion.bind(this);
         this.ActivateAssetVersion = this.ActivateAssetVersion.bind(this);
+        this.ExportAssetEntry = this.ExportAssetEntry.bind(this);
     }
     ListAssetCollections(request) {
         const data = exports.ListAssetCollectionsRequest.encode(request).finish();
@@ -6128,6 +6240,11 @@ class BusinessAssetBrowserServiceClientImpl {
         const data = exports.ActivateAssetVersionRequest.encode(request).finish();
         const promise = this.rpc.request(this.service, "ActivateAssetVersion", data);
         return promise.then((data) => exports.ActivateAssetVersionResponse.decode(new wire_1.BinaryReader(data)));
+    }
+    ExportAssetEntry(request) {
+        const data = exports.ExportAssetEntryRequest.encode(request).finish();
+        const promise = this.rpc.request(this.service, "ExportAssetEntry", data);
+        return promise.then((data) => httpbody_1.HttpBody.decode(new wire_1.BinaryReader(data)));
     }
 }
 exports.BusinessAssetBrowserServiceClientImpl = BusinessAssetBrowserServiceClientImpl;

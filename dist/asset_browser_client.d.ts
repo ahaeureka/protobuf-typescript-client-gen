@@ -141,6 +141,11 @@ export interface ActivateResult {
     activeVersionId: string;
     activeVersion: AssetVersionSummary;
 }
+export interface DownloadEntryResult {
+    blob: Blob;
+    filename: string;
+    contentType: string;
+}
 /**
  * High-level client for the BusinessAssetBrowserService.
  *
@@ -215,6 +220,10 @@ export declare class AssetBrowserClient {
     }): Promise<DiffResult>;
     getDiffEntryDetail(assetSpace: string, assetId: string, leftVersionId: string, rightVersionId: string, path: string): Promise<DiffEntryDetailResult>;
     activateVersion(assetSpace: string, assetId: string, targetVersionId: string): Promise<ActivateResult>;
+    downloadEntry(assetSpace: string, assetId: string, params?: {
+        versionId?: string;
+        path?: string;
+    }): Promise<DownloadEntryResult>;
     /**
      * Save text to a draft entry and immediately diff the draft against its
      * base version.  Useful for implementing "save-and-preview" workflows.
