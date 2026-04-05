@@ -59,6 +59,45 @@ export function uploadSessionStatusToJSON(object: UploadSessionStatus): string {
   }
 }
 
+export enum PathEntryKind {
+  PATH_ENTRY_KIND_UNSPECIFIED = 0,
+  PATH_ENTRY_KIND_FILE = 1,
+  PATH_ENTRY_KIND_DIRECTORY = 2,
+  UNRECOGNIZED = -1,
+}
+
+export function pathEntryKindFromJSON(object: any): PathEntryKind {
+  switch (object) {
+    case 0:
+    case "PATH_ENTRY_KIND_UNSPECIFIED":
+      return PathEntryKind.PATH_ENTRY_KIND_UNSPECIFIED;
+    case 1:
+    case "PATH_ENTRY_KIND_FILE":
+      return PathEntryKind.PATH_ENTRY_KIND_FILE;
+    case 2:
+    case "PATH_ENTRY_KIND_DIRECTORY":
+      return PathEntryKind.PATH_ENTRY_KIND_DIRECTORY;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return PathEntryKind.UNRECOGNIZED;
+  }
+}
+
+export function pathEntryKindToJSON(object: PathEntryKind): string {
+  switch (object) {
+    case PathEntryKind.PATH_ENTRY_KIND_UNSPECIFIED:
+      return "PATH_ENTRY_KIND_UNSPECIFIED";
+    case PathEntryKind.PATH_ENTRY_KIND_FILE:
+      return "PATH_ENTRY_KIND_FILE";
+    case PathEntryKind.PATH_ENTRY_KIND_DIRECTORY:
+      return "PATH_ENTRY_KIND_DIRECTORY";
+    case PathEntryKind.UNRECOGNIZED:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+
 export interface UploadFileRequest {
   payload:
     | //
@@ -288,6 +327,89 @@ export interface FileInfo {
   local_path: string;
   /** Storage key (object path in the storage backend). */
   storage_key: string;
+}
+
+/** Reference to a file or directory by virtual path. */
+export interface VirtualPathRef {
+  /** Base folder. Empty or "/" means root. */
+  folder: string;
+  /** Relative path below folder. May contain '/'. */
+  relative_path: string;
+}
+
+/** Selects a target by file_id or virtual path. */
+export interface PathSelector {
+  selector: { $case: "file_id"; file_id: string } | { $case: "path"; path: VirtualPathRef } | undefined;
+}
+
+/** A single entry in a virtual directory listing. */
+export interface PathEntry {
+  kind: PathEntryKind;
+  /** Direct child name only, e.g. "docs" or "README.md". */
+  name: string;
+  /** Canonical absolute virtual path, e.g. "/docs/README.md". */
+  path: string;
+  /** Canonical parent folder. */
+  parent_folder: string;
+  /** File-only fields. */
+  file_id: string;
+  content_type: string;
+  size_bytes: number;
+  checksum: string;
+  created_at: Date | undefined;
+  updated_at:
+    | Date
+    | undefined;
+  /** Directory-only field. File nodes always return false. */
+  has_children: boolean;
+}
+
+export interface ListFolderRequest {
+  /** Folder to browse. Empty or "/" means root. */
+  folder: string;
+  /** Maximum number of mixed entries to return. Default 100, max 1000. */
+  page_size: number;
+  /** Opaque pagination token. */
+  page_token: string;
+  /** Whether to include file entries. Default true. */
+  include_files: boolean;
+  /** Whether to include directory entries. Default true. */
+  include_directories: boolean;
+}
+
+export interface ListFolderResponse {
+  entries: PathEntry[];
+  next_page_token: string;
+  total_count: number;
+}
+
+export interface GetPathInfoRequest {
+  selector: PathSelector | undefined;
+}
+
+export interface GetPathInfoResponse {
+  entry: PathEntry | undefined;
+}
+
+export interface ReadTextFileRequest {
+  selector:
+    | PathSelector
+    | undefined;
+  /** Requested preview length. Server will clamp to configured hard limit. */
+  max_bytes: number;
+  /** Reject binary or undecodable content when true. */
+  fail_if_binary: boolean;
+}
+
+export interface ReadTextFileResponse {
+  entry: PathEntry | undefined;
+  text: string;
+  content_type: string;
+  size_bytes: number;
+  checksum: string;
+  updated_at: Date | undefined;
+  truncated: boolean;
+  lossy: boolean;
 }
 
 function createBaseUploadFileRequest(): UploadFileRequest {
@@ -2719,6 +2841,1097 @@ export const FileInfo: MessageFns<FileInfo> = {
   },
 };
 
+function createBaseVirtualPathRef(): VirtualPathRef {
+  return { folder: "", relative_path: "" };
+}
+
+export const VirtualPathRef: MessageFns<VirtualPathRef> = {
+  encode(message: VirtualPathRef, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.folder !== "") {
+      writer.uint32(10).string(message.folder);
+    }
+    if (message.relative_path !== "") {
+      writer.uint32(18).string(message.relative_path);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): VirtualPathRef {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseVirtualPathRef();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.folder = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.relative_path = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): VirtualPathRef {
+    return {
+      folder: isSet(object.folder) ? globalThis.String(object.folder) : "",
+      relative_path: isSet(object.relativePath)
+        ? globalThis.String(object.relativePath)
+        : isSet(object.relative_path)
+        ? globalThis.String(object.relative_path)
+        : "",
+    };
+  },
+
+  toJSON(message: VirtualPathRef): unknown {
+    const obj: any = {};
+    if (message.folder !== "") {
+      obj.folder = message.folder;
+    }
+    if (message.relative_path !== "") {
+      obj.relativePath = message.relative_path;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<VirtualPathRef>, I>>(base?: I): VirtualPathRef {
+    return VirtualPathRef.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<VirtualPathRef>, I>>(object: I): VirtualPathRef {
+    const message = createBaseVirtualPathRef();
+    message.folder = object.folder ?? "";
+    message.relative_path = object.relative_path ?? "";
+    return message;
+  },
+};
+
+function createBasePathSelector(): PathSelector {
+  return { selector: undefined };
+}
+
+export const PathSelector: MessageFns<PathSelector> = {
+  encode(message: PathSelector, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    switch (message.selector?.$case) {
+      case "file_id":
+        writer.uint32(10).string(message.selector.file_id);
+        break;
+      case "path":
+        VirtualPathRef.encode(message.selector.path, writer.uint32(18).fork()).join();
+        break;
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): PathSelector {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBasePathSelector();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.selector = { $case: "file_id", file_id: reader.string() };
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.selector = { $case: "path", path: VirtualPathRef.decode(reader, reader.uint32()) };
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): PathSelector {
+    return {
+      selector: isSet(object.fileId)
+        ? { $case: "file_id", file_id: globalThis.String(object.fileId) }
+        : isSet(object.file_id)
+        ? { $case: "file_id", file_id: globalThis.String(object.file_id) }
+        : isSet(object.path)
+        ? { $case: "path", path: VirtualPathRef.fromJSON(object.path) }
+        : undefined,
+    };
+  },
+
+  toJSON(message: PathSelector): unknown {
+    const obj: any = {};
+    if (message.selector?.$case === "file_id") {
+      obj.fileId = message.selector.file_id;
+    } else if (message.selector?.$case === "path") {
+      obj.path = VirtualPathRef.toJSON(message.selector.path);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<PathSelector>, I>>(base?: I): PathSelector {
+    return PathSelector.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<PathSelector>, I>>(object: I): PathSelector {
+    const message = createBasePathSelector();
+    switch (object.selector?.$case) {
+      case "file_id": {
+        if (object.selector?.file_id !== undefined && object.selector?.file_id !== null) {
+          message.selector = { $case: "file_id", file_id: object.selector.file_id };
+        }
+        break;
+      }
+      case "path": {
+        if (object.selector?.path !== undefined && object.selector?.path !== null) {
+          message.selector = { $case: "path", path: VirtualPathRef.fromPartial(object.selector.path) };
+        }
+        break;
+      }
+    }
+    return message;
+  },
+};
+
+function createBasePathEntry(): PathEntry {
+  return {
+    kind: 0,
+    name: "",
+    path: "",
+    parent_folder: "",
+    file_id: "",
+    content_type: "",
+    size_bytes: 0,
+    checksum: "",
+    created_at: undefined,
+    updated_at: undefined,
+    has_children: false,
+  };
+}
+
+export const PathEntry: MessageFns<PathEntry> = {
+  encode(message: PathEntry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.kind !== 0) {
+      writer.uint32(8).int32(message.kind);
+    }
+    if (message.name !== "") {
+      writer.uint32(18).string(message.name);
+    }
+    if (message.path !== "") {
+      writer.uint32(26).string(message.path);
+    }
+    if (message.parent_folder !== "") {
+      writer.uint32(34).string(message.parent_folder);
+    }
+    if (message.file_id !== "") {
+      writer.uint32(42).string(message.file_id);
+    }
+    if (message.content_type !== "") {
+      writer.uint32(50).string(message.content_type);
+    }
+    if (message.size_bytes !== 0) {
+      writer.uint32(56).int64(message.size_bytes);
+    }
+    if (message.checksum !== "") {
+      writer.uint32(66).string(message.checksum);
+    }
+    if (message.created_at !== undefined) {
+      Timestamp.encode(toTimestamp(message.created_at), writer.uint32(74).fork()).join();
+    }
+    if (message.updated_at !== undefined) {
+      Timestamp.encode(toTimestamp(message.updated_at), writer.uint32(82).fork()).join();
+    }
+    if (message.has_children !== false) {
+      writer.uint32(88).bool(message.has_children);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): PathEntry {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBasePathEntry();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.kind = reader.int32() as any;
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.path = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.parent_folder = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.file_id = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.content_type = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.size_bytes = longToNumber(reader.int64());
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.checksum = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.created_at = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.updated_at = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 11: {
+          if (tag !== 88) {
+            break;
+          }
+
+          message.has_children = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): PathEntry {
+    return {
+      kind: isSet(object.kind) ? pathEntryKindFromJSON(object.kind) : 0,
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      path: isSet(object.path) ? globalThis.String(object.path) : "",
+      parent_folder: isSet(object.parentFolder)
+        ? globalThis.String(object.parentFolder)
+        : isSet(object.parent_folder)
+        ? globalThis.String(object.parent_folder)
+        : "",
+      file_id: isSet(object.fileId)
+        ? globalThis.String(object.fileId)
+        : isSet(object.file_id)
+        ? globalThis.String(object.file_id)
+        : "",
+      content_type: isSet(object.contentType)
+        ? globalThis.String(object.contentType)
+        : isSet(object.content_type)
+        ? globalThis.String(object.content_type)
+        : "",
+      size_bytes: isSet(object.sizeBytes)
+        ? globalThis.Number(object.sizeBytes)
+        : isSet(object.size_bytes)
+        ? globalThis.Number(object.size_bytes)
+        : 0,
+      checksum: isSet(object.checksum) ? globalThis.String(object.checksum) : "",
+      created_at: isSet(object.createdAt)
+        ? fromJsonTimestamp(object.createdAt)
+        : isSet(object.created_at)
+        ? fromJsonTimestamp(object.created_at)
+        : undefined,
+      updated_at: isSet(object.updatedAt)
+        ? fromJsonTimestamp(object.updatedAt)
+        : isSet(object.updated_at)
+        ? fromJsonTimestamp(object.updated_at)
+        : undefined,
+      has_children: isSet(object.hasChildren)
+        ? globalThis.Boolean(object.hasChildren)
+        : isSet(object.has_children)
+        ? globalThis.Boolean(object.has_children)
+        : false,
+    };
+  },
+
+  toJSON(message: PathEntry): unknown {
+    const obj: any = {};
+    if (message.kind !== 0) {
+      obj.kind = pathEntryKindToJSON(message.kind);
+    }
+    if (message.name !== "") {
+      obj.name = message.name;
+    }
+    if (message.path !== "") {
+      obj.path = message.path;
+    }
+    if (message.parent_folder !== "") {
+      obj.parentFolder = message.parent_folder;
+    }
+    if (message.file_id !== "") {
+      obj.fileId = message.file_id;
+    }
+    if (message.content_type !== "") {
+      obj.contentType = message.content_type;
+    }
+    if (message.size_bytes !== 0) {
+      obj.sizeBytes = Math.round(message.size_bytes);
+    }
+    if (message.checksum !== "") {
+      obj.checksum = message.checksum;
+    }
+    if (message.created_at !== undefined) {
+      obj.createdAt = message.created_at.toISOString();
+    }
+    if (message.updated_at !== undefined) {
+      obj.updatedAt = message.updated_at.toISOString();
+    }
+    if (message.has_children !== false) {
+      obj.hasChildren = message.has_children;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<PathEntry>, I>>(base?: I): PathEntry {
+    return PathEntry.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<PathEntry>, I>>(object: I): PathEntry {
+    const message = createBasePathEntry();
+    message.kind = object.kind ?? 0;
+    message.name = object.name ?? "";
+    message.path = object.path ?? "";
+    message.parent_folder = object.parent_folder ?? "";
+    message.file_id = object.file_id ?? "";
+    message.content_type = object.content_type ?? "";
+    message.size_bytes = object.size_bytes ?? 0;
+    message.checksum = object.checksum ?? "";
+    message.created_at = object.created_at ?? undefined;
+    message.updated_at = object.updated_at ?? undefined;
+    message.has_children = object.has_children ?? false;
+    return message;
+  },
+};
+
+function createBaseListFolderRequest(): ListFolderRequest {
+  return { folder: "", page_size: 0, page_token: "", include_files: false, include_directories: false };
+}
+
+export const ListFolderRequest: MessageFns<ListFolderRequest> = {
+  encode(message: ListFolderRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.folder !== "") {
+      writer.uint32(10).string(message.folder);
+    }
+    if (message.page_size !== 0) {
+      writer.uint32(16).int32(message.page_size);
+    }
+    if (message.page_token !== "") {
+      writer.uint32(26).string(message.page_token);
+    }
+    if (message.include_files !== false) {
+      writer.uint32(32).bool(message.include_files);
+    }
+    if (message.include_directories !== false) {
+      writer.uint32(40).bool(message.include_directories);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListFolderRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListFolderRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.folder = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.page_size = reader.int32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.page_token = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.include_files = reader.bool();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.include_directories = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListFolderRequest {
+    return {
+      folder: isSet(object.folder) ? globalThis.String(object.folder) : "",
+      page_size: isSet(object.pageSize)
+        ? globalThis.Number(object.pageSize)
+        : isSet(object.page_size)
+        ? globalThis.Number(object.page_size)
+        : 0,
+      page_token: isSet(object.pageToken)
+        ? globalThis.String(object.pageToken)
+        : isSet(object.page_token)
+        ? globalThis.String(object.page_token)
+        : "",
+      include_files: isSet(object.includeFiles)
+        ? globalThis.Boolean(object.includeFiles)
+        : isSet(object.include_files)
+        ? globalThis.Boolean(object.include_files)
+        : false,
+      include_directories: isSet(object.includeDirectories)
+        ? globalThis.Boolean(object.includeDirectories)
+        : isSet(object.include_directories)
+        ? globalThis.Boolean(object.include_directories)
+        : false,
+    };
+  },
+
+  toJSON(message: ListFolderRequest): unknown {
+    const obj: any = {};
+    if (message.folder !== "") {
+      obj.folder = message.folder;
+    }
+    if (message.page_size !== 0) {
+      obj.pageSize = Math.round(message.page_size);
+    }
+    if (message.page_token !== "") {
+      obj.pageToken = message.page_token;
+    }
+    if (message.include_files !== false) {
+      obj.includeFiles = message.include_files;
+    }
+    if (message.include_directories !== false) {
+      obj.includeDirectories = message.include_directories;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListFolderRequest>, I>>(base?: I): ListFolderRequest {
+    return ListFolderRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListFolderRequest>, I>>(object: I): ListFolderRequest {
+    const message = createBaseListFolderRequest();
+    message.folder = object.folder ?? "";
+    message.page_size = object.page_size ?? 0;
+    message.page_token = object.page_token ?? "";
+    message.include_files = object.include_files ?? false;
+    message.include_directories = object.include_directories ?? false;
+    return message;
+  },
+};
+
+function createBaseListFolderResponse(): ListFolderResponse {
+  return { entries: [], next_page_token: "", total_count: 0 };
+}
+
+export const ListFolderResponse: MessageFns<ListFolderResponse> = {
+  encode(message: ListFolderResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.entries) {
+      PathEntry.encode(v!, writer.uint32(10).fork()).join();
+    }
+    if (message.next_page_token !== "") {
+      writer.uint32(18).string(message.next_page_token);
+    }
+    if (message.total_count !== 0) {
+      writer.uint32(24).int32(message.total_count);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListFolderResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListFolderResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.entries.push(PathEntry.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.next_page_token = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.total_count = reader.int32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListFolderResponse {
+    return {
+      entries: globalThis.Array.isArray(object?.entries) ? object.entries.map((e: any) => PathEntry.fromJSON(e)) : [],
+      next_page_token: isSet(object.nextPageToken)
+        ? globalThis.String(object.nextPageToken)
+        : isSet(object.next_page_token)
+        ? globalThis.String(object.next_page_token)
+        : "",
+      total_count: isSet(object.totalCount)
+        ? globalThis.Number(object.totalCount)
+        : isSet(object.total_count)
+        ? globalThis.Number(object.total_count)
+        : 0,
+    };
+  },
+
+  toJSON(message: ListFolderResponse): unknown {
+    const obj: any = {};
+    if (message.entries?.length) {
+      obj.entries = message.entries.map((e) => PathEntry.toJSON(e));
+    }
+    if (message.next_page_token !== "") {
+      obj.nextPageToken = message.next_page_token;
+    }
+    if (message.total_count !== 0) {
+      obj.totalCount = Math.round(message.total_count);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListFolderResponse>, I>>(base?: I): ListFolderResponse {
+    return ListFolderResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListFolderResponse>, I>>(object: I): ListFolderResponse {
+    const message = createBaseListFolderResponse();
+    message.entries = object.entries?.map((e) => PathEntry.fromPartial(e)) || [];
+    message.next_page_token = object.next_page_token ?? "";
+    message.total_count = object.total_count ?? 0;
+    return message;
+  },
+};
+
+function createBaseGetPathInfoRequest(): GetPathInfoRequest {
+  return { selector: undefined };
+}
+
+export const GetPathInfoRequest: MessageFns<GetPathInfoRequest> = {
+  encode(message: GetPathInfoRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.selector !== undefined) {
+      PathSelector.encode(message.selector, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetPathInfoRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetPathInfoRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.selector = PathSelector.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetPathInfoRequest {
+    return { selector: isSet(object.selector) ? PathSelector.fromJSON(object.selector) : undefined };
+  },
+
+  toJSON(message: GetPathInfoRequest): unknown {
+    const obj: any = {};
+    if (message.selector !== undefined) {
+      obj.selector = PathSelector.toJSON(message.selector);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetPathInfoRequest>, I>>(base?: I): GetPathInfoRequest {
+    return GetPathInfoRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetPathInfoRequest>, I>>(object: I): GetPathInfoRequest {
+    const message = createBaseGetPathInfoRequest();
+    message.selector = (object.selector !== undefined && object.selector !== null)
+      ? PathSelector.fromPartial(object.selector)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseGetPathInfoResponse(): GetPathInfoResponse {
+  return { entry: undefined };
+}
+
+export const GetPathInfoResponse: MessageFns<GetPathInfoResponse> = {
+  encode(message: GetPathInfoResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.entry !== undefined) {
+      PathEntry.encode(message.entry, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetPathInfoResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetPathInfoResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.entry = PathEntry.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetPathInfoResponse {
+    return { entry: isSet(object.entry) ? PathEntry.fromJSON(object.entry) : undefined };
+  },
+
+  toJSON(message: GetPathInfoResponse): unknown {
+    const obj: any = {};
+    if (message.entry !== undefined) {
+      obj.entry = PathEntry.toJSON(message.entry);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetPathInfoResponse>, I>>(base?: I): GetPathInfoResponse {
+    return GetPathInfoResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetPathInfoResponse>, I>>(object: I): GetPathInfoResponse {
+    const message = createBaseGetPathInfoResponse();
+    message.entry = (object.entry !== undefined && object.entry !== null)
+      ? PathEntry.fromPartial(object.entry)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseReadTextFileRequest(): ReadTextFileRequest {
+  return { selector: undefined, max_bytes: 0, fail_if_binary: false };
+}
+
+export const ReadTextFileRequest: MessageFns<ReadTextFileRequest> = {
+  encode(message: ReadTextFileRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.selector !== undefined) {
+      PathSelector.encode(message.selector, writer.uint32(10).fork()).join();
+    }
+    if (message.max_bytes !== 0) {
+      writer.uint32(16).int32(message.max_bytes);
+    }
+    if (message.fail_if_binary !== false) {
+      writer.uint32(24).bool(message.fail_if_binary);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ReadTextFileRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseReadTextFileRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.selector = PathSelector.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.max_bytes = reader.int32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.fail_if_binary = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ReadTextFileRequest {
+    return {
+      selector: isSet(object.selector) ? PathSelector.fromJSON(object.selector) : undefined,
+      max_bytes: isSet(object.maxBytes)
+        ? globalThis.Number(object.maxBytes)
+        : isSet(object.max_bytes)
+        ? globalThis.Number(object.max_bytes)
+        : 0,
+      fail_if_binary: isSet(object.failIfBinary)
+        ? globalThis.Boolean(object.failIfBinary)
+        : isSet(object.fail_if_binary)
+        ? globalThis.Boolean(object.fail_if_binary)
+        : false,
+    };
+  },
+
+  toJSON(message: ReadTextFileRequest): unknown {
+    const obj: any = {};
+    if (message.selector !== undefined) {
+      obj.selector = PathSelector.toJSON(message.selector);
+    }
+    if (message.max_bytes !== 0) {
+      obj.maxBytes = Math.round(message.max_bytes);
+    }
+    if (message.fail_if_binary !== false) {
+      obj.failIfBinary = message.fail_if_binary;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ReadTextFileRequest>, I>>(base?: I): ReadTextFileRequest {
+    return ReadTextFileRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ReadTextFileRequest>, I>>(object: I): ReadTextFileRequest {
+    const message = createBaseReadTextFileRequest();
+    message.selector = (object.selector !== undefined && object.selector !== null)
+      ? PathSelector.fromPartial(object.selector)
+      : undefined;
+    message.max_bytes = object.max_bytes ?? 0;
+    message.fail_if_binary = object.fail_if_binary ?? false;
+    return message;
+  },
+};
+
+function createBaseReadTextFileResponse(): ReadTextFileResponse {
+  return {
+    entry: undefined,
+    text: "",
+    content_type: "",
+    size_bytes: 0,
+    checksum: "",
+    updated_at: undefined,
+    truncated: false,
+    lossy: false,
+  };
+}
+
+export const ReadTextFileResponse: MessageFns<ReadTextFileResponse> = {
+  encode(message: ReadTextFileResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.entry !== undefined) {
+      PathEntry.encode(message.entry, writer.uint32(10).fork()).join();
+    }
+    if (message.text !== "") {
+      writer.uint32(18).string(message.text);
+    }
+    if (message.content_type !== "") {
+      writer.uint32(26).string(message.content_type);
+    }
+    if (message.size_bytes !== 0) {
+      writer.uint32(32).int64(message.size_bytes);
+    }
+    if (message.checksum !== "") {
+      writer.uint32(42).string(message.checksum);
+    }
+    if (message.updated_at !== undefined) {
+      Timestamp.encode(toTimestamp(message.updated_at), writer.uint32(50).fork()).join();
+    }
+    if (message.truncated !== false) {
+      writer.uint32(56).bool(message.truncated);
+    }
+    if (message.lossy !== false) {
+      writer.uint32(64).bool(message.lossy);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ReadTextFileResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseReadTextFileResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.entry = PathEntry.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.text = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.content_type = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.size_bytes = longToNumber(reader.int64());
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.checksum = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.updated_at = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.truncated = reader.bool();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.lossy = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ReadTextFileResponse {
+    return {
+      entry: isSet(object.entry) ? PathEntry.fromJSON(object.entry) : undefined,
+      text: isSet(object.text) ? globalThis.String(object.text) : "",
+      content_type: isSet(object.contentType)
+        ? globalThis.String(object.contentType)
+        : isSet(object.content_type)
+        ? globalThis.String(object.content_type)
+        : "",
+      size_bytes: isSet(object.sizeBytes)
+        ? globalThis.Number(object.sizeBytes)
+        : isSet(object.size_bytes)
+        ? globalThis.Number(object.size_bytes)
+        : 0,
+      checksum: isSet(object.checksum) ? globalThis.String(object.checksum) : "",
+      updated_at: isSet(object.updatedAt)
+        ? fromJsonTimestamp(object.updatedAt)
+        : isSet(object.updated_at)
+        ? fromJsonTimestamp(object.updated_at)
+        : undefined,
+      truncated: isSet(object.truncated) ? globalThis.Boolean(object.truncated) : false,
+      lossy: isSet(object.lossy) ? globalThis.Boolean(object.lossy) : false,
+    };
+  },
+
+  toJSON(message: ReadTextFileResponse): unknown {
+    const obj: any = {};
+    if (message.entry !== undefined) {
+      obj.entry = PathEntry.toJSON(message.entry);
+    }
+    if (message.text !== "") {
+      obj.text = message.text;
+    }
+    if (message.content_type !== "") {
+      obj.contentType = message.content_type;
+    }
+    if (message.size_bytes !== 0) {
+      obj.sizeBytes = Math.round(message.size_bytes);
+    }
+    if (message.checksum !== "") {
+      obj.checksum = message.checksum;
+    }
+    if (message.updated_at !== undefined) {
+      obj.updatedAt = message.updated_at.toISOString();
+    }
+    if (message.truncated !== false) {
+      obj.truncated = message.truncated;
+    }
+    if (message.lossy !== false) {
+      obj.lossy = message.lossy;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ReadTextFileResponse>, I>>(base?: I): ReadTextFileResponse {
+    return ReadTextFileResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ReadTextFileResponse>, I>>(object: I): ReadTextFileResponse {
+    const message = createBaseReadTextFileResponse();
+    message.entry = (object.entry !== undefined && object.entry !== null)
+      ? PathEntry.fromPartial(object.entry)
+      : undefined;
+    message.text = object.text ?? "";
+    message.content_type = object.content_type ?? "";
+    message.size_bytes = object.size_bytes ?? 0;
+    message.checksum = object.checksum ?? "";
+    message.updated_at = object.updated_at ?? undefined;
+    message.truncated = object.truncated ?? false;
+    message.lossy = object.lossy ?? false;
+    return message;
+  },
+};
+
 /**
  * File storage service with per-user isolation and resumable upload support.
  * All methods require authentication; user identity is extracted from auth metadata.
@@ -2758,6 +3971,12 @@ export interface FileStorageService {
   ListFiles(request: ListFilesRequest): Promise<ListFilesResponse>;
   /** Get metadata for a single file owned by the current user. */
   GetFileInfo(request: GetFileInfoRequest): Promise<FileInfo>;
+  /** Browse direct child entries of a virtual folder. */
+  ListFolder(request: ListFolderRequest): Promise<ListFolderResponse>;
+  /** Resolve a file or directory by file_id or virtual path. */
+  GetPathInfo(request: GetPathInfoRequest): Promise<GetPathInfoResponse>;
+  /** Preview a small UTF-8 text file safely. */
+  ReadTextFile(request: ReadTextFileRequest): Promise<ReadTextFileResponse>;
 }
 
 export const FileStorageServiceServiceName = "stew.api.v1.FileStorageService";
@@ -2777,6 +3996,9 @@ export class FileStorageServiceClientImpl implements FileStorageService {
     this.DeleteFile = this.DeleteFile.bind(this);
     this.ListFiles = this.ListFiles.bind(this);
     this.GetFileInfo = this.GetFileInfo.bind(this);
+    this.ListFolder = this.ListFolder.bind(this);
+    this.GetPathInfo = this.GetPathInfo.bind(this);
+    this.ReadTextFile = this.ReadTextFile.bind(this);
   }
   UploadFile(request: Observable<UploadFileRequest>): Promise<UploadFileResponse> {
     const data = request.pipe(map((request) => UploadFileRequest.encode(request).finish()));
@@ -2836,6 +4058,24 @@ export class FileStorageServiceClientImpl implements FileStorageService {
     const data = GetFileInfoRequest.encode(request).finish();
     const promise = this.rpc.request(this.service, "GetFileInfo", data);
     return promise.then((data) => FileInfo.decode(new BinaryReader(data)));
+  }
+
+  ListFolder(request: ListFolderRequest): Promise<ListFolderResponse> {
+    const data = ListFolderRequest.encode(request).finish();
+    const promise = this.rpc.request(this.service, "ListFolder", data);
+    return promise.then((data) => ListFolderResponse.decode(new BinaryReader(data)));
+  }
+
+  GetPathInfo(request: GetPathInfoRequest): Promise<GetPathInfoResponse> {
+    const data = GetPathInfoRequest.encode(request).finish();
+    const promise = this.rpc.request(this.service, "GetPathInfo", data);
+    return promise.then((data) => GetPathInfoResponse.decode(new BinaryReader(data)));
+  }
+
+  ReadTextFile(request: ReadTextFileRequest): Promise<ReadTextFileResponse> {
+    const data = ReadTextFileRequest.encode(request).finish();
+    const promise = this.rpc.request(this.service, "ReadTextFile", data);
+    return promise.then((data) => ReadTextFileResponse.decode(new BinaryReader(data)));
   }
 }
 

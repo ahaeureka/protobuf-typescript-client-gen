@@ -12,6 +12,14 @@ export declare enum UploadSessionStatus {
 }
 export declare function uploadSessionStatusFromJSON(object: any): UploadSessionStatus;
 export declare function uploadSessionStatusToJSON(object: UploadSessionStatus): string;
+export declare enum PathEntryKind {
+    PATH_ENTRY_KIND_UNSPECIFIED = 0,
+    PATH_ENTRY_KIND_FILE = 1,
+    PATH_ENTRY_KIND_DIRECTORY = 2,
+    UNRECOGNIZED = -1
+}
+export declare function pathEntryKindFromJSON(object: any): PathEntryKind;
+export declare function pathEntryKindToJSON(object: PathEntryKind): string;
 export interface UploadFileRequest {
     payload: //
     /** First message: file metadata. */
@@ -220,6 +228,82 @@ export interface FileInfo {
     /** Storage key (object path in the storage backend). */
     storage_key: string;
 }
+/** Reference to a file or directory by virtual path. */
+export interface VirtualPathRef {
+    /** Base folder. Empty or "/" means root. */
+    folder: string;
+    /** Relative path below folder. May contain '/'. */
+    relative_path: string;
+}
+/** Selects a target by file_id or virtual path. */
+export interface PathSelector {
+    selector: {
+        $case: "file_id";
+        file_id: string;
+    } | {
+        $case: "path";
+        path: VirtualPathRef;
+    } | undefined;
+}
+/** A single entry in a virtual directory listing. */
+export interface PathEntry {
+    kind: PathEntryKind;
+    /** Direct child name only, e.g. "docs" or "README.md". */
+    name: string;
+    /** Canonical absolute virtual path, e.g. "/docs/README.md". */
+    path: string;
+    /** Canonical parent folder. */
+    parent_folder: string;
+    /** File-only fields. */
+    file_id: string;
+    content_type: string;
+    size_bytes: number;
+    checksum: string;
+    created_at: Date | undefined;
+    updated_at: Date | undefined;
+    /** Directory-only field. File nodes always return false. */
+    has_children: boolean;
+}
+export interface ListFolderRequest {
+    /** Folder to browse. Empty or "/" means root. */
+    folder: string;
+    /** Maximum number of mixed entries to return. Default 100, max 1000. */
+    page_size: number;
+    /** Opaque pagination token. */
+    page_token: string;
+    /** Whether to include file entries. Default true. */
+    include_files: boolean;
+    /** Whether to include directory entries. Default true. */
+    include_directories: boolean;
+}
+export interface ListFolderResponse {
+    entries: PathEntry[];
+    next_page_token: string;
+    total_count: number;
+}
+export interface GetPathInfoRequest {
+    selector: PathSelector | undefined;
+}
+export interface GetPathInfoResponse {
+    entry: PathEntry | undefined;
+}
+export interface ReadTextFileRequest {
+    selector: PathSelector | undefined;
+    /** Requested preview length. Server will clamp to configured hard limit. */
+    max_bytes: number;
+    /** Reject binary or undecodable content when true. */
+    fail_if_binary: boolean;
+}
+export interface ReadTextFileResponse {
+    entry: PathEntry | undefined;
+    text: string;
+    content_type: string;
+    size_bytes: number;
+    checksum: string;
+    updated_at: Date | undefined;
+    truncated: boolean;
+    lossy: boolean;
+}
 export declare const UploadFileRequest: MessageFns<UploadFileRequest>;
 export declare const UploadFileMetadata: MessageFns<UploadFileMetadata>;
 export declare const UploadFileResponse: MessageFns<UploadFileResponse>;
@@ -243,6 +327,15 @@ export declare const ListFilesResponse: MessageFns<ListFilesResponse>;
 export declare const GetFileInfoRequest: MessageFns<GetFileInfoRequest>;
 export declare const CallbackResult: MessageFns<CallbackResult>;
 export declare const FileInfo: MessageFns<FileInfo>;
+export declare const VirtualPathRef: MessageFns<VirtualPathRef>;
+export declare const PathSelector: MessageFns<PathSelector>;
+export declare const PathEntry: MessageFns<PathEntry>;
+export declare const ListFolderRequest: MessageFns<ListFolderRequest>;
+export declare const ListFolderResponse: MessageFns<ListFolderResponse>;
+export declare const GetPathInfoRequest: MessageFns<GetPathInfoRequest>;
+export declare const GetPathInfoResponse: MessageFns<GetPathInfoResponse>;
+export declare const ReadTextFileRequest: MessageFns<ReadTextFileRequest>;
+export declare const ReadTextFileResponse: MessageFns<ReadTextFileResponse>;
 /**
  * File storage service with per-user isolation and resumable upload support.
  * All methods require authentication; user identity is extracted from auth metadata.
@@ -282,6 +375,12 @@ export interface FileStorageService {
     ListFiles(request: ListFilesRequest): Promise<ListFilesResponse>;
     /** Get metadata for a single file owned by the current user. */
     GetFileInfo(request: GetFileInfoRequest): Promise<FileInfo>;
+    /** Browse direct child entries of a virtual folder. */
+    ListFolder(request: ListFolderRequest): Promise<ListFolderResponse>;
+    /** Resolve a file or directory by file_id or virtual path. */
+    GetPathInfo(request: GetPathInfoRequest): Promise<GetPathInfoResponse>;
+    /** Preview a small UTF-8 text file safely. */
+    ReadTextFile(request: ReadTextFileRequest): Promise<ReadTextFileResponse>;
 }
 export declare const FileStorageServiceServiceName = "stew.api.v1.FileStorageService";
 export declare class FileStorageServiceClientImpl implements FileStorageService {
@@ -300,6 +399,9 @@ export declare class FileStorageServiceClientImpl implements FileStorageService 
     DeleteFile(request: DeleteFileRequest): Promise<Empty>;
     ListFiles(request: ListFilesRequest): Promise<ListFilesResponse>;
     GetFileInfo(request: GetFileInfoRequest): Promise<FileInfo>;
+    ListFolder(request: ListFolderRequest): Promise<ListFolderResponse>;
+    GetPathInfo(request: GetPathInfoRequest): Promise<GetPathInfoResponse>;
+    ReadTextFile(request: ReadTextFileRequest): Promise<ReadTextFileResponse>;
 }
 interface Rpc {
     request(service: string, method: string, data: Uint8Array): Promise<Uint8Array>;

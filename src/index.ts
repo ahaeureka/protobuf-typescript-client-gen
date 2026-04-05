@@ -33,3 +33,24 @@ export type {
     FileStorageClientOptions,
 } from './file_client';
 
+// Asset browser client
+export { AssetBrowserClient } from './asset_browser_client';
+export type {
+    AssetBrowserClientOptions,
+    AssetCollection,
+    AssetVersionSummary,
+    AssetTreeEntry,
+    AssetDiffSummary,
+    AssetDiffEntry,
+    ListCollectionsResult,
+    ListTreeResult,
+    ListVersionsResult,
+    CreateDraftResult,
+    EntryTextResult,
+    SaveTextResult,
+    DiffResult,
+    DiffEntryDetailResult,
+    PublishResult,
+    ActivateResult,
+} from './asset_browser_client';
+

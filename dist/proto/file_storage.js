@@ -5,9 +5,11 @@
 //   protoc               v3.21.12
 // source: file_storage.proto
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FileStorageServiceClientImpl = exports.FileStorageServiceServiceName = exports.FileInfo = exports.CallbackResult = exports.GetFileInfoRequest = exports.ListFilesResponse = exports.ListFilesRequest = exports.DeleteFileRequest = exports.DownloadFileChunk = exports.DownloadFileHttpMetadata = exports.DownloadFileRequest = exports.UploadedPartInfo = exports.GetUploadStatusResponse = exports.GetUploadStatusRequest = exports.AbortResumableUploadRequest = exports.PartEtag = exports.CompleteResumableUploadRequest = exports.UploadPartResponse = exports.UploadPartHeader = exports.UploadPartRequest = exports.InitResumableUploadResponse = exports.InitResumableUploadRequest = exports.UploadFileResponse = exports.UploadFileMetadata = exports.UploadFileRequest = exports.UploadSessionStatus = exports.protobufPackage = void 0;
+exports.FileStorageServiceClientImpl = exports.FileStorageServiceServiceName = exports.ReadTextFileResponse = exports.ReadTextFileRequest = exports.GetPathInfoResponse = exports.GetPathInfoRequest = exports.ListFolderResponse = exports.ListFolderRequest = exports.PathEntry = exports.PathSelector = exports.VirtualPathRef = exports.FileInfo = exports.CallbackResult = exports.GetFileInfoRequest = exports.ListFilesResponse = exports.ListFilesRequest = exports.DeleteFileRequest = exports.DownloadFileChunk = exports.DownloadFileHttpMetadata = exports.DownloadFileRequest = exports.UploadedPartInfo = exports.GetUploadStatusResponse = exports.GetUploadStatusRequest = exports.AbortResumableUploadRequest = exports.PartEtag = exports.CompleteResumableUploadRequest = exports.UploadPartResponse = exports.UploadPartHeader = exports.UploadPartRequest = exports.InitResumableUploadResponse = exports.InitResumableUploadRequest = exports.UploadFileResponse = exports.UploadFileMetadata = exports.UploadFileRequest = exports.PathEntryKind = exports.UploadSessionStatus = exports.protobufPackage = void 0;
 exports.uploadSessionStatusFromJSON = uploadSessionStatusFromJSON;
 exports.uploadSessionStatusToJSON = uploadSessionStatusToJSON;
+exports.pathEntryKindFromJSON = pathEntryKindFromJSON;
+exports.pathEntryKindToJSON = pathEntryKindToJSON;
 /* eslint-disable */
 const wire_1 = require("@bufbuild/protobuf/wire");
 const operators_1 = require("rxjs/operators");
@@ -54,6 +56,43 @@ function uploadSessionStatusToJSON(object) {
         case UploadSessionStatus.UPLOAD_SESSION_STATUS_ABORTED:
             return "UPLOAD_SESSION_STATUS_ABORTED";
         case UploadSessionStatus.UNRECOGNIZED:
+        default:
+            return "UNRECOGNIZED";
+    }
+}
+var PathEntryKind;
+(function (PathEntryKind) {
+    PathEntryKind[PathEntryKind["PATH_ENTRY_KIND_UNSPECIFIED"] = 0] = "PATH_ENTRY_KIND_UNSPECIFIED";
+    PathEntryKind[PathEntryKind["PATH_ENTRY_KIND_FILE"] = 1] = "PATH_ENTRY_KIND_FILE";
+    PathEntryKind[PathEntryKind["PATH_ENTRY_KIND_DIRECTORY"] = 2] = "PATH_ENTRY_KIND_DIRECTORY";
+    PathEntryKind[PathEntryKind["UNRECOGNIZED"] = -1] = "UNRECOGNIZED";
+})(PathEntryKind || (exports.PathEntryKind = PathEntryKind = {}));
+function pathEntryKindFromJSON(object) {
+    switch (object) {
+        case 0:
+        case "PATH_ENTRY_KIND_UNSPECIFIED":
+            return PathEntryKind.PATH_ENTRY_KIND_UNSPECIFIED;
+        case 1:
+        case "PATH_ENTRY_KIND_FILE":
+            return PathEntryKind.PATH_ENTRY_KIND_FILE;
+        case 2:
+        case "PATH_ENTRY_KIND_DIRECTORY":
+            return PathEntryKind.PATH_ENTRY_KIND_DIRECTORY;
+        case -1:
+        case "UNRECOGNIZED":
+        default:
+            return PathEntryKind.UNRECOGNIZED;
+    }
+}
+function pathEntryKindToJSON(object) {
+    switch (object) {
+        case PathEntryKind.PATH_ENTRY_KIND_UNSPECIFIED:
+            return "PATH_ENTRY_KIND_UNSPECIFIED";
+        case PathEntryKind.PATH_ENTRY_KIND_FILE:
+            return "PATH_ENTRY_KIND_FILE";
+        case PathEntryKind.PATH_ENTRY_KIND_DIRECTORY:
+            return "PATH_ENTRY_KIND_DIRECTORY";
+        case PathEntryKind.UNRECOGNIZED:
         default:
             return "UNRECOGNIZED";
     }
@@ -2276,6 +2315,1008 @@ exports.FileInfo = {
         return message;
     },
 };
+function createBaseVirtualPathRef() {
+    return { folder: "", relative_path: "" };
+}
+exports.VirtualPathRef = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.folder !== "") {
+            writer.uint32(10).string(message.folder);
+        }
+        if (message.relative_path !== "") {
+            writer.uint32(18).string(message.relative_path);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseVirtualPathRef();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.folder = reader.string();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.relative_path = reader.string();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            folder: isSet(object.folder) ? globalThis.String(object.folder) : "",
+            relative_path: isSet(object.relativePath)
+                ? globalThis.String(object.relativePath)
+                : isSet(object.relative_path)
+                    ? globalThis.String(object.relative_path)
+                    : "",
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.folder !== "") {
+            obj.folder = message.folder;
+        }
+        if (message.relative_path !== "") {
+            obj.relativePath = message.relative_path;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.VirtualPathRef.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseVirtualPathRef();
+        message.folder = object.folder ?? "";
+        message.relative_path = object.relative_path ?? "";
+        return message;
+    },
+};
+function createBasePathSelector() {
+    return { selector: undefined };
+}
+exports.PathSelector = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        switch (message.selector?.$case) {
+            case "file_id":
+                writer.uint32(10).string(message.selector.file_id);
+                break;
+            case "path":
+                exports.VirtualPathRef.encode(message.selector.path, writer.uint32(18).fork()).join();
+                break;
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBasePathSelector();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.selector = { $case: "file_id", file_id: reader.string() };
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.selector = { $case: "path", path: exports.VirtualPathRef.decode(reader, reader.uint32()) };
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            selector: isSet(object.fileId)
+                ? { $case: "file_id", file_id: globalThis.String(object.fileId) }
+                : isSet(object.file_id)
+                    ? { $case: "file_id", file_id: globalThis.String(object.file_id) }
+                    : isSet(object.path)
+                        ? { $case: "path", path: exports.VirtualPathRef.fromJSON(object.path) }
+                        : undefined,
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.selector?.$case === "file_id") {
+            obj.fileId = message.selector.file_id;
+        }
+        else if (message.selector?.$case === "path") {
+            obj.path = exports.VirtualPathRef.toJSON(message.selector.path);
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.PathSelector.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBasePathSelector();
+        switch (object.selector?.$case) {
+            case "file_id": {
+                if (object.selector?.file_id !== undefined && object.selector?.file_id !== null) {
+                    message.selector = { $case: "file_id", file_id: object.selector.file_id };
+                }
+                break;
+            }
+            case "path": {
+                if (object.selector?.path !== undefined && object.selector?.path !== null) {
+                    message.selector = { $case: "path", path: exports.VirtualPathRef.fromPartial(object.selector.path) };
+                }
+                break;
+            }
+        }
+        return message;
+    },
+};
+function createBasePathEntry() {
+    return {
+        kind: 0,
+        name: "",
+        path: "",
+        parent_folder: "",
+        file_id: "",
+        content_type: "",
+        size_bytes: 0,
+        checksum: "",
+        created_at: undefined,
+        updated_at: undefined,
+        has_children: false,
+    };
+}
+exports.PathEntry = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.kind !== 0) {
+            writer.uint32(8).int32(message.kind);
+        }
+        if (message.name !== "") {
+            writer.uint32(18).string(message.name);
+        }
+        if (message.path !== "") {
+            writer.uint32(26).string(message.path);
+        }
+        if (message.parent_folder !== "") {
+            writer.uint32(34).string(message.parent_folder);
+        }
+        if (message.file_id !== "") {
+            writer.uint32(42).string(message.file_id);
+        }
+        if (message.content_type !== "") {
+            writer.uint32(50).string(message.content_type);
+        }
+        if (message.size_bytes !== 0) {
+            writer.uint32(56).int64(message.size_bytes);
+        }
+        if (message.checksum !== "") {
+            writer.uint32(66).string(message.checksum);
+        }
+        if (message.created_at !== undefined) {
+            timestamp_1.Timestamp.encode(toTimestamp(message.created_at), writer.uint32(74).fork()).join();
+        }
+        if (message.updated_at !== undefined) {
+            timestamp_1.Timestamp.encode(toTimestamp(message.updated_at), writer.uint32(82).fork()).join();
+        }
+        if (message.has_children !== false) {
+            writer.uint32(88).bool(message.has_children);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBasePathEntry();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 8) {
+                        break;
+                    }
+                    message.kind = reader.int32();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.name = reader.string();
+                    continue;
+                }
+                case 3: {
+                    if (tag !== 26) {
+                        break;
+                    }
+                    message.path = reader.string();
+                    continue;
+                }
+                case 4: {
+                    if (tag !== 34) {
+                        break;
+                    }
+                    message.parent_folder = reader.string();
+                    continue;
+                }
+                case 5: {
+                    if (tag !== 42) {
+                        break;
+                    }
+                    message.file_id = reader.string();
+                    continue;
+                }
+                case 6: {
+                    if (tag !== 50) {
+                        break;
+                    }
+                    message.content_type = reader.string();
+                    continue;
+                }
+                case 7: {
+                    if (tag !== 56) {
+                        break;
+                    }
+                    message.size_bytes = longToNumber(reader.int64());
+                    continue;
+                }
+                case 8: {
+                    if (tag !== 66) {
+                        break;
+                    }
+                    message.checksum = reader.string();
+                    continue;
+                }
+                case 9: {
+                    if (tag !== 74) {
+                        break;
+                    }
+                    message.created_at = fromTimestamp(timestamp_1.Timestamp.decode(reader, reader.uint32()));
+                    continue;
+                }
+                case 10: {
+                    if (tag !== 82) {
+                        break;
+                    }
+                    message.updated_at = fromTimestamp(timestamp_1.Timestamp.decode(reader, reader.uint32()));
+                    continue;
+                }
+                case 11: {
+                    if (tag !== 88) {
+                        break;
+                    }
+                    message.has_children = reader.bool();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            kind: isSet(object.kind) ? pathEntryKindFromJSON(object.kind) : 0,
+            name: isSet(object.name) ? globalThis.String(object.name) : "",
+            path: isSet(object.path) ? globalThis.String(object.path) : "",
+            parent_folder: isSet(object.parentFolder)
+                ? globalThis.String(object.parentFolder)
+                : isSet(object.parent_folder)
+                    ? globalThis.String(object.parent_folder)
+                    : "",
+            file_id: isSet(object.fileId)
+                ? globalThis.String(object.fileId)
+                : isSet(object.file_id)
+                    ? globalThis.String(object.file_id)
+                    : "",
+            content_type: isSet(object.contentType)
+                ? globalThis.String(object.contentType)
+                : isSet(object.content_type)
+                    ? globalThis.String(object.content_type)
+                    : "",
+            size_bytes: isSet(object.sizeBytes)
+                ? globalThis.Number(object.sizeBytes)
+                : isSet(object.size_bytes)
+                    ? globalThis.Number(object.size_bytes)
+                    : 0,
+            checksum: isSet(object.checksum) ? globalThis.String(object.checksum) : "",
+            created_at: isSet(object.createdAt)
+                ? fromJsonTimestamp(object.createdAt)
+                : isSet(object.created_at)
+                    ? fromJsonTimestamp(object.created_at)
+                    : undefined,
+            updated_at: isSet(object.updatedAt)
+                ? fromJsonTimestamp(object.updatedAt)
+                : isSet(object.updated_at)
+                    ? fromJsonTimestamp(object.updated_at)
+                    : undefined,
+            has_children: isSet(object.hasChildren)
+                ? globalThis.Boolean(object.hasChildren)
+                : isSet(object.has_children)
+                    ? globalThis.Boolean(object.has_children)
+                    : false,
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.kind !== 0) {
+            obj.kind = pathEntryKindToJSON(message.kind);
+        }
+        if (message.name !== "") {
+            obj.name = message.name;
+        }
+        if (message.path !== "") {
+            obj.path = message.path;
+        }
+        if (message.parent_folder !== "") {
+            obj.parentFolder = message.parent_folder;
+        }
+        if (message.file_id !== "") {
+            obj.fileId = message.file_id;
+        }
+        if (message.content_type !== "") {
+            obj.contentType = message.content_type;
+        }
+        if (message.size_bytes !== 0) {
+            obj.sizeBytes = Math.round(message.size_bytes);
+        }
+        if (message.checksum !== "") {
+            obj.checksum = message.checksum;
+        }
+        if (message.created_at !== undefined) {
+            obj.createdAt = message.created_at.toISOString();
+        }
+        if (message.updated_at !== undefined) {
+            obj.updatedAt = message.updated_at.toISOString();
+        }
+        if (message.has_children !== false) {
+            obj.hasChildren = message.has_children;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.PathEntry.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBasePathEntry();
+        message.kind = object.kind ?? 0;
+        message.name = object.name ?? "";
+        message.path = object.path ?? "";
+        message.parent_folder = object.parent_folder ?? "";
+        message.file_id = object.file_id ?? "";
+        message.content_type = object.content_type ?? "";
+        message.size_bytes = object.size_bytes ?? 0;
+        message.checksum = object.checksum ?? "";
+        message.created_at = object.created_at ?? undefined;
+        message.updated_at = object.updated_at ?? undefined;
+        message.has_children = object.has_children ?? false;
+        return message;
+    },
+};
+function createBaseListFolderRequest() {
+    return { folder: "", page_size: 0, page_token: "", include_files: false, include_directories: false };
+}
+exports.ListFolderRequest = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.folder !== "") {
+            writer.uint32(10).string(message.folder);
+        }
+        if (message.page_size !== 0) {
+            writer.uint32(16).int32(message.page_size);
+        }
+        if (message.page_token !== "") {
+            writer.uint32(26).string(message.page_token);
+        }
+        if (message.include_files !== false) {
+            writer.uint32(32).bool(message.include_files);
+        }
+        if (message.include_directories !== false) {
+            writer.uint32(40).bool(message.include_directories);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseListFolderRequest();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.folder = reader.string();
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 16) {
+                        break;
+                    }
+                    message.page_size = reader.int32();
+                    continue;
+                }
+                case 3: {
+                    if (tag !== 26) {
+                        break;
+                    }
+                    message.page_token = reader.string();
+                    continue;
+                }
+                case 4: {
+                    if (tag !== 32) {
+                        break;
+                    }
+                    message.include_files = reader.bool();
+                    continue;
+                }
+                case 5: {
+                    if (tag !== 40) {
+                        break;
+                    }
+                    message.include_directories = reader.bool();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            folder: isSet(object.folder) ? globalThis.String(object.folder) : "",
+            page_size: isSet(object.pageSize)
+                ? globalThis.Number(object.pageSize)
+                : isSet(object.page_size)
+                    ? globalThis.Number(object.page_size)
+                    : 0,
+            page_token: isSet(object.pageToken)
+                ? globalThis.String(object.pageToken)
+                : isSet(object.page_token)
+                    ? globalThis.String(object.page_token)
+                    : "",
+            include_files: isSet(object.includeFiles)
+                ? globalThis.Boolean(object.includeFiles)
+                : isSet(object.include_files)
+                    ? globalThis.Boolean(object.include_files)
+                    : false,
+            include_directories: isSet(object.includeDirectories)
+                ? globalThis.Boolean(object.includeDirectories)
+                : isSet(object.include_directories)
+                    ? globalThis.Boolean(object.include_directories)
+                    : false,
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.folder !== "") {
+            obj.folder = message.folder;
+        }
+        if (message.page_size !== 0) {
+            obj.pageSize = Math.round(message.page_size);
+        }
+        if (message.page_token !== "") {
+            obj.pageToken = message.page_token;
+        }
+        if (message.include_files !== false) {
+            obj.includeFiles = message.include_files;
+        }
+        if (message.include_directories !== false) {
+            obj.includeDirectories = message.include_directories;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.ListFolderRequest.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseListFolderRequest();
+        message.folder = object.folder ?? "";
+        message.page_size = object.page_size ?? 0;
+        message.page_token = object.page_token ?? "";
+        message.include_files = object.include_files ?? false;
+        message.include_directories = object.include_directories ?? false;
+        return message;
+    },
+};
+function createBaseListFolderResponse() {
+    return { entries: [], next_page_token: "", total_count: 0 };
+}
+exports.ListFolderResponse = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        for (const v of message.entries) {
+            exports.PathEntry.encode(v, writer.uint32(10).fork()).join();
+        }
+        if (message.next_page_token !== "") {
+            writer.uint32(18).string(message.next_page_token);
+        }
+        if (message.total_count !== 0) {
+            writer.uint32(24).int32(message.total_count);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseListFolderResponse();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.entries.push(exports.PathEntry.decode(reader, reader.uint32()));
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.next_page_token = reader.string();
+                    continue;
+                }
+                case 3: {
+                    if (tag !== 24) {
+                        break;
+                    }
+                    message.total_count = reader.int32();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            entries: globalThis.Array.isArray(object?.entries) ? object.entries.map((e) => exports.PathEntry.fromJSON(e)) : [],
+            next_page_token: isSet(object.nextPageToken)
+                ? globalThis.String(object.nextPageToken)
+                : isSet(object.next_page_token)
+                    ? globalThis.String(object.next_page_token)
+                    : "",
+            total_count: isSet(object.totalCount)
+                ? globalThis.Number(object.totalCount)
+                : isSet(object.total_count)
+                    ? globalThis.Number(object.total_count)
+                    : 0,
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.entries?.length) {
+            obj.entries = message.entries.map((e) => exports.PathEntry.toJSON(e));
+        }
+        if (message.next_page_token !== "") {
+            obj.nextPageToken = message.next_page_token;
+        }
+        if (message.total_count !== 0) {
+            obj.totalCount = Math.round(message.total_count);
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.ListFolderResponse.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseListFolderResponse();
+        message.entries = object.entries?.map((e) => exports.PathEntry.fromPartial(e)) || [];
+        message.next_page_token = object.next_page_token ?? "";
+        message.total_count = object.total_count ?? 0;
+        return message;
+    },
+};
+function createBaseGetPathInfoRequest() {
+    return { selector: undefined };
+}
+exports.GetPathInfoRequest = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.selector !== undefined) {
+            exports.PathSelector.encode(message.selector, writer.uint32(10).fork()).join();
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseGetPathInfoRequest();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.selector = exports.PathSelector.decode(reader, reader.uint32());
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return { selector: isSet(object.selector) ? exports.PathSelector.fromJSON(object.selector) : undefined };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.selector !== undefined) {
+            obj.selector = exports.PathSelector.toJSON(message.selector);
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.GetPathInfoRequest.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseGetPathInfoRequest();
+        message.selector = (object.selector !== undefined && object.selector !== null)
+            ? exports.PathSelector.fromPartial(object.selector)
+            : undefined;
+        return message;
+    },
+};
+function createBaseGetPathInfoResponse() {
+    return { entry: undefined };
+}
+exports.GetPathInfoResponse = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.entry !== undefined) {
+            exports.PathEntry.encode(message.entry, writer.uint32(10).fork()).join();
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseGetPathInfoResponse();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.entry = exports.PathEntry.decode(reader, reader.uint32());
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return { entry: isSet(object.entry) ? exports.PathEntry.fromJSON(object.entry) : undefined };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.entry !== undefined) {
+            obj.entry = exports.PathEntry.toJSON(message.entry);
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.GetPathInfoResponse.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseGetPathInfoResponse();
+        message.entry = (object.entry !== undefined && object.entry !== null)
+            ? exports.PathEntry.fromPartial(object.entry)
+            : undefined;
+        return message;
+    },
+};
+function createBaseReadTextFileRequest() {
+    return { selector: undefined, max_bytes: 0, fail_if_binary: false };
+}
+exports.ReadTextFileRequest = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.selector !== undefined) {
+            exports.PathSelector.encode(message.selector, writer.uint32(10).fork()).join();
+        }
+        if (message.max_bytes !== 0) {
+            writer.uint32(16).int32(message.max_bytes);
+        }
+        if (message.fail_if_binary !== false) {
+            writer.uint32(24).bool(message.fail_if_binary);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseReadTextFileRequest();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.selector = exports.PathSelector.decode(reader, reader.uint32());
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 16) {
+                        break;
+                    }
+                    message.max_bytes = reader.int32();
+                    continue;
+                }
+                case 3: {
+                    if (tag !== 24) {
+                        break;
+                    }
+                    message.fail_if_binary = reader.bool();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            selector: isSet(object.selector) ? exports.PathSelector.fromJSON(object.selector) : undefined,
+            max_bytes: isSet(object.maxBytes)
+                ? globalThis.Number(object.maxBytes)
+                : isSet(object.max_bytes)
+                    ? globalThis.Number(object.max_bytes)
+                    : 0,
+            fail_if_binary: isSet(object.failIfBinary)
+                ? globalThis.Boolean(object.failIfBinary)
+                : isSet(object.fail_if_binary)
+                    ? globalThis.Boolean(object.fail_if_binary)
+                    : false,
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.selector !== undefined) {
+            obj.selector = exports.PathSelector.toJSON(message.selector);
+        }
+        if (message.max_bytes !== 0) {
+            obj.maxBytes = Math.round(message.max_bytes);
+        }
+        if (message.fail_if_binary !== false) {
+            obj.failIfBinary = message.fail_if_binary;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.ReadTextFileRequest.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseReadTextFileRequest();
+        message.selector = (object.selector !== undefined && object.selector !== null)
+            ? exports.PathSelector.fromPartial(object.selector)
+            : undefined;
+        message.max_bytes = object.max_bytes ?? 0;
+        message.fail_if_binary = object.fail_if_binary ?? false;
+        return message;
+    },
+};
+function createBaseReadTextFileResponse() {
+    return {
+        entry: undefined,
+        text: "",
+        content_type: "",
+        size_bytes: 0,
+        checksum: "",
+        updated_at: undefined,
+        truncated: false,
+        lossy: false,
+    };
+}
+exports.ReadTextFileResponse = {
+    encode(message, writer = new wire_1.BinaryWriter()) {
+        if (message.entry !== undefined) {
+            exports.PathEntry.encode(message.entry, writer.uint32(10).fork()).join();
+        }
+        if (message.text !== "") {
+            writer.uint32(18).string(message.text);
+        }
+        if (message.content_type !== "") {
+            writer.uint32(26).string(message.content_type);
+        }
+        if (message.size_bytes !== 0) {
+            writer.uint32(32).int64(message.size_bytes);
+        }
+        if (message.checksum !== "") {
+            writer.uint32(42).string(message.checksum);
+        }
+        if (message.updated_at !== undefined) {
+            timestamp_1.Timestamp.encode(toTimestamp(message.updated_at), writer.uint32(50).fork()).join();
+        }
+        if (message.truncated !== false) {
+            writer.uint32(56).bool(message.truncated);
+        }
+        if (message.lossy !== false) {
+            writer.uint32(64).bool(message.lossy);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof wire_1.BinaryReader ? input : new wire_1.BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseReadTextFileResponse();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: {
+                    if (tag !== 10) {
+                        break;
+                    }
+                    message.entry = exports.PathEntry.decode(reader, reader.uint32());
+                    continue;
+                }
+                case 2: {
+                    if (tag !== 18) {
+                        break;
+                    }
+                    message.text = reader.string();
+                    continue;
+                }
+                case 3: {
+                    if (tag !== 26) {
+                        break;
+                    }
+                    message.content_type = reader.string();
+                    continue;
+                }
+                case 4: {
+                    if (tag !== 32) {
+                        break;
+                    }
+                    message.size_bytes = longToNumber(reader.int64());
+                    continue;
+                }
+                case 5: {
+                    if (tag !== 42) {
+                        break;
+                    }
+                    message.checksum = reader.string();
+                    continue;
+                }
+                case 6: {
+                    if (tag !== 50) {
+                        break;
+                    }
+                    message.updated_at = fromTimestamp(timestamp_1.Timestamp.decode(reader, reader.uint32()));
+                    continue;
+                }
+                case 7: {
+                    if (tag !== 56) {
+                        break;
+                    }
+                    message.truncated = reader.bool();
+                    continue;
+                }
+                case 8: {
+                    if (tag !== 64) {
+                        break;
+                    }
+                    message.lossy = reader.bool();
+                    continue;
+                }
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object) {
+        return {
+            entry: isSet(object.entry) ? exports.PathEntry.fromJSON(object.entry) : undefined,
+            text: isSet(object.text) ? globalThis.String(object.text) : "",
+            content_type: isSet(object.contentType)
+                ? globalThis.String(object.contentType)
+                : isSet(object.content_type)
+                    ? globalThis.String(object.content_type)
+                    : "",
+            size_bytes: isSet(object.sizeBytes)
+                ? globalThis.Number(object.sizeBytes)
+                : isSet(object.size_bytes)
+                    ? globalThis.Number(object.size_bytes)
+                    : 0,
+            checksum: isSet(object.checksum) ? globalThis.String(object.checksum) : "",
+            updated_at: isSet(object.updatedAt)
+                ? fromJsonTimestamp(object.updatedAt)
+                : isSet(object.updated_at)
+                    ? fromJsonTimestamp(object.updated_at)
+                    : undefined,
+            truncated: isSet(object.truncated) ? globalThis.Boolean(object.truncated) : false,
+            lossy: isSet(object.lossy) ? globalThis.Boolean(object.lossy) : false,
+        };
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.entry !== undefined) {
+            obj.entry = exports.PathEntry.toJSON(message.entry);
+        }
+        if (message.text !== "") {
+            obj.text = message.text;
+        }
+        if (message.content_type !== "") {
+            obj.contentType = message.content_type;
+        }
+        if (message.size_bytes !== 0) {
+            obj.sizeBytes = Math.round(message.size_bytes);
+        }
+        if (message.checksum !== "") {
+            obj.checksum = message.checksum;
+        }
+        if (message.updated_at !== undefined) {
+            obj.updatedAt = message.updated_at.toISOString();
+        }
+        if (message.truncated !== false) {
+            obj.truncated = message.truncated;
+        }
+        if (message.lossy !== false) {
+            obj.lossy = message.lossy;
+        }
+        return obj;
+    },
+    create(base) {
+        return exports.ReadTextFileResponse.fromPartial(base ?? {});
+    },
+    fromPartial(object) {
+        const message = createBaseReadTextFileResponse();
+        message.entry = (object.entry !== undefined && object.entry !== null)
+            ? exports.PathEntry.fromPartial(object.entry)
+            : undefined;
+        message.text = object.text ?? "";
+        message.content_type = object.content_type ?? "";
+        message.size_bytes = object.size_bytes ?? 0;
+        message.checksum = object.checksum ?? "";
+        message.updated_at = object.updated_at ?? undefined;
+        message.truncated = object.truncated ?? false;
+        message.lossy = object.lossy ?? false;
+        return message;
+    },
+};
 exports.FileStorageServiceServiceName = "stew.api.v1.FileStorageService";
 class FileStorageServiceClientImpl {
     constructor(rpc, opts) {
@@ -2291,6 +3332,9 @@ class FileStorageServiceClientImpl {
         this.DeleteFile = this.DeleteFile.bind(this);
         this.ListFiles = this.ListFiles.bind(this);
         this.GetFileInfo = this.GetFileInfo.bind(this);
+        this.ListFolder = this.ListFolder.bind(this);
+        this.GetPathInfo = this.GetPathInfo.bind(this);
+        this.ReadTextFile = this.ReadTextFile.bind(this);
     }
     UploadFile(request) {
         const data = request.pipe((0, operators_1.map)((request) => exports.UploadFileRequest.encode(request).finish()));
@@ -2341,6 +3385,21 @@ class FileStorageServiceClientImpl {
         const data = exports.GetFileInfoRequest.encode(request).finish();
         const promise = this.rpc.request(this.service, "GetFileInfo", data);
         return promise.then((data) => exports.FileInfo.decode(new wire_1.BinaryReader(data)));
+    }
+    ListFolder(request) {
+        const data = exports.ListFolderRequest.encode(request).finish();
+        const promise = this.rpc.request(this.service, "ListFolder", data);
+        return promise.then((data) => exports.ListFolderResponse.decode(new wire_1.BinaryReader(data)));
+    }
+    GetPathInfo(request) {
+        const data = exports.GetPathInfoRequest.encode(request).finish();
+        const promise = this.rpc.request(this.service, "GetPathInfo", data);
+        return promise.then((data) => exports.GetPathInfoResponse.decode(new wire_1.BinaryReader(data)));
+    }
+    ReadTextFile(request) {
+        const data = exports.ReadTextFileRequest.encode(request).finish();
+        const promise = this.rpc.request(this.service, "ReadTextFile", data);
+        return promise.then((data) => exports.ReadTextFileResponse.decode(new wire_1.BinaryReader(data)));
     }
 }
 exports.FileStorageServiceClientImpl = FileStorageServiceClientImpl;

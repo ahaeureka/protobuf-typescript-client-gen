@@ -15,3 +15,5 @@ export * from './sse-utils';
 export * from './websocket-message-utils';
 export { FileStorageClient } from './file_client';
 export type { FileInfo, UploadResponse, ListFilesResponse, UploadPartResult, ResumableUploadProgress, FileStorageClientOptions, } from './file_client';
+export { AssetBrowserClient } from './asset_browser_client';
+export type { AssetBrowserClientOptions, AssetCollection, AssetVersionSummary, AssetTreeEntry, AssetDiffSummary, AssetDiffEntry, ListCollectionsResult, ListTreeResult, ListVersionsResult, CreateDraftResult, EntryTextResult, SaveTextResult, DiffResult, DiffEntryDetailResult, PublishResult, ActivateResult, } from './asset_browser_client';

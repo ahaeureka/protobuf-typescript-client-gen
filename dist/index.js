@@ -39,7 +39,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FileStorageClient = exports.collectFingerprintComponents = exports.hashComponents = exports.AnonymousUserClient = exports.Audit = exports.ApiKey = exports.Authorization = exports.APIResponse = exports.Address = exports.User = exports.LogoutCallbackRequest = exports.LoginCallbackResponse = exports.LogoutRequest = exports.LoginRequest = exports.OpenIDConnectCallbackRequest = exports.AuthServiceClient = void 0;
+exports.AssetBrowserClient = exports.FileStorageClient = exports.collectFingerprintComponents = exports.hashComponents = exports.AnonymousUserClient = exports.Audit = exports.ApiKey = exports.Authorization = exports.APIResponse = exports.Address = exports.User = exports.LogoutCallbackRequest = exports.LoginCallbackResponse = exports.LogoutRequest = exports.LoginRequest = exports.OpenIDConnectCallbackRequest = exports.AuthServiceClient = void 0;
 // Main exports for the protobuf TypeScript client generator
 __exportStar(require("./plugin"), exports);
 // Re-export auth client which should be browser-safe
@@ -72,3 +72,6 @@ __exportStar(require("./websocket-message-utils"), exports);
 // File storage client
 var file_client_1 = require("./file_client");
 Object.defineProperty(exports, "FileStorageClient", { enumerable: true, get: function () { return file_client_1.FileStorageClient; } });
+// Asset browser client
+var asset_browser_client_1 = require("./asset_browser_client");
+Object.defineProperty(exports, "AssetBrowserClient", { enumerable: true, get: function () { return asset_browser_client_1.AssetBrowserClient; } });
