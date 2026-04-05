@@ -7,6 +7,24 @@ import type { AnonymousUserClientOptions } from './anonymous_client';
 // 浏览器环境检查
 const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
 
+function isWrappedHttpResponse(payload: unknown): payload is HttpResponse {
+    return Boolean(
+        payload
+        && typeof payload === 'object'
+        && 'code' in payload
+        && 'message' in payload
+        && 'data' in payload
+    );
+}
+
+function unwrapHttpResponseData<T>(payload: T | HttpResponse): T {
+    if (isWrappedHttpResponse(payload)) {
+        return (payload.data ?? {}) as T;
+    }
+
+    return payload as T;
+}
+
 /**
  * 用户更新请求
  */
@@ -180,13 +198,21 @@ export default class AuthServiceClient {
      */
     async getCurrentUser(): Promise<{ user: User; session_id: string; expires_at: number }> {
         try {
-            const response = await this.axiosInstance.get('/auth/me');
-            const data = response.data;
+            const response = await this.axiosInstance.get<HttpResponse | {
+                user?: unknown;
+                session_id?: string;
+                expires_at?: number;
+            }>('/auth/me');
+            const data = unwrapHttpResponseData<{
+                user?: unknown;
+                session_id?: string;
+                expires_at?: number;
+            }>(response.data);
 
             return {
-                user: User.fromJSON(data.user),
-                session_id: data.session_id,
-                expires_at: data.expires_at
+                user: User.fromJSON(data.user ?? {}),
+                session_id: data.session_id ?? '',
+                expires_at: data.expires_at ?? 0
             };
         } catch (error: any) {
             console.error('[AuthClient] Failed to get current user:', error);
@@ -267,11 +293,19 @@ export default class AuthServiceClient {
     async validateSession(): Promise<{ valid: boolean; user_id?: string; expires_at?: number }> {
         try {
             // 不传递 session_id，让服务端从 Cookie 中读取
-            const response = await this.axiosInstance.post('/auth/session/validate', {});
-            const data = response.data;
+            const response = await this.axiosInstance.post<HttpResponse | {
+                valid?: boolean;
+                user_id?: string;
+                expires_at?: number;
+            }>('/auth/session/validate', {});
+            const data = unwrapHttpResponseData<{
+                valid?: boolean;
+                user_id?: string;
+                expires_at?: number;
+            }>(response.data);
 
             return {
-                valid: data.valid,
+                valid: Boolean(data.valid),
                 user_id: data.user_id,
                 expires_at: data.expires_at
             };
@@ -293,12 +327,18 @@ export default class AuthServiceClient {
     async refreshToken(): Promise<{ access_token: string; expires_in: number }> {
         try {
             // 不传递 session_id，让服务端从 Cookie 中读取
-            const response = await this.axiosInstance.post('/auth/token/refresh', {});
-            const data = response.data;
+            const response = await this.axiosInstance.post<HttpResponse | {
+                access_token?: string;
+                expires_in?: number;
+            }>('/auth/token/refresh', {});
+            const data = unwrapHttpResponseData<{
+                access_token?: string;
+                expires_in?: number;
+            }>(response.data);
 
             return {
-                access_token: data.access_token,
-                expires_in: data.expires_in
+                access_token: data.access_token ?? '',
+                expires_in: data.expires_in ?? 0
             };
         } catch (error: any) {
             console.error('[AuthClient] Failed to refresh token:', error);
