@@ -221,10 +221,13 @@ const client = new AssetBrowserClient({
 
 const tree = await client.listTree('configs', 'gateway-routing', {
   versionId: 'v20260401',
-  folder: '/templates',
+  folder: '/',
 });
 
 console.log(tree.entries.map((entry) => entry.path));
+
+// folder: '/' returns the flattened subtree for the whole version.
+// Non-root folders keep direct-child semantics.
 
 const exported = await client.downloadEntry('configs', 'gateway-routing', {
   versionId: 'v20260401',
@@ -239,6 +242,12 @@ console.log(exported.filename, exported.contentType, exported.blob.size);
 - 使用 camelCase 参数与返回值，适合前端业务代码直接调用
 - 下载接口返回浏览器友好的 `Blob`
 - 与 `stew-asset-browser-react` 的 `AssetBrowserWorkspace` 直接兼容
+
+版本字段语义：
+
+- `versionId`、`activeVersionId`、`draftVersionId`、`baseVersionId` 都是业务版本号，对应 `asset_versions.version_id`
+- SDK 返回值不会暴露内部数据库 UUID
+- 网关请求参数仍兼容传入内部 UUID，但新代码应始终使用业务版本号
 
 #### 低层生成式导出入口
 

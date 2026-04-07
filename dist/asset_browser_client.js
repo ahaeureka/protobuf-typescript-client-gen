@@ -150,6 +150,9 @@ function unwrap(payload) {
  * Provides a developer-friendly API over the auto-generated REST endpoints,
  * with camelCase normalization, typed responses, and convenience helpers like
  * `saveAndDiffDraft`.
+ *
+ * All public version-related fields and parameters use the business version
+ * identifier from `asset_versions.version_id`.
  */
 class AssetBrowserClient {
     constructor(options) {

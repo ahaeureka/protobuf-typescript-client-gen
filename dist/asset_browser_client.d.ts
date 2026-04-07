@@ -10,6 +10,15 @@ export type AssetVersionStatus = 'draft' | 'ready' | 'archived' | 'failed';
 export type AssetChangeType = 'added' | 'removed' | 'modified' | 'renamed' | 'type_changed';
 /** Entry kind: file or directory. */
 export type AssetEntryKind = 'file' | 'directory';
+/**
+ * Public version identifier used by the asset browser APIs.
+ *
+ * This maps to `asset_versions.version_id` instead of the internal database
+ * UUID. Request parameters also accept the internal UUID temporarily for
+ * backward compatibility, but SDK responses always normalize to the business
+ * version ID.
+ */
+export type AssetVersionId = string;
 export interface AssetCollection {
     assetSpace: string;
     assetId: string;
@@ -17,8 +26,8 @@ export interface AssetCollection {
     description: string;
     scopeKind: AssetScopeKind;
     scopeValue: string;
-    activeVersionId: string;
-    draftVersionId: string;
+    activeVersionId: AssetVersionId;
+    draftVersionId: AssetVersionId;
     hasDraft: boolean;
     totalVersions: number;
     createdAt: string;
@@ -27,14 +36,14 @@ export interface AssetCollection {
 export interface AssetVersionSummary {
     assetSpace: string;
     assetId: string;
-    versionId: string;
+    versionId: AssetVersionId;
     status: AssetVersionStatus;
     description: string;
     createdBy: string;
     createdAt: string;
     isActive: boolean;
     isDraft: boolean;
-    baseVersionId: string;
+    baseVersionId: AssetVersionId;
     versionHash: string;
     entryCount: number;
     totalBytes: number;
@@ -87,15 +96,15 @@ export interface ListTreeResult {
 export interface ListVersionsResult {
     collection: AssetCollection;
     versions: AssetVersionSummary[];
-    activeVersionId: string;
-    draftVersionId: string;
+    activeVersionId: AssetVersionId;
+    draftVersionId: AssetVersionId;
 }
 export interface CreateDraftResult {
     collection: AssetCollection;
     draftVersion: AssetVersionSummary;
 }
 export interface EntryTextResult {
-    versionId: string;
+    versionId: AssetVersionId;
     text: string;
     contentType: string;
     checksum: string;
@@ -106,7 +115,7 @@ export interface EntryTextResult {
     languageHint: string;
 }
 export interface SaveTextResult {
-    draftVersionId: string;
+    draftVersionId: AssetVersionId;
     fileId: string;
     checksum: string;
     sizeBytes: number;
@@ -134,11 +143,11 @@ export interface DiffEntryDetailResult {
 export interface PublishResult {
     collection: AssetCollection;
     publishedVersion: AssetVersionSummary;
-    activeVersionId: string;
+    activeVersionId: AssetVersionId;
 }
 export interface ActivateResult {
     collection: AssetCollection;
-    activeVersionId: string;
+    activeVersionId: AssetVersionId;
     activeVersion: AssetVersionSummary;
 }
 export interface DownloadEntryResult {
@@ -152,6 +161,9 @@ export interface DownloadEntryResult {
  * Provides a developer-friendly API over the auto-generated REST endpoints,
  * with camelCase normalization, typed responses, and convenience helpers like
  * `saveAndDiffDraft`.
+ *
+ * All public version-related fields and parameters use the business version
+ * identifier from `asset_versions.version_id`.
  */
 export declare class AssetBrowserClient {
     private http;
@@ -164,7 +176,7 @@ export declare class AssetBrowserClient {
     }): Promise<ListCollectionsResult>;
     getCollection(assetSpace: string, assetId: string): Promise<AssetCollection>;
     listTree(assetSpace: string, assetId: string, params?: {
-        versionId?: string;
+        versionId?: AssetVersionId;
         folder?: string;
         pageSize?: number;
         pageToken?: string;
@@ -174,54 +186,54 @@ export declare class AssetBrowserClient {
     listVersions(assetSpace: string, assetId: string, params?: {
         includeArchived?: boolean;
     }): Promise<ListVersionsResult>;
-    getVersion(assetSpace: string, assetId: string, versionId: string): Promise<{
+    getVersion(assetSpace: string, assetId: string, versionId: AssetVersionId): Promise<{
         collection: AssetCollection;
         version: AssetVersionSummary;
     }>;
     createDraft(assetSpace: string, assetId: string, params?: {
-        baseVersionId?: string;
-        draftVersionId?: string;
+        baseVersionId?: AssetVersionId;
+        draftVersionId?: AssetVersionId;
         description?: string;
     }): Promise<CreateDraftResult>;
-    discardDraft(assetSpace: string, assetId: string, draftVersionId: string): Promise<void>;
-    publishDraft(assetSpace: string, assetId: string, draftVersionId: string, params?: {
-        versionId?: string;
+    discardDraft(assetSpace: string, assetId: string, draftVersionId: AssetVersionId): Promise<void>;
+    publishDraft(assetSpace: string, assetId: string, draftVersionId: AssetVersionId, params?: {
+        versionId?: AssetVersionId;
         description?: string;
     }): Promise<PublishResult>;
-    getEntryText(assetSpace: string, assetId: string, versionId: string, path: string): Promise<EntryTextResult>;
+    getEntryText(assetSpace: string, assetId: string, versionId: AssetVersionId, path: string): Promise<EntryTextResult>;
     saveDraftText(assetSpace: string, assetId: string, params: {
-        draftVersionId: string;
+        draftVersionId: AssetVersionId;
         path: string;
         text: string;
         contentType?: string;
         expectedEntryRevision?: number;
     }): Promise<SaveTextResult>;
     renameDraftEntry(assetSpace: string, assetId: string, params: {
-        draftVersionId: string;
+        draftVersionId: AssetVersionId;
         path: string;
         newPath: string;
     }): Promise<{
         oldPath: string;
     }>;
     deleteDraftEntry(assetSpace: string, assetId: string, params: {
-        draftVersionId: string;
+        draftVersionId: AssetVersionId;
         path: string;
     }): Promise<{
         deletedPath: string;
     }>;
-    diffVersions(assetSpace: string, assetId: string, leftVersionId: string, rightVersionId: string, params?: {
+    diffVersions(assetSpace: string, assetId: string, leftVersionId: AssetVersionId, rightVersionId: AssetVersionId, params?: {
         pageSize?: number;
         pageToken?: string;
     }): Promise<DiffResult>;
-    diffDraft(assetSpace: string, assetId: string, draftVersionId: string, params?: {
-        baseVersionId?: string;
+    diffDraft(assetSpace: string, assetId: string, draftVersionId: AssetVersionId, params?: {
+        baseVersionId?: AssetVersionId;
         pageSize?: number;
         pageToken?: string;
     }): Promise<DiffResult>;
-    getDiffEntryDetail(assetSpace: string, assetId: string, leftVersionId: string, rightVersionId: string, path: string): Promise<DiffEntryDetailResult>;
-    activateVersion(assetSpace: string, assetId: string, targetVersionId: string): Promise<ActivateResult>;
+    getDiffEntryDetail(assetSpace: string, assetId: string, leftVersionId: AssetVersionId, rightVersionId: AssetVersionId, path: string): Promise<DiffEntryDetailResult>;
+    activateVersion(assetSpace: string, assetId: string, targetVersionId: AssetVersionId): Promise<ActivateResult>;
     downloadEntry(assetSpace: string, assetId: string, params?: {
-        versionId?: string;
+        versionId?: AssetVersionId;
         path?: string;
     }): Promise<DownloadEntryResult>;
     /**
@@ -229,7 +241,7 @@ export declare class AssetBrowserClient {
      * base version.  Useful for implementing "save-and-preview" workflows.
      */
     saveAndDiffDraft(assetSpace: string, assetId: string, params: {
-        draftVersionId: string;
+        draftVersionId: AssetVersionId;
         path: string;
         text: string;
         contentType?: string;

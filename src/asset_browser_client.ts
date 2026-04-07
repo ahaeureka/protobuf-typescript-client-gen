@@ -21,6 +21,16 @@ export type AssetChangeType = 'added' | 'removed' | 'modified' | 'renamed' | 'ty
 /** Entry kind: file or directory. */
 export type AssetEntryKind = 'file' | 'directory';
 
+/**
+ * Public version identifier used by the asset browser APIs.
+ *
+ * This maps to `asset_versions.version_id` instead of the internal database
+ * UUID. Request parameters also accept the internal UUID temporarily for
+ * backward compatibility, but SDK responses always normalize to the business
+ * version ID.
+ */
+export type AssetVersionId = string;
+
 export interface AssetCollection {
     assetSpace: string;
     assetId: string;
@@ -28,8 +38,8 @@ export interface AssetCollection {
     description: string;
     scopeKind: AssetScopeKind;
     scopeValue: string;
-    activeVersionId: string;
-    draftVersionId: string;
+    activeVersionId: AssetVersionId;
+    draftVersionId: AssetVersionId;
     hasDraft: boolean;
     totalVersions: number;
     createdAt: string;
@@ -39,14 +49,14 @@ export interface AssetCollection {
 export interface AssetVersionSummary {
     assetSpace: string;
     assetId: string;
-    versionId: string;
+    versionId: AssetVersionId;
     status: AssetVersionStatus;
     description: string;
     createdBy: string;
     createdAt: string;
     isActive: boolean;
     isDraft: boolean;
-    baseVersionId: string;
+    baseVersionId: AssetVersionId;
     versionHash: string;
     entryCount: number;
     totalBytes: number;
@@ -109,8 +119,8 @@ export interface ListTreeResult {
 export interface ListVersionsResult {
     collection: AssetCollection;
     versions: AssetVersionSummary[];
-    activeVersionId: string;
-    draftVersionId: string;
+    activeVersionId: AssetVersionId;
+    draftVersionId: AssetVersionId;
 }
 
 export interface CreateDraftResult {
@@ -119,7 +129,7 @@ export interface CreateDraftResult {
 }
 
 export interface EntryTextResult {
-    versionId: string;
+    versionId: AssetVersionId;
     text: string;
     contentType: string;
     checksum: string;
@@ -131,7 +141,7 @@ export interface EntryTextResult {
 }
 
 export interface SaveTextResult {
-    draftVersionId: string;
+    draftVersionId: AssetVersionId;
     fileId: string;
     checksum: string;
     sizeBytes: number;
@@ -162,12 +172,12 @@ export interface DiffEntryDetailResult {
 export interface PublishResult {
     collection: AssetCollection;
     publishedVersion: AssetVersionSummary;
-    activeVersionId: string;
+    activeVersionId: AssetVersionId;
 }
 
 export interface ActivateResult {
     collection: AssetCollection;
-    activeVersionId: string;
+    activeVersionId: AssetVersionId;
     activeVersion: AssetVersionSummary;
 }
 
@@ -341,6 +351,9 @@ function unwrap<T>(payload: unknown): T {
  * Provides a developer-friendly API over the auto-generated REST endpoints,
  * with camelCase normalization, typed responses, and convenience helpers like
  * `saveAndDiffDraft`.
+ *
+ * All public version-related fields and parameters use the business version
+ * identifier from `asset_versions.version_id`.
  */
 export class AssetBrowserClient {
     private http: AxiosInstance;
@@ -406,7 +419,7 @@ export class AssetBrowserClient {
         assetSpace: string,
         assetId: string,
         params?: {
-            versionId?: string;
+            versionId?: AssetVersionId;
             folder?: string;
             pageSize?: number;
             pageToken?: string;
@@ -464,7 +477,7 @@ export class AssetBrowserClient {
     async getVersion(
         assetSpace: string,
         assetId: string,
-        versionId: string,
+        versionId: AssetVersionId,
     ): Promise<{ collection: AssetCollection; version: AssetVersionSummary }> {
         const { data } = await this.http.get(
             `/api/v1/assets/${enc(assetSpace)}/${enc(assetId)}/versions/${enc(versionId)}`,
@@ -482,8 +495,8 @@ export class AssetBrowserClient {
         assetSpace: string,
         assetId: string,
         params?: {
-            baseVersionId?: string;
-            draftVersionId?: string;
+            baseVersionId?: AssetVersionId;
+            draftVersionId?: AssetVersionId;
             description?: string;
         },
     ): Promise<CreateDraftResult> {
@@ -507,7 +520,7 @@ export class AssetBrowserClient {
     async discardDraft(
         assetSpace: string,
         assetId: string,
-        draftVersionId: string,
+        draftVersionId: AssetVersionId,
     ): Promise<void> {
         await this.http.post(
             `/api/v1/assets/${enc(assetSpace)}/${enc(assetId)}:discardDraft`,
@@ -522,8 +535,8 @@ export class AssetBrowserClient {
     async publishDraft(
         assetSpace: string,
         assetId: string,
-        draftVersionId: string,
-        params?: { versionId?: string; description?: string },
+        draftVersionId: AssetVersionId,
+        params?: { versionId?: AssetVersionId; description?: string },
     ): Promise<PublishResult> {
         const { data } = await this.http.post(
             `/api/v1/assets/${enc(assetSpace)}/${enc(assetId)}:publishDraft`,
@@ -548,7 +561,7 @@ export class AssetBrowserClient {
     async getEntryText(
         assetSpace: string,
         assetId: string,
-        versionId: string,
+        versionId: AssetVersionId,
         path: string,
     ): Promise<EntryTextResult> {
         const { data } = await this.http.post(
@@ -578,7 +591,7 @@ export class AssetBrowserClient {
         assetSpace: string,
         assetId: string,
         params: {
-            draftVersionId: string;
+            draftVersionId: AssetVersionId;
             path: string;
             text: string;
             contentType?: string;
@@ -612,7 +625,7 @@ export class AssetBrowserClient {
         assetSpace: string,
         assetId: string,
         params: {
-            draftVersionId: string;
+            draftVersionId: AssetVersionId;
             path: string;
             newPath: string;
         },
@@ -635,7 +648,7 @@ export class AssetBrowserClient {
         assetSpace: string,
         assetId: string,
         params: {
-            draftVersionId: string;
+            draftVersionId: AssetVersionId;
             path: string;
         },
     ): Promise<{ deletedPath: string }> {
@@ -657,8 +670,8 @@ export class AssetBrowserClient {
     async diffVersions(
         assetSpace: string,
         assetId: string,
-        leftVersionId: string,
-        rightVersionId: string,
+        leftVersionId: AssetVersionId,
+        rightVersionId: AssetVersionId,
         params?: { pageSize?: number; pageToken?: string },
     ): Promise<DiffResult> {
         const { data } = await this.http.post(
@@ -678,9 +691,9 @@ export class AssetBrowserClient {
     async diffDraft(
         assetSpace: string,
         assetId: string,
-        draftVersionId: string,
+        draftVersionId: AssetVersionId,
         params?: {
-            baseVersionId?: string;
+            baseVersionId?: AssetVersionId;
             pageSize?: number;
             pageToken?: string;
         },
@@ -702,8 +715,8 @@ export class AssetBrowserClient {
     async getDiffEntryDetail(
         assetSpace: string,
         assetId: string,
-        leftVersionId: string,
-        rightVersionId: string,
+        leftVersionId: AssetVersionId,
+        rightVersionId: AssetVersionId,
         path: string,
     ): Promise<DiffEntryDetailResult> {
         const { data } = await this.http.post(
@@ -731,7 +744,7 @@ export class AssetBrowserClient {
     async activateVersion(
         assetSpace: string,
         assetId: string,
-        targetVersionId: string,
+        targetVersionId: AssetVersionId,
     ): Promise<ActivateResult> {
         const { data } = await this.http.post(
             `/api/v1/assets/${enc(assetSpace)}/${enc(assetId)}:activateVersion`,
@@ -753,7 +766,7 @@ export class AssetBrowserClient {
         assetSpace: string,
         assetId: string,
         params?: {
-            versionId?: string;
+            versionId?: AssetVersionId;
             path?: string;
         },
     ): Promise<DownloadEntryResult> {
@@ -794,7 +807,7 @@ export class AssetBrowserClient {
         assetSpace: string,
         assetId: string,
         params: {
-            draftVersionId: string;
+            draftVersionId: AssetVersionId;
             path: string;
             text: string;
             contentType?: string;
