@@ -10,6 +10,10 @@ export type AssetVersionStatus = 'draft' | 'ready' | 'archived' | 'failed';
 export type AssetChangeType = 'added' | 'removed' | 'modified' | 'renamed' | 'type_changed';
 /** Entry kind: file or directory. */
 export type AssetEntryKind = 'file' | 'directory';
+/** Diff payload mode. */
+export type AssetDiffMode = 'structure_only' | 'with_text';
+/** Text diff rendering status. */
+export type AssetTextDiffStatus = 'not_requested' | 'ready' | 'binary' | 'too_large' | 'lossy' | 'error';
 /**
  * Public version identifier used by the asset browser APIs.
  *
@@ -49,6 +53,12 @@ export interface AssetVersionSummary {
     totalBytes: number;
     manifestPath: string;
 }
+export interface AssetVersionDetailResult {
+    collection: AssetCollection;
+    version: AssetVersionSummary;
+    baseVersion?: AssetVersionSummary;
+    draftDiffSummary?: AssetDiffSummary;
+}
 export interface AssetTreeEntry {
     entryKind: AssetEntryKind;
     path: string;
@@ -58,6 +68,7 @@ export interface AssetTreeEntry {
     contentType: string;
     sizeBytes: number;
     checksum: string;
+    hasChildren: boolean;
     isTextPreviewable: boolean;
     languageHint: string;
     entryRevision: number;
@@ -71,14 +82,28 @@ export interface AssetDiffSummary {
     modifiedCount: number;
     renamedCount: number;
     typeChangedCount: number;
+    textDiffCount: number;
+    binaryChangeCount: number;
 }
 export interface AssetDiffEntry {
     path: string;
+    oldPath: string;
     changeType: AssetChangeType;
+    oldEntryKind: AssetEntryKind | '';
+    newEntryKind: AssetEntryKind | '';
+    oldFileId: string;
+    newFileId: string;
     oldChecksum: string;
     newChecksum: string;
     oldSizeBytes: number;
     newSizeBytes: number;
+    isText: boolean;
+    languageHint: string;
+    textDiffStatus: AssetTextDiffStatus;
+    unifiedDiff: string;
+    diffTruncated: boolean;
+    oldPreview: string;
+    newPreview: string;
     diffDetailAvailable: boolean;
 }
 export interface ListCollectionsResult {
@@ -175,6 +200,12 @@ export declare class AssetBrowserClient {
         pageToken?: string;
     }): Promise<ListCollectionsResult>;
     getCollection(assetSpace: string, assetId: string): Promise<AssetCollection>;
+    ensureCollection(assetSpace: string, assetId: string, params?: {
+        scopeKind?: AssetScopeKind;
+        scopeValue?: string;
+        displayName?: string;
+        description?: string;
+    }): Promise<AssetCollection>;
     listTree(assetSpace: string, assetId: string, params?: {
         versionId?: AssetVersionId;
         folder?: string;
@@ -186,10 +217,7 @@ export declare class AssetBrowserClient {
     listVersions(assetSpace: string, assetId: string, params?: {
         includeArchived?: boolean;
     }): Promise<ListVersionsResult>;
-    getVersion(assetSpace: string, assetId: string, versionId: AssetVersionId): Promise<{
-        collection: AssetCollection;
-        version: AssetVersionSummary;
-    }>;
+    getVersion(assetSpace: string, assetId: string, versionId: AssetVersionId): Promise<AssetVersionDetailResult>;
     createDraft(assetSpace: string, assetId: string, params?: {
         baseVersionId?: AssetVersionId;
         draftVersionId?: AssetVersionId;
@@ -222,15 +250,21 @@ export declare class AssetBrowserClient {
         deletedPath: string;
     }>;
     diffVersions(assetSpace: string, assetId: string, leftVersionId: AssetVersionId, rightVersionId: AssetVersionId, params?: {
+        diffMode?: AssetDiffMode;
+        pathPrefix?: string;
         pageSize?: number;
         pageToken?: string;
     }): Promise<DiffResult>;
     diffDraft(assetSpace: string, assetId: string, draftVersionId: AssetVersionId, params?: {
         baseVersionId?: AssetVersionId;
+        diffMode?: AssetDiffMode;
+        pathPrefix?: string;
         pageSize?: number;
         pageToken?: string;
     }): Promise<DiffResult>;
-    getDiffEntryDetail(assetSpace: string, assetId: string, leftVersionId: AssetVersionId, rightVersionId: AssetVersionId, path: string): Promise<DiffEntryDetailResult>;
+    getDiffEntryDetail(assetSpace: string, assetId: string, leftVersionId: AssetVersionId, rightVersionId: AssetVersionId, path: string, params?: {
+        diffMode?: AssetDiffMode;
+    }): Promise<DiffEntryDetailResult>;
     activateVersion(assetSpace: string, assetId: string, targetVersionId: AssetVersionId): Promise<ActivateResult>;
     downloadEntry(assetSpace: string, assetId: string, params?: {
         versionId?: AssetVersionId;

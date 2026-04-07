@@ -37,6 +37,126 @@ function bool(source, ...keys) {
     }
     return false;
 }
+function enumValue(source, ...keys) {
+    for (const k of keys) {
+        const value = source[k];
+        if (typeof value === 'string' || typeof value === 'number') {
+            return value;
+        }
+    }
+    return undefined;
+}
+function normalizeScopeKindValue(value) {
+    if (typeof value === 'number') {
+        if (value === 1)
+            return 'user';
+        if (value === 2)
+            return 'service';
+        if (value === 3)
+            return 'tenant';
+        if (value === 4)
+            return 'global';
+        return 'service';
+    }
+    const normalized = (value || '').toLowerCase();
+    if (normalized.includes('user'))
+        return 'user';
+    if (normalized.includes('tenant'))
+        return 'tenant';
+    if (normalized.includes('global'))
+        return 'global';
+    return 'service';
+}
+function normalizeVersionStatusValue(value) {
+    if (typeof value === 'number') {
+        if (value === 2)
+            return 'ready';
+        if (value === 3)
+            return 'archived';
+        if (value === 4)
+            return 'failed';
+        return 'draft';
+    }
+    const normalized = (value || '').toLowerCase();
+    if (normalized.includes('ready'))
+        return 'ready';
+    if (normalized.includes('archived'))
+        return 'archived';
+    if (normalized.includes('failed'))
+        return 'failed';
+    return 'draft';
+}
+function normalizeEntryKindValue(value) {
+    if (typeof value === 'number') {
+        return value === 2 ? 'directory' : 'file';
+    }
+    const normalized = (value || '').toLowerCase();
+    if (normalized.includes('directory'))
+        return 'directory';
+    return 'file';
+}
+function normalizeChangeTypeValue(value) {
+    if (typeof value === 'number') {
+        if (value === 1)
+            return 'added';
+        if (value === 2)
+            return 'removed';
+        if (value === 3)
+            return 'modified';
+        if (value === 4)
+            return 'renamed';
+        if (value === 5)
+            return 'type_changed';
+        return 'modified';
+    }
+    const normalized = (value || '').toLowerCase();
+    if (normalized.includes('added'))
+        return 'added';
+    if (normalized.includes('removed'))
+        return 'removed';
+    if (normalized.includes('renamed'))
+        return 'renamed';
+    if (normalized.includes('type_changed') || normalized.includes('typechanged')) {
+        return 'type_changed';
+    }
+    return 'modified';
+}
+function normalizeDiffModeValue(value) {
+    if (typeof value === 'number') {
+        return value === 1 ? 'structure_only' : 'with_text';
+    }
+    const normalized = (value || '').toLowerCase();
+    return normalized.includes('structure_only') || normalized.includes('structureonly')
+        ? 'structure_only'
+        : 'with_text';
+}
+function normalizeTextDiffStatusValue(value) {
+    if (typeof value === 'number') {
+        if (value === 2)
+            return 'ready';
+        if (value === 3)
+            return 'binary';
+        if (value === 4)
+            return 'too_large';
+        if (value === 5)
+            return 'lossy';
+        if (value === 6)
+            return 'error';
+        return 'not_requested';
+    }
+    const normalized = (value || '').toLowerCase();
+    if (normalized.includes('ready'))
+        return 'ready';
+    if (normalized.includes('binary'))
+        return 'binary';
+    if (normalized.includes('too_large') || normalized.includes('toolarge'))
+        return 'too_large';
+    if (normalized.includes('lossy'))
+        return 'lossy';
+    if (normalized.includes('error'))
+        return 'error';
+    return 'not_requested';
+}
 function normalizeCollection(raw) {
     const s = rec(raw);
     return {
@@ -44,7 +164,7 @@ function normalizeCollection(raw) {
         assetId: str(s, 'assetId', 'asset_id'),
         displayName: str(s, 'displayName', 'display_name'),
         description: str(s, 'description'),
-        scopeKind: str(s, 'scopeKind', 'scope_kind') || 'user',
+        scopeKind: normalizeScopeKindValue(enumValue(s, 'scopeKind', 'scope_kind')),
         scopeValue: str(s, 'scopeValue', 'scope_value'),
         activeVersionId: str(s, 'activeVersionId', 'active_version_id'),
         draftVersionId: str(s, 'draftVersionId', 'draft_version_id'),
@@ -60,7 +180,7 @@ function normalizeVersion(raw) {
         assetSpace: str(s, 'assetSpace', 'asset_space'),
         assetId: str(s, 'assetId', 'asset_id'),
         versionId: str(s, 'versionId', 'version_id'),
-        status: (str(s, 'status') || 'draft'),
+        status: normalizeVersionStatusValue(enumValue(s, 'status')),
         description: str(s, 'description'),
         createdBy: str(s, 'createdBy', 'created_by'),
         createdAt: str(s, 'createdAt', 'created_at'),
@@ -76,7 +196,7 @@ function normalizeVersion(raw) {
 function normalizeEntry(raw) {
     const s = rec(raw);
     return {
-        entryKind: (str(s, 'entryKind', 'entry_kind') || 'file'),
+        entryKind: normalizeEntryKindValue(enumValue(s, 'entryKind', 'entry_kind')),
         path: str(s, 'path'),
         parentPath: str(s, 'parentPath', 'parent_path'),
         name: str(s, 'name'),
@@ -84,6 +204,7 @@ function normalizeEntry(raw) {
         contentType: str(s, 'contentType', 'content_type'),
         sizeBytes: num(s, 'sizeBytes', 'size_bytes'),
         checksum: str(s, 'checksum'),
+        hasChildren: bool(s, 'hasChildren', 'has_children'),
         isTextPreviewable: bool(s, 'isTextPreviewable', 'is_text_previewable'),
         languageHint: str(s, 'languageHint', 'language_hint'),
         entryRevision: num(s, 'entryRevision', 'entry_revision'),
@@ -95,13 +216,31 @@ function normalizeDiffEntry(raw) {
     const s = rec(raw);
     return {
         path: str(s, 'path'),
-        changeType: (str(s, 'changeType', 'change_type') || 'modified'),
+        oldPath: str(s, 'oldPath', 'old_path'),
+        changeType: normalizeChangeTypeValue(enumValue(s, 'changeType', 'change_type')),
+        oldEntryKind: normalizeOptionalEntryKindValue(enumValue(s, 'oldEntryKind', 'old_entry_kind')),
+        newEntryKind: normalizeOptionalEntryKindValue(enumValue(s, 'newEntryKind', 'new_entry_kind')),
+        oldFileId: str(s, 'oldFileId', 'old_file_id'),
+        newFileId: str(s, 'newFileId', 'new_file_id'),
         oldChecksum: str(s, 'oldChecksum', 'old_checksum'),
         newChecksum: str(s, 'newChecksum', 'new_checksum'),
         oldSizeBytes: num(s, 'oldSizeBytes', 'old_size_bytes'),
         newSizeBytes: num(s, 'newSizeBytes', 'new_size_bytes'),
+        isText: bool(s, 'isText', 'is_text'),
+        languageHint: str(s, 'languageHint', 'language_hint'),
+        textDiffStatus: normalizeTextDiffStatusValue(enumValue(s, 'textDiffStatus', 'text_diff_status')),
+        unifiedDiff: str(s, 'unifiedDiff', 'unified_diff'),
+        diffTruncated: bool(s, 'diffTruncated', 'diff_truncated'),
+        oldPreview: str(s, 'oldPreview', 'old_preview'),
+        newPreview: str(s, 'newPreview', 'new_preview'),
         diffDetailAvailable: bool(s, 'diffDetailAvailable', 'diff_detail_available'),
     };
+}
+function normalizeOptionalEntryKindValue(value) {
+    if (value === undefined || value === '' || value === 0 || value === 'ASSET_ENTRY_KIND_UNSPECIFIED') {
+        return '';
+    }
+    return normalizeEntryKindValue(value);
 }
 function normalizeSummary(raw) {
     const s = rec(raw);
@@ -112,6 +251,8 @@ function normalizeSummary(raw) {
         modifiedCount: num(s, 'modifiedCount', 'modified_count'),
         renamedCount: num(s, 'renamedCount', 'renamed_count'),
         typeChangedCount: num(s, 'typeChangedCount', 'type_changed_count'),
+        textDiffCount: num(s, 'textDiffCount', 'text_diff_count'),
+        binaryChangeCount: num(s, 'binaryChangeCount', 'binary_change_count'),
     };
 }
 function parseContentDispositionFilename(header, fallback) {
@@ -194,6 +335,17 @@ class AssetBrowserClient {
         const { data } = await this.http.get(`/api/v1/assets/${enc(assetSpace)}/${enc(assetId)}`);
         return normalizeCollection(unwrap(data));
     }
+    async ensureCollection(assetSpace, assetId, params) {
+        const { data } = await this.http.post('/api/v1/assets:ensure', {
+            asset_space: assetSpace,
+            asset_id: assetId,
+            scope_kind: params?.scopeKind ? `ASSET_SCOPE_KIND_${params.scopeKind.toUpperCase()}` : undefined,
+            scope_value: params?.scopeValue,
+            display_name: params?.displayName,
+            description: params?.description,
+        });
+        return normalizeCollection(unwrap(data));
+    }
     // ===== Tree =====
     async listTree(assetSpace, assetId, params) {
         const { data } = await this.http.get(`/api/v1/assets/${enc(assetSpace)}/${enc(assetId)}/tree`, {
@@ -236,6 +388,12 @@ class AssetBrowserClient {
         return {
             collection: normalizeCollection(d.collection),
             version: normalizeVersion(d.version),
+            baseVersion: d.baseVersion || d.base_version
+                ? normalizeVersion(d.baseVersion ?? d.base_version)
+                : undefined,
+            draftDiffSummary: d.draftDiffSummary || d.draft_diff_summary
+                ? normalizeSummary(d.draftDiffSummary ?? d.draft_diff_summary)
+                : undefined,
         };
     }
     // ===== Draft lifecycle =====
@@ -344,6 +502,8 @@ class AssetBrowserClient {
             asset_id: assetId,
             left_version_id: leftVersionId,
             right_version_id: rightVersionId,
+            diff_mode: params?.diffMode ? toProtoDiffMode(params.diffMode) : undefined,
+            path_prefix: params?.pathPrefix,
             page_size: params?.pageSize,
             page_token: params?.pageToken,
         });
@@ -355,18 +515,21 @@ class AssetBrowserClient {
             asset_id: assetId,
             draft_version_id: draftVersionId,
             base_version_id: params?.baseVersionId,
+            diff_mode: params?.diffMode ? toProtoDiffMode(params.diffMode) : undefined,
+            path_prefix: params?.pathPrefix,
             page_size: params?.pageSize,
             page_token: params?.pageToken,
         });
         return this.parseDiffResponse(data);
     }
-    async getDiffEntryDetail(assetSpace, assetId, leftVersionId, rightVersionId, path) {
+    async getDiffEntryDetail(assetSpace, assetId, leftVersionId, rightVersionId, path, params) {
         const { data } = await this.http.post(`/api/v1/assets/${enc(assetSpace)}/${enc(assetId)}:getDiffEntry`, {
             asset_space: assetSpace,
             asset_id: assetId,
             left_version_id: leftVersionId,
             right_version_id: rightVersionId,
             path,
+            diff_mode: params?.diffMode ? toProtoDiffMode(params.diffMode) : undefined,
         });
         const d = rec(unwrap(data));
         return {
@@ -461,6 +624,11 @@ class AssetBrowserClient {
     }
 }
 exports.AssetBrowserClient = AssetBrowserClient;
+function toProtoDiffMode(mode) {
+    return mode === 'structure_only'
+        ? 'ASSET_DIFF_MODE_STRUCTURE_ONLY'
+        : 'ASSET_DIFF_MODE_WITH_TEXT';
+}
 function enc(v) {
     return encodeURIComponent(v);
 }

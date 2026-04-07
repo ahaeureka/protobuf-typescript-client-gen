@@ -212,7 +212,7 @@ const { access_token } = await authClient.refreshToken();
 #### 高层客户端
 
 ```typescript
-import { AssetBrowserClient } from 'protobuf-typescript-client-gen';
+import { AssetBrowserClient } from 'protobuf-typescript-client-gen/dist/asset_browser_client';
 
 const client = new AssetBrowserClient({
   baseUrl: window.location.origin,
@@ -243,11 +243,94 @@ console.log(exported.filename, exported.contentType, exported.blob.size);
 - 下载接口返回浏览器友好的 `Blob`
 - 与 `stew-asset-browser-react` 的 `AssetBrowserWorkspace` 直接兼容
 
+浏览器端导入约束：
+
+- 前端页面、React Client Component、Vite 页面中，优先使用深路径导入：`protobuf-typescript-client-gen/dist/asset_browser_client`
+- 不要在浏览器端直接从包根导入整个 SDK；包根会带出插件侧导出，某些前端构建链会把 Node 依赖一起扫描进去
+- 包根导出更适合服务端脚本、Node 工具或直接消费低层生成客户端的场景
+
 版本字段语义：
 
 - `versionId`、`activeVersionId`、`draftVersionId`、`baseVersionId` 都是业务版本号，对应 `asset_versions.version_id`
 - SDK 返回值不会暴露内部数据库 UUID
 - 网关请求参数仍兼容传入内部 UUID，但新代码应始终使用业务版本号
+
+### 高层客户端与当前后端接口对齐关系
+
+当前 README 以下内容按已经落地的后端实现编写，而不是只按 proto 草案描述。
+
+已在高层 `AssetBrowserClient` 中封装的接口：
+
+- `listCollections()` 对应 `GET /api/v1/assets`
+- `getCollection()` 对应 `GET /api/v1/assets/{asset_space}/{asset_id}`
+- `ensureCollection()` 对应 `POST /api/v1/assets:ensure`
+- `listTree()` 对应 `GET /api/v1/assets/{asset_space}/{asset_id}/tree`
+- `listVersions()` 对应 `GET /api/v1/assets/{asset_space}/{asset_id}/versions`
+- `getVersion()` 对应 `GET /api/v1/assets/{asset_space}/{asset_id}/versions/{version_id}`
+- `createDraft()` 对应 `POST /api/v1/assets/{asset_space}/{asset_id}:createDraft`
+- `discardDraft()` 对应 `POST /api/v1/assets/{asset_space}/{asset_id}:discardDraft`
+- `getEntryText()` 对应 `POST /api/v1/assets/{asset_space}/{asset_id}:getEntryText`
+- `saveDraftText()` 对应 `POST /api/v1/assets/{asset_space}/{asset_id}:saveDraftText`
+- `renameDraftEntry()` 对应 `POST /api/v1/assets/{asset_space}/{asset_id}:renameDraftEntry`
+- `deleteDraftEntry()` 对应 `POST /api/v1/assets/{asset_space}/{asset_id}:deleteDraftEntry`
+- `diffVersions()` 对应 `POST /api/v1/assets/{asset_space}/{asset_id}:diffVersions`
+- `diffDraft()` 对应 `POST /api/v1/assets/{asset_space}/{asset_id}:diffDraft`
+- `getDiffEntryDetail()` 对应 `POST /api/v1/assets/{asset_space}/{asset_id}:getDiffEntry`
+- `publishDraft()` 对应 `POST /api/v1/assets/{asset_space}/{asset_id}:publishDraft`
+- `activateVersion()` 对应 `POST /api/v1/assets/{asset_space}/{asset_id}:activateVersion`
+- `downloadEntry()` 对应 `GET /api/v1/assets/{asset_space}/{asset_id}/export`
+
+当前后端已实现、文档中需要特别注意的语义：
+
+- `listTree({ folder: '/' })` 返回整版资产的递归平铺条目，前端需要自行重建目录树
+- `listTree()` 在非根目录下仍保持 direct children 语义
+- `downloadEntry()` 选中文件时返回原文件，选中目录或根路径时返回 zip
+- `getVersion()` 现在会额外返回 `baseVersion`，当目标版本是 draft 时还会返回 `draftDiffSummary`
+- `diffVersions()` / `diffDraft()` 现在真正支持 `diffMode` 和 `pathPrefix`
+- `diffMode: 'structure_only'` 只返回结构差异；`diffMode: 'with_text'` 会为文本文件补充 `isText`、`oldPreview`、`newPreview`、`unifiedDiff`、`textDiffStatus`
+- `pathPrefix` 会把 Diff 范围收窄到某个目录或文件路径，例如 `/assets` 或 `/assets/templates/onboarding.yaml`
+
+### getVersion 返回值示例
+
+```typescript
+const detail = await client.getVersion('configs', 'gateway-routing', 'draft-20260407');
+
+console.log(detail.version.versionId);
+console.log(detail.baseVersion?.versionId);
+console.log(detail.draftDiffSummary?.totalChanges);
+```
+
+### diffMode / pathPrefix 示例
+
+```typescript
+const diff = await client.diffDraft('configs', 'gateway-routing', 'draft-20260407', {
+  diffMode: 'with_text',
+  pathPrefix: '/assets',
+  pageSize: 50,
+});
+
+console.log(diff.summary.textDiffCount);
+console.log(diff.entries[0]?.unifiedDiff);
+```
+
+### EnsureAssetCollection 示例
+
+```typescript
+import { AssetBrowserClient } from 'protobuf-typescript-client-gen/dist/asset_browser_client';
+
+const client = new AssetBrowserClient({
+  baseUrl: window.location.origin,
+});
+
+const collection = await client.ensureCollection('configs', 'gateway-routing', {
+  scopeKind: 'service',
+  scopeValue: 'gateway',
+  displayName: 'Gateway Routing',
+  description: '路由配置资产集合',
+});
+
+console.log(collection.assetId, collection.scopeKind);
+```
 
 #### 低层生成式导出入口
 
