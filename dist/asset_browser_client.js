@@ -191,6 +191,7 @@ function normalizeVersion(raw) {
         entryCount: num(s, 'entryCount', 'entry_count'),
         totalBytes: num(s, 'totalBytes', 'total_bytes'),
         manifestPath: str(s, 'manifestPath', 'manifest_path'),
+        displayVersion: str(s, 'displayVersion', 'display_version'),
     };
 }
 function normalizeEntry(raw) {
@@ -404,6 +405,7 @@ class AssetBrowserClient {
             base_version_id: params?.baseVersionId,
             draft_version_id: params?.draftVersionId,
             description: params?.description,
+            display_version: params?.displayVersion,
         });
         const d = rec(unwrap(data));
         return {
@@ -425,6 +427,7 @@ class AssetBrowserClient {
             draft_version_id: draftVersionId,
             version_id: params?.versionId,
             description: params?.description,
+            display_version: params?.displayVersion,
         });
         const d = rec(unwrap(data));
         return {

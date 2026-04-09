@@ -354,6 +354,7 @@ export interface AssetVersionSummary {
   manifest_path: string;
   has_unpublished_changes: boolean;
   capabilities: AssetCapabilities | undefined;
+  display_version: string;
 }
 
 export interface AssetTreeEntry {
@@ -477,6 +478,7 @@ export interface CreateDraftVersionRequest {
   base_version_id: string;
   draft_version_id: string;
   description: string;
+  display_version: string;
 }
 
 export interface CreateDraftVersionResponse {
@@ -624,6 +626,7 @@ export interface PublishDraftVersionRequest {
   version_id: string;
   description: string;
   previous_version_id: string;
+  display_version: string;
 }
 
 export interface PublishDraftVersionResponse {
@@ -1154,6 +1157,7 @@ function createBaseAssetVersionSummary(): AssetVersionSummary {
     manifest_path: "",
     has_unpublished_changes: false,
     capabilities: undefined,
+    display_version: "",
   };
 }
 
@@ -1206,6 +1210,9 @@ export const AssetVersionSummary: MessageFns<AssetVersionSummary> = {
     }
     if (message.capabilities !== undefined) {
       AssetCapabilities.encode(message.capabilities, writer.uint32(130).fork()).join();
+    }
+    if (message.display_version !== "") {
+      writer.uint32(138).string(message.display_version);
     }
     return writer;
   },
@@ -1345,6 +1352,14 @@ export const AssetVersionSummary: MessageFns<AssetVersionSummary> = {
           message.capabilities = AssetCapabilities.decode(reader, reader.uint32());
           continue;
         }
+        case 17: {
+          if (tag !== 138) {
+            break;
+          }
+
+          message.display_version = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1424,6 +1439,11 @@ export const AssetVersionSummary: MessageFns<AssetVersionSummary> = {
         ? globalThis.Boolean(object.has_unpublished_changes)
         : false,
       capabilities: isSet(object.capabilities) ? AssetCapabilities.fromJSON(object.capabilities) : undefined,
+      display_version: isSet(object.displayVersion)
+        ? globalThis.String(object.displayVersion)
+        : isSet(object.display_version)
+        ? globalThis.String(object.display_version)
+        : "",
     };
   },
 
@@ -1477,6 +1497,9 @@ export const AssetVersionSummary: MessageFns<AssetVersionSummary> = {
     if (message.capabilities !== undefined) {
       obj.capabilities = AssetCapabilities.toJSON(message.capabilities);
     }
+    if (message.display_version !== "") {
+      obj.displayVersion = message.display_version;
+    }
     return obj;
   },
 
@@ -1503,6 +1526,7 @@ export const AssetVersionSummary: MessageFns<AssetVersionSummary> = {
     message.capabilities = (object.capabilities !== undefined && object.capabilities !== null)
       ? AssetCapabilities.fromPartial(object.capabilities)
       : undefined;
+    message.display_version = object.display_version ?? "";
     return message;
   },
 };
@@ -3636,7 +3660,7 @@ export const GetAssetVersionResponse: MessageFns<GetAssetVersionResponse> = {
 };
 
 function createBaseCreateDraftVersionRequest(): CreateDraftVersionRequest {
-  return { asset_space: "", asset_id: "", base_version_id: "", draft_version_id: "", description: "" };
+  return { asset_space: "", asset_id: "", base_version_id: "", draft_version_id: "", description: "", display_version: "" };
 }
 
 export const CreateDraftVersionRequest: MessageFns<CreateDraftVersionRequest> = {
@@ -3655,6 +3679,9 @@ export const CreateDraftVersionRequest: MessageFns<CreateDraftVersionRequest> = 
     }
     if (message.description !== "") {
       writer.uint32(42).string(message.description);
+    }
+    if (message.display_version !== "") {
+      writer.uint32(50).string(message.display_version);
     }
     return writer;
   },
@@ -3706,6 +3733,14 @@ export const CreateDraftVersionRequest: MessageFns<CreateDraftVersionRequest> = 
           message.description = reader.string();
           continue;
         }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.display_version = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -3738,6 +3773,11 @@ export const CreateDraftVersionRequest: MessageFns<CreateDraftVersionRequest> = 
         ? globalThis.String(object.draft_version_id)
         : "",
       description: isSet(object.description) ? globalThis.String(object.description) : "",
+      display_version: isSet(object.displayVersion)
+        ? globalThis.String(object.displayVersion)
+        : isSet(object.display_version)
+        ? globalThis.String(object.display_version)
+        : "",
     };
   },
 
@@ -3758,6 +3798,9 @@ export const CreateDraftVersionRequest: MessageFns<CreateDraftVersionRequest> = 
     if (message.description !== "") {
       obj.description = message.description;
     }
+    if (message.display_version !== "") {
+      obj.displayVersion = message.display_version;
+    }
     return obj;
   },
 
@@ -3771,6 +3814,7 @@ export const CreateDraftVersionRequest: MessageFns<CreateDraftVersionRequest> = 
     message.base_version_id = object.base_version_id ?? "";
     message.draft_version_id = object.draft_version_id ?? "";
     message.description = object.description ?? "";
+    message.display_version = object.display_version ?? "";
     return message;
   },
 };
@@ -6306,6 +6350,7 @@ function createBasePublishDraftVersionRequest(): PublishDraftVersionRequest {
     version_id: "",
     description: "",
     previous_version_id: "",
+    display_version: "",
   };
 }
 
@@ -6328,6 +6373,9 @@ export const PublishDraftVersionRequest: MessageFns<PublishDraftVersionRequest> 
     }
     if (message.previous_version_id !== "") {
       writer.uint32(50).string(message.previous_version_id);
+    }
+    if (message.display_version !== "") {
+      writer.uint32(58).string(message.display_version);
     }
     return writer;
   },
@@ -6387,6 +6435,14 @@ export const PublishDraftVersionRequest: MessageFns<PublishDraftVersionRequest> 
           message.previous_version_id = reader.string();
           continue;
         }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.display_version = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -6424,6 +6480,11 @@ export const PublishDraftVersionRequest: MessageFns<PublishDraftVersionRequest> 
         : isSet(object.previous_version_id)
         ? globalThis.String(object.previous_version_id)
         : "",
+      display_version: isSet(object.displayVersion)
+        ? globalThis.String(object.displayVersion)
+        : isSet(object.display_version)
+        ? globalThis.String(object.display_version)
+        : "",
     };
   },
 
@@ -6447,6 +6508,9 @@ export const PublishDraftVersionRequest: MessageFns<PublishDraftVersionRequest> 
     if (message.previous_version_id !== "") {
       obj.previousVersionId = message.previous_version_id;
     }
+    if (message.display_version !== "") {
+      obj.displayVersion = message.display_version;
+    }
     return obj;
   },
 
@@ -6461,6 +6525,7 @@ export const PublishDraftVersionRequest: MessageFns<PublishDraftVersionRequest> 
     message.version_id = object.version_id ?? "";
     message.description = object.description ?? "";
     message.previous_version_id = object.previous_version_id ?? "";
+    message.display_version = object.display_version ?? "";
     return message;
   },
 };

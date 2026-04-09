@@ -101,6 +101,7 @@ export interface AssetVersionSummary {
     manifest_path: string;
     has_unpublished_changes: boolean;
     capabilities: AssetCapabilities | undefined;
+    display_version: string;
 }
 export interface AssetTreeEntry {
     entry_kind: AssetEntryKind;
@@ -211,6 +212,7 @@ export interface CreateDraftVersionRequest {
     base_version_id: string;
     draft_version_id: string;
     description: string;
+    display_version: string;
 }
 export interface CreateDraftVersionResponse {
     collection: AssetCollection | undefined;
@@ -341,6 +343,7 @@ export interface PublishDraftVersionRequest {
     version_id: string;
     description: string;
     previous_version_id: string;
+    display_version: string;
 }
 export interface PublishDraftVersionResponse {
     collection: AssetCollection | undefined;

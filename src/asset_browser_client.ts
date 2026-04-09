@@ -67,6 +67,7 @@ export interface AssetVersionSummary {
     entryCount: number;
     totalBytes: number;
     manifestPath: string;
+    displayVersion: string;
 }
 
 export interface AssetVersionDetailResult {
@@ -389,6 +390,7 @@ function normalizeVersion(raw: unknown): AssetVersionSummary {
         entryCount: num(s, 'entryCount', 'entry_count'),
         totalBytes: num(s, 'totalBytes', 'total_bytes'),
         manifestPath: str(s, 'manifestPath', 'manifest_path'),
+        displayVersion: str(s, 'displayVersion', 'display_version'),
     };
 }
 
@@ -676,6 +678,7 @@ export class AssetBrowserClient {
             baseVersionId?: AssetVersionId;
             draftVersionId?: AssetVersionId;
             description?: string;
+            displayVersion?: string;
         },
     ): Promise<CreateDraftResult> {
         const { data } = await this.http.post(
@@ -686,6 +689,7 @@ export class AssetBrowserClient {
                 base_version_id: params?.baseVersionId,
                 draft_version_id: params?.draftVersionId,
                 description: params?.description,
+                display_version: params?.displayVersion,
             },
         );
         const d = rec(unwrap(data));
@@ -714,7 +718,7 @@ export class AssetBrowserClient {
         assetSpace: string,
         assetId: string,
         draftVersionId: AssetVersionId,
-        params?: { versionId?: AssetVersionId; description?: string },
+        params?: { versionId?: AssetVersionId; description?: string; displayVersion?: string },
     ): Promise<PublishResult> {
         const { data } = await this.http.post(
             `/api/v1/assets/${enc(assetSpace)}/${enc(assetId)}:publishDraft`,
@@ -724,6 +728,7 @@ export class AssetBrowserClient {
                 draft_version_id: draftVersionId,
                 version_id: params?.versionId,
                 description: params?.description,
+                display_version: params?.displayVersion,
             },
         );
         const d = rec(unwrap(data));

@@ -52,6 +52,7 @@ export interface AssetVersionSummary {
     entryCount: number;
     totalBytes: number;
     manifestPath: string;
+    displayVersion: string;
 }
 export interface AssetVersionDetailResult {
     collection: AssetCollection;
@@ -222,11 +223,13 @@ export declare class AssetBrowserClient {
         baseVersionId?: AssetVersionId;
         draftVersionId?: AssetVersionId;
         description?: string;
+        displayVersion?: string;
     }): Promise<CreateDraftResult>;
     discardDraft(assetSpace: string, assetId: string, draftVersionId: AssetVersionId): Promise<void>;
     publishDraft(assetSpace: string, assetId: string, draftVersionId: AssetVersionId, params?: {
         versionId?: AssetVersionId;
         description?: string;
+        displayVersion?: string;
     }): Promise<PublishResult>;
     getEntryText(assetSpace: string, assetId: string, versionId: AssetVersionId, path: string): Promise<EntryTextResult>;
     saveDraftText(assetSpace: string, assetId: string, params: {

@@ -782,6 +782,7 @@ function createBaseAssetVersionSummary() {
         manifest_path: "",
         has_unpublished_changes: false,
         capabilities: undefined,
+        display_version: "",
     };
 }
 exports.AssetVersionSummary = {
@@ -833,6 +834,9 @@ exports.AssetVersionSummary = {
         }
         if (message.capabilities !== undefined) {
             exports.AssetCapabilities.encode(message.capabilities, writer.uint32(130).fork()).join();
+        }
+        if (message.display_version !== "") {
+            writer.uint32(138).string(message.display_version);
         }
         return writer;
     },
@@ -955,6 +959,13 @@ exports.AssetVersionSummary = {
                     message.capabilities = exports.AssetCapabilities.decode(reader, reader.uint32());
                     continue;
                 }
+                case 17: {
+                    if (tag !== 138) {
+                        break;
+                    }
+                    message.display_version = reader.string();
+                    continue;
+                }
             }
             if ((tag & 7) === 4 || tag === 0) {
                 break;
@@ -1033,6 +1044,11 @@ exports.AssetVersionSummary = {
                     ? globalThis.Boolean(object.has_unpublished_changes)
                     : false,
             capabilities: isSet(object.capabilities) ? exports.AssetCapabilities.fromJSON(object.capabilities) : undefined,
+            display_version: isSet(object.displayVersion)
+                ? globalThis.String(object.displayVersion)
+                : isSet(object.display_version)
+                    ? globalThis.String(object.display_version)
+                    : "",
         };
     },
     toJSON(message) {
@@ -1085,6 +1101,9 @@ exports.AssetVersionSummary = {
         if (message.capabilities !== undefined) {
             obj.capabilities = exports.AssetCapabilities.toJSON(message.capabilities);
         }
+        if (message.display_version !== "") {
+            obj.displayVersion = message.display_version;
+        }
         return obj;
     },
     create(base) {
@@ -1110,6 +1129,7 @@ exports.AssetVersionSummary = {
         message.capabilities = (object.capabilities !== undefined && object.capabilities !== null)
             ? exports.AssetCapabilities.fromPartial(object.capabilities)
             : undefined;
+        message.display_version = object.display_version ?? "";
         return message;
     },
 };
@@ -3091,7 +3111,7 @@ exports.GetAssetVersionResponse = {
     },
 };
 function createBaseCreateDraftVersionRequest() {
-    return { asset_space: "", asset_id: "", base_version_id: "", draft_version_id: "", description: "" };
+    return { asset_space: "", asset_id: "", base_version_id: "", draft_version_id: "", description: "", display_version: "" };
 }
 exports.CreateDraftVersionRequest = {
     encode(message, writer = new wire_1.BinaryWriter()) {
@@ -3109,6 +3129,9 @@ exports.CreateDraftVersionRequest = {
         }
         if (message.description !== "") {
             writer.uint32(42).string(message.description);
+        }
+        if (message.display_version !== "") {
+            writer.uint32(50).string(message.display_version);
         }
         return writer;
     },
@@ -3154,6 +3177,13 @@ exports.CreateDraftVersionRequest = {
                     message.description = reader.string();
                     continue;
                 }
+                case 6: {
+                    if (tag !== 50) {
+                        break;
+                    }
+                    message.display_version = reader.string();
+                    continue;
+                }
             }
             if ((tag & 7) === 4 || tag === 0) {
                 break;
@@ -3185,6 +3215,11 @@ exports.CreateDraftVersionRequest = {
                     ? globalThis.String(object.draft_version_id)
                     : "",
             description: isSet(object.description) ? globalThis.String(object.description) : "",
+            display_version: isSet(object.displayVersion)
+                ? globalThis.String(object.displayVersion)
+                : isSet(object.display_version)
+                    ? globalThis.String(object.display_version)
+                    : "",
         };
     },
     toJSON(message) {
@@ -3204,6 +3239,9 @@ exports.CreateDraftVersionRequest = {
         if (message.description !== "") {
             obj.description = message.description;
         }
+        if (message.display_version !== "") {
+            obj.displayVersion = message.display_version;
+        }
         return obj;
     },
     create(base) {
@@ -3216,6 +3254,7 @@ exports.CreateDraftVersionRequest = {
         message.base_version_id = object.base_version_id ?? "";
         message.draft_version_id = object.draft_version_id ?? "";
         message.description = object.description ?? "";
+        message.display_version = object.display_version ?? "";
         return message;
     },
 };
@@ -5560,6 +5599,7 @@ function createBasePublishDraftVersionRequest() {
         version_id: "",
         description: "",
         previous_version_id: "",
+        display_version: "",
     };
 }
 exports.PublishDraftVersionRequest = {
@@ -5581,6 +5621,9 @@ exports.PublishDraftVersionRequest = {
         }
         if (message.previous_version_id !== "") {
             writer.uint32(50).string(message.previous_version_id);
+        }
+        if (message.display_version !== "") {
+            writer.uint32(58).string(message.display_version);
         }
         return writer;
     },
@@ -5633,6 +5676,13 @@ exports.PublishDraftVersionRequest = {
                     message.previous_version_id = reader.string();
                     continue;
                 }
+                case 7: {
+                    if (tag !== 58) {
+                        break;
+                    }
+                    message.display_version = reader.string();
+                    continue;
+                }
             }
             if ((tag & 7) === 4 || tag === 0) {
                 break;
@@ -5669,6 +5719,11 @@ exports.PublishDraftVersionRequest = {
                 : isSet(object.previous_version_id)
                     ? globalThis.String(object.previous_version_id)
                     : "",
+            display_version: isSet(object.displayVersion)
+                ? globalThis.String(object.displayVersion)
+                : isSet(object.display_version)
+                    ? globalThis.String(object.display_version)
+                    : "",
         };
     },
     toJSON(message) {
@@ -5691,6 +5746,9 @@ exports.PublishDraftVersionRequest = {
         if (message.previous_version_id !== "") {
             obj.previousVersionId = message.previous_version_id;
         }
+        if (message.display_version !== "") {
+            obj.displayVersion = message.display_version;
+        }
         return obj;
     },
     create(base) {
@@ -5704,6 +5762,7 @@ exports.PublishDraftVersionRequest = {
         message.version_id = object.version_id ?? "";
         message.description = object.description ?? "";
         message.previous_version_id = object.previous_version_id ?? "";
+        message.display_version = object.display_version ?? "";
         return message;
     },
 };
