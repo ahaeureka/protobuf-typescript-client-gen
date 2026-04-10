@@ -1,5 +1,6 @@
 import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
 import { Any } from "./google/protobuf/any";
+import { ServiceBillingConfig } from "./stew/api/v1/billing";
 export declare const protobufPackage = "stew.api.v1";
 /**
  * pub enum BalanceType {
@@ -253,6 +254,8 @@ export interface ServiceMiddlewareConfig {
     turnstile: ServiceTurnstileConfig | undefined;
     ai_guard_enabled: boolean;
     ai_guard: ServiceAiGuardConfig | undefined;
+    billing_enabled: boolean;
+    billing: ServiceBillingConfig | undefined;
 }
 /** 服务实例定义 */
 export interface ServiceInstance {

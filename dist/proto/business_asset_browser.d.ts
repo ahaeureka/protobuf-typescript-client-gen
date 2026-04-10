@@ -101,6 +101,10 @@ export interface AssetVersionSummary {
     manifest_path: string;
     has_unpublished_changes: boolean;
     capabilities: AssetCapabilities | undefined;
+    /**
+     * Business-facing version label for UI display (e.g. "v1.2.3").
+     * When empty, frontends should fall back to version_id.
+     */
     display_version: string;
 }
 export interface AssetTreeEntry {
@@ -212,6 +216,7 @@ export interface CreateDraftVersionRequest {
     base_version_id: string;
     draft_version_id: string;
     description: string;
+    /** Optional business-facing version label to show in UI. */
     display_version: string;
 }
 export interface CreateDraftVersionResponse {
@@ -343,6 +348,7 @@ export interface PublishDraftVersionRequest {
     version_id: string;
     description: string;
     previous_version_id: string;
+    /** Optional business-facing version label to show in UI. */
     display_version: string;
 }
 export interface PublishDraftVersionResponse {
@@ -367,6 +373,14 @@ export interface ActivateAssetVersionResponse {
     collection: AssetCollection | undefined;
     active_version_id: string;
     active_version: AssetVersionSummary | undefined;
+}
+export interface EnsureAssetCollectionRequest {
+    asset_space: string;
+    asset_id: string;
+    scope_kind: AssetScopeKind;
+    scope_value: string;
+    display_name: string;
+    description: string;
 }
 export declare const AssetCapabilities: MessageFns<AssetCapabilities>;
 export declare const AssetCollection: MessageFns<AssetCollection>;
@@ -405,6 +419,7 @@ export declare const PublishDraftVersionResponse: MessageFns<PublishDraftVersion
 export declare const ActivateAssetVersionRequest: MessageFns<ActivateAssetVersionRequest>;
 export declare const ExportAssetEntryRequest: MessageFns<ExportAssetEntryRequest>;
 export declare const ActivateAssetVersionResponse: MessageFns<ActivateAssetVersionResponse>;
+export declare const EnsureAssetCollectionRequest: MessageFns<EnsureAssetCollectionRequest>;
 /**
  * Business asset browsing service with versioning, draft editing, and diff support.
  * Built on top of FileStorageService primitives.
@@ -427,6 +442,8 @@ export interface BusinessAssetBrowserService {
     PublishDraftVersion(request: PublishDraftVersionRequest): Promise<PublishDraftVersionResponse>;
     ActivateAssetVersion(request: ActivateAssetVersionRequest): Promise<ActivateAssetVersionResponse>;
     ExportAssetEntry(request: ExportAssetEntryRequest): Promise<HttpBody>;
+    /** Ensure a collection exists (upsert). Creates if missing, returns existing otherwise. */
+    EnsureAssetCollection(request: EnsureAssetCollectionRequest): Promise<AssetCollection>;
 }
 export declare const BusinessAssetBrowserServiceServiceName = "stew.api.v1.BusinessAssetBrowserService";
 export declare class BusinessAssetBrowserServiceClientImpl implements BusinessAssetBrowserService {
@@ -452,6 +469,7 @@ export declare class BusinessAssetBrowserServiceClientImpl implements BusinessAs
     PublishDraftVersion(request: PublishDraftVersionRequest): Promise<PublishDraftVersionResponse>;
     ActivateAssetVersion(request: ActivateAssetVersionRequest): Promise<ActivateAssetVersionResponse>;
     ExportAssetEntry(request: ExportAssetEntryRequest): Promise<HttpBody>;
+    EnsureAssetCollection(request: EnsureAssetCollectionRequest): Promise<AssetCollection>;
 }
 interface Rpc {
     request(service: string, method: string, data: Uint8Array): Promise<Uint8Array>;
