@@ -300,7 +300,7 @@ export interface HttpRule {
      * used with any of the {get|put|post|delete|patch} methods. A custom method
      * can be defined using the 'custom' field.
      */
-    pattern?: //
+    pattern: //
     /**
      * Maps to HTTP GET. Used for listing and getting information about
      * resources.

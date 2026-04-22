@@ -196,6 +196,8 @@ export interface UpdateUserRequest {
     gender: string;
     /** 生日 */
     birthdate: string;
+    /** 手机号（E.164 格式，例如 +8613800000000） */
+    phone_number: string;
 }
 /** 上传头像请求 */
 export interface UploadAvatarRequest {
@@ -221,6 +223,7 @@ export declare const PatchUserRequest: MessageFns<PatchUserRequest>;
 export declare const UpdateUserRequest: MessageFns<UpdateUserRequest>;
 export declare const UploadAvatarRequest: MessageFns<UploadAvatarRequest>;
 export declare const UploadAvatarResponse: MessageFns<UploadAvatarResponse>;
+/** UserService exposes authenticated endpoints for the current user's profile. */
 export interface UserService {
     /**
      * rpc Register(PostUserRequest) returns (User){

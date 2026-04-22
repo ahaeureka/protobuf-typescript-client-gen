@@ -20,3 +20,10 @@ export type { FileInfo, UploadResponse, ListFilesResponse, UploadPartResult, Res
 export { AssetBrowserClient } from './asset_browser_client';
 export type { AssetBrowserClientOptions, AssetCollection, AssetVersionSummary, AssetTreeEntry, AssetDiffSummary, AssetDiffEntry, ListCollectionsResult, ListTreeResult, ListVersionsResult, CreateDraftResult, EntryTextResult, SaveTextResult, DiffResult, DiffEntryDetailResult, PublishResult, ActivateResult, DownloadEntryResult, } from './asset_browser_client';
 export { BusinessAssetBrowserServiceClientImpl, BusinessAssetBrowserServiceServiceName, ExportAssetEntryRequest, } from './proto/business_asset_browser';
+export { PaymentClient, PaymentClientError } from './payment_client';
+export type { PaymentClientOptions, PaymentProviderKind as PaymentProviderKindAlias, PaymentOrderStatus as PaymentOrderStatusAlias, PaymentBillingInterval as PaymentBillingIntervalAlias, CheckoutLineItem, CreateCheckoutInput, CheckoutSession, PaymentOrder, RefundInput, RefundResult, ListOrdersInput, ListOrdersResult, PaymentPageInfo, } from './payment_client';
+export { PaymentGatewayServiceClientImpl, PaymentGatewayServiceServiceName, } from './proto/payment';
+export * as BillingProto from './proto/stew/api/v1/billing';
+export { BillingServiceClientImpl, BillingServiceServiceName, } from './proto/stew/api/v1/billing';
+export * as EntitlementProto from './proto/entitlement';
+export { EntitlementServiceClientImpl, EntitlementServiceServiceName, } from './proto/entitlement';

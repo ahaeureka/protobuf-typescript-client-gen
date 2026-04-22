@@ -1,6 +1,6 @@
 import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { ServiceBillingConfig } from "./billing";
 import { Any } from "./google/protobuf/any";
-import { ServiceBillingConfig } from "./stew/api/v1/billing";
 export declare const protobufPackage = "stew.api.v1";
 /**
  * pub enum BalanceType {
@@ -234,6 +234,23 @@ export interface AiGuardEndpointConfig {
     llm_confidence_threshold: number;
     body_map: AiBodyFieldMap | undefined;
 }
+export interface ServiceSubscriptionConfig {
+    enabled: boolean;
+    business_id: string;
+    default_plan_id: string;
+    auto_create_subscription: boolean;
+    inject_features: boolean;
+    inject_quotas: boolean;
+    feature_gate_mode: string;
+    require_active_subscription: boolean;
+    endpoint_features: {
+        [key: string]: string;
+    };
+}
+export interface ServiceSubscriptionConfig_EndpointFeaturesEntry {
+    key: string;
+    value: string;
+}
 /**
  * 每个下游服务的中间件开关配置
  * 注册或编辑服务时可单独控制各中间件的启用状态和参数。
@@ -256,6 +273,8 @@ export interface ServiceMiddlewareConfig {
     ai_guard: ServiceAiGuardConfig | undefined;
     billing_enabled: boolean;
     billing: ServiceBillingConfig | undefined;
+    subscription_enabled: boolean;
+    subscription: ServiceSubscriptionConfig | undefined;
 }
 /** 服务实例定义 */
 export interface ServiceInstance {
@@ -597,6 +616,8 @@ export declare const ServiceTurnstileConfig: MessageFns<ServiceTurnstileConfig>;
 export declare const AiBodyFieldMap: MessageFns<AiBodyFieldMap>;
 export declare const ServiceAiGuardConfig: MessageFns<ServiceAiGuardConfig>;
 export declare const AiGuardEndpointConfig: MessageFns<AiGuardEndpointConfig>;
+export declare const ServiceSubscriptionConfig: MessageFns<ServiceSubscriptionConfig>;
+export declare const ServiceSubscriptionConfig_EndpointFeaturesEntry: MessageFns<ServiceSubscriptionConfig_EndpointFeaturesEntry>;
 export declare const ServiceMiddlewareConfig: MessageFns<ServiceMiddlewareConfig>;
 export declare const ServiceInstance: MessageFns<ServiceInstance>;
 export declare const ServiceInstance_MetadataEntry: MessageFns<ServiceInstance_MetadataEntry>;

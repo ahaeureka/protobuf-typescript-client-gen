@@ -67,85 +67,184 @@ export declare enum BillingTransactionType {
 }
 export declare function billingTransactionTypeFromJSON(object: any): BillingTransactionType;
 export declare function billingTransactionTypeToJSON(object: BillingTransactionType): string;
+export declare enum BillingPolicyArtifactType {
+    BILLING_POLICY_ARTIFACT_TYPE_UNSPECIFIED = 0,
+    BILLING_POLICY_ARTIFACT_TYPE_PROVIDER_RATE_CARD = 1,
+    BILLING_POLICY_ARTIFACT_TYPE_POINT_POLICY = 2,
+    BILLING_POLICY_ARTIFACT_TYPE_MONEY_POLICY = 3,
+    BILLING_POLICY_ARTIFACT_TYPE_ESTIMATOR = 4,
+    UNRECOGNIZED = -1
+}
+export declare function billingPolicyArtifactTypeFromJSON(object: any): BillingPolicyArtifactType;
+export declare function billingPolicyArtifactTypeToJSON(object: BillingPolicyArtifactType): string;
 export interface ServiceBillingConfig {
     enabled: boolean;
-    business_id: string;
-    policy_id: string;
-    subject_mode: BillingSubjectType;
-    preauth_mode: BillingPreauthMode;
-    allow_anonymous_subject: boolean;
-    missing_report_action: BillingMissingReportAction;
-    release_timeout_seconds: number;
-    report_transport: BillingReportTransport;
-    report_header_prefix: string;
-    factor_schema_version: string;
-    max_reservation_ttl_seconds: number;
-    idempotency_window_seconds: number;
-    capture_requires_report: boolean;
-    reconcile_scan_interval_seconds: number;
-    max_report_size_bytes: number;
-    strict_policy_snapshot: boolean;
+    businessId: string;
+    policyId: string;
+    subjectMode: BillingSubjectType;
+    preauthMode: BillingPreauthMode;
+    allowAnonymousSubject: boolean;
+    missingReportAction: BillingMissingReportAction;
+    releaseTimeoutSeconds: number;
+    reportTransport: BillingReportTransport;
+    reportHeaderPrefix: string;
+    factorSchemaVersion: string;
+    maxReservationTtlSeconds: number;
+    idempotencyWindowSeconds: number;
+    captureRequiresReport: boolean;
+    reconcileScanIntervalSeconds: number;
+    maxReportSizeBytes: number;
+    strictPolicySnapshot: boolean;
 }
 export interface AuthorizationContext {
-    business_id: string;
-    user_id: string;
-    authorization_id: string;
-    request_id: string;
-    policy_id: string;
-    subject_id: string;
-    subject_type: BillingSubjectType;
-    factor_schema_version: string;
+    businessId: string;
+    userId: string;
+    authorizationId: string;
+    requestId: string;
+    policyId: string;
+    subjectId: string;
+    subjectType: BillingSubjectType;
+    factorSchemaVersion: string;
 }
 export interface BillingUsageTotals {
-    prompt_tokens: number;
-    completion_tokens: number;
-    embedding_tokens: number;
-    ocr_pages: number;
-    asr_minutes: number;
-    infra_units: number;
+    promptTokens: number;
+    completionTokens: number;
+    embeddingTokens: number;
+    ocrPages: number;
+    asrMinutes: number;
+    infraUnits: number;
 }
 export interface BillingCostBreakdown {
-    chat_in_micros: number;
-    chat_out_micros: number;
-    embed_micros: number;
-    media_micros: number;
-    infra_micros: number;
+    chatInMicros: number;
+    chatOutMicros: number;
+    embedMicros: number;
+    mediaMicros: number;
+    infraMicros: number;
+    totalCostMicros: number;
 }
-export interface BillingReport {
-    business_id: string;
-    authorization_id: string;
-    request_id: string;
-    user_id: string;
-    usage_source: BillingUsageSource;
-    final_status: BillingFinalStatus;
-    raw_usage_totals: BillingUsageTotals | undefined;
-    cost_breakdown: BillingCostBreakdown | undefined;
-    business_factors: {
+export interface BillingPointBreakdown {
+    basePoints: number;
+    factorPoints: number;
+    finalPoints: number;
+    minPoints: number;
+    pointPolicyArtifactId: string;
+    pointPolicyVersion: string;
+}
+export interface BillingMoneySnapshot {
+    faceValueMinor: number;
+    recognizedRevenueMinor: number;
+    budgetConsumedMinor: number;
+    faceValueMinorPerPoint: number;
+    recognizedRevenueMinorPerPoint: number;
+    budgetMinorPerPoint: number;
+    moneyPolicyArtifactId: string;
+    moneyPolicyVersion: string;
+}
+export interface BillingPolicyArtifact {
+    artifactId: string;
+    businessId: string;
+    artifactType: BillingPolicyArtifactType;
+    artifactVersion: string;
+    content: {
         [key: string]: any;
     } | undefined;
-    billed_points_candidate: number;
-    refund_reason: string;
-    dedupe_key: string;
+    contentHash: string;
+    createdAt: Date | undefined;
+}
+export interface BillingPolicyBundle {
+    policyId: string;
+    businessId: string;
+    bundleVersion: number;
+    factorSchemaVersion: string;
+    providerRateCardArtifactId: string;
+    pointPolicyArtifactId: string;
+    moneyPolicyArtifactId: string;
+    estimatorArtifactId: string;
+    status: string;
+    publishedAt: Date | undefined;
+}
+export interface CreateBillingPolicyArtifactRequest {
+    businessId: string;
+    policyId: string;
+    artifactType: BillingPolicyArtifactType;
+    artifactVersion: string;
+    content: {
+        [key: string]: any;
+    } | undefined;
+}
+export interface GetBillingPolicyArtifactRequest {
+    artifactId: string;
+}
+export interface ListBillingPolicyArtifactsRequest {
+    businessId: string;
+    policyId: string;
+    artifactType: BillingPolicyArtifactType;
+}
+export interface ListBillingPolicyArtifactsResponse {
+    artifacts: BillingPolicyArtifact[];
+}
+export interface PublishBillingPolicyBundleRequest {
+    businessId: string;
+    policyId: string;
+    bundleVersion: number;
+    factorSchemaVersion: string;
+    providerRateCardArtifactId: string;
+    pointPolicyArtifactId: string;
+    moneyPolicyArtifactId: string;
+    estimatorArtifactId: string;
+}
+export interface GetBillingPolicyBundleRequest {
+    businessId: string;
+    policyId: string;
+    bundleVersion: number;
+}
+export interface ListBillingPolicyBundlesRequest {
+    businessId: string;
+    policyId: string;
+    activeOnly: boolean;
+}
+export interface ListBillingPolicyBundlesResponse {
+    bundles: BillingPolicyBundle[];
+}
+export interface BillingReport {
+    businessId: string;
+    authorizationId: string;
+    requestId: string;
+    userId: string;
+    usageSource: BillingUsageSource;
+    finalStatus: BillingFinalStatus;
+    rawUsageTotals: BillingUsageTotals | undefined;
+    providerUsageFacts: {
+        [key: string]: any;
+    } | undefined;
+    businessFactors: {
+        [key: string]: any;
+    } | undefined;
+    executionHints: {
+        [key: string]: any;
+    } | undefined;
+    refundReason: string;
+    dedupeKey: string;
 }
 export interface EstimateChargeRequest {
     context: AuthorizationContext | undefined;
-    request_factors: {
+    requestFactors: {
         [key: string]: any;
     } | undefined;
 }
 export interface EstimateChargeResponse {
     success: boolean;
-    estimated_points: number;
+    estimatedPoints: number;
     message: string;
 }
 export interface AuthorizeRequest {
     context: AuthorizationContext | undefined;
-    estimated_points: number;
+    estimatedPoints: number;
 }
 export interface BillingAuthorizationResponse {
     success: boolean;
-    authorization_id: string;
-    held_points: number;
+    authorizationId: string;
+    heldPoints: number;
     message: string;
 }
 export interface FinalizeRequest {
@@ -154,117 +253,134 @@ export interface FinalizeRequest {
 }
 export interface SettlementDecision {
     success: boolean;
-    transaction_type: BillingTransactionType;
+    transactionType: BillingTransactionType;
     points: number;
-    face_value_minor: number;
-    recognized_revenue_minor: number;
-    budget_consumed_minor: number;
+    faceValueMinor: number;
+    recognizedRevenueMinor: number;
+    budgetConsumedMinor: number;
     message: string;
 }
 export interface ReleaseRequest {
-    authorization_id: string;
-    request_id: string;
+    authorizationId: string;
+    requestId: string;
     reason: string;
 }
 export interface RefundRequest {
-    authorization_id: string;
-    request_id: string;
+    authorizationId: string;
+    requestId: string;
     reason: string;
 }
 export interface QueryBalanceRequest {
-    business_id: string;
-    subject_id: string;
-    subject_type: BillingSubjectType;
-    user_id: string;
+    businessId: string;
+    subjectId: string;
+    subjectType: BillingSubjectType;
+    userId: string;
 }
 export interface BalanceSnapshot {
-    business_id: string;
-    subject_id: string;
-    subject_type: BillingSubjectType;
-    user_id: string;
-    available_balance: number;
-    held_balance: number;
-    total_granted: number;
-    total_consumed: number;
-    updated_at: Date | undefined;
+    businessId: string;
+    subjectId: string;
+    subjectType: BillingSubjectType;
+    userId: string;
+    availableBalance: number;
+    heldBalance: number;
+    totalGranted: number;
+    totalConsumed: number;
+    updatedAt: Date | undefined;
 }
 export interface CreditGrant {
-    grant_id: string;
-    business_id: string;
-    user_id: string;
-    subject_id: string;
-    subject_type: BillingSubjectType;
-    credit_type: string;
+    grantId: string;
+    businessId: string;
+    userId: string;
+    subjectId: string;
+    subjectType: BillingSubjectType;
+    creditType: string;
     amount: number;
     consumed: number;
-    expires_at: Date | undefined;
+    expiresAt: Date | undefined;
     status: string;
 }
 export interface GrantCreditsRequest {
-    business_id: string;
-    user_id: string;
-    subject_id: string;
-    subject_type: BillingSubjectType;
-    credit_type: string;
+    businessId: string;
+    userId: string;
+    subjectId: string;
+    subjectType: BillingSubjectType;
+    creditType: string;
     amount: number;
 }
 export interface ListGrantsRequest {
-    business_id: string;
-    subject_id: string;
-    subject_type: BillingSubjectType;
-    user_id: string;
+    businessId: string;
+    subjectId: string;
+    subjectType: BillingSubjectType;
+    userId: string;
 }
 export interface ListGrantsResponse {
     grants: CreditGrant[];
 }
 export interface BillingTransaction {
-    transaction_id: string;
-    business_id: string;
-    user_id: string;
-    authorization_id: string;
-    request_id: string;
-    subject_id: string;
-    subject_type: BillingSubjectType;
-    transaction_type: BillingTransactionType;
+    transactionId: string;
+    businessId: string;
+    userId: string;
+    authorizationId: string;
+    requestId: string;
+    subjectId: string;
+    subjectType: BillingSubjectType;
+    transactionType: BillingTransactionType;
     points: number;
-    face_value_minor: number;
-    recognized_revenue_minor: number;
-    budget_consumed_minor: number;
-    created_at: Date | undefined;
+    faceValueMinor: number;
+    recognizedRevenueMinor: number;
+    budgetConsumedMinor: number;
+    createdAt: Date | undefined;
 }
 export interface QueryTransactionsRequest {
-    business_id: string;
-    request_id: string;
-    authorization_id: string;
-    subject_id: string;
-    subject_type: BillingSubjectType;
-    user_id: string;
+    businessId: string;
+    requestId: string;
+    authorizationId: string;
+    subjectId: string;
+    subjectType: BillingSubjectType;
+    userId: string;
 }
 export interface QueryTransactionsResponse {
     transactions: BillingTransaction[];
 }
-export interface UsageCostSnapshot {
-    business_id: string;
-    user_id: string;
-    request_id: string;
-    usage_snapshot: {
+export interface BillingSettlementSnapshot {
+    businessId: string;
+    userId: string;
+    authorizationId: string;
+    requestId: string;
+    subjectId: string;
+    subjectType: BillingSubjectType;
+    usageSnapshot: BillingUsageTotals | undefined;
+    providerUsageFacts: {
         [key: string]: any;
     } | undefined;
-    cost_snapshot: {
+    businessFactors: {
         [key: string]: any;
     } | undefined;
-    business_factors: {
+    executionHints: {
         [key: string]: any;
     } | undefined;
-    policy_id: string;
-    created_at: Date | undefined;
+    rawCostSnapshot: BillingCostBreakdown | undefined;
+    pointBreakdown: BillingPointBreakdown | undefined;
+    moneySnapshot: BillingMoneySnapshot | undefined;
+    policyId: string;
+    policyBundleVersion: number;
+    factorSchemaVersion: string;
+    providerRateCardArtifactId: string;
+    pointPolicyArtifactId: string;
+    moneyPolicyArtifactId: string;
+    estimatorArtifactId: string;
+    appliedPoints: number;
+    faceValueMinor: number;
+    recognizedRevenueMinor: number;
+    budgetConsumedMinor: number;
+    createdAt: Date | undefined;
 }
 export interface QuerySnapshotRequest {
-    request_id: string;
+    requestId: string;
 }
 export interface ManualReconcileRequest {
-    request_id: string;
-    authorization_id: string;
+    requestId: string;
+    authorizationId: string;
     reason: string;
 }
 export interface ManualReconcileResponse {
@@ -275,6 +391,18 @@ export declare const ServiceBillingConfig: MessageFns<ServiceBillingConfig>;
 export declare const AuthorizationContext: MessageFns<AuthorizationContext>;
 export declare const BillingUsageTotals: MessageFns<BillingUsageTotals>;
 export declare const BillingCostBreakdown: MessageFns<BillingCostBreakdown>;
+export declare const BillingPointBreakdown: MessageFns<BillingPointBreakdown>;
+export declare const BillingMoneySnapshot: MessageFns<BillingMoneySnapshot>;
+export declare const BillingPolicyArtifact: MessageFns<BillingPolicyArtifact>;
+export declare const BillingPolicyBundle: MessageFns<BillingPolicyBundle>;
+export declare const CreateBillingPolicyArtifactRequest: MessageFns<CreateBillingPolicyArtifactRequest>;
+export declare const GetBillingPolicyArtifactRequest: MessageFns<GetBillingPolicyArtifactRequest>;
+export declare const ListBillingPolicyArtifactsRequest: MessageFns<ListBillingPolicyArtifactsRequest>;
+export declare const ListBillingPolicyArtifactsResponse: MessageFns<ListBillingPolicyArtifactsResponse>;
+export declare const PublishBillingPolicyBundleRequest: MessageFns<PublishBillingPolicyBundleRequest>;
+export declare const GetBillingPolicyBundleRequest: MessageFns<GetBillingPolicyBundleRequest>;
+export declare const ListBillingPolicyBundlesRequest: MessageFns<ListBillingPolicyBundlesRequest>;
+export declare const ListBillingPolicyBundlesResponse: MessageFns<ListBillingPolicyBundlesResponse>;
 export declare const BillingReport: MessageFns<BillingReport>;
 export declare const EstimateChargeRequest: MessageFns<EstimateChargeRequest>;
 export declare const EstimateChargeResponse: MessageFns<EstimateChargeResponse>;
@@ -293,21 +421,45 @@ export declare const ListGrantsResponse: MessageFns<ListGrantsResponse>;
 export declare const BillingTransaction: MessageFns<BillingTransaction>;
 export declare const QueryTransactionsRequest: MessageFns<QueryTransactionsRequest>;
 export declare const QueryTransactionsResponse: MessageFns<QueryTransactionsResponse>;
-export declare const UsageCostSnapshot: MessageFns<UsageCostSnapshot>;
+export declare const BillingSettlementSnapshot: MessageFns<BillingSettlementSnapshot>;
 export declare const QuerySnapshotRequest: MessageFns<QuerySnapshotRequest>;
 export declare const ManualReconcileRequest: MessageFns<ManualReconcileRequest>;
 export declare const ManualReconcileResponse: MessageFns<ManualReconcileResponse>;
+/** BillingService exposes billing authorization, settlement, balance, and snapshot APIs. */
 export interface BillingService {
+    /** EstimateCharge computes a request-side point estimate for pre-authorization. */
     EstimateCharge(request: EstimateChargeRequest): Promise<EstimateChargeResponse>;
+    /** Authorize holds points for a request before business execution starts. */
     Authorize(request: AuthorizeRequest): Promise<BillingAuthorizationResponse>;
+    /** Finalize settles an authorization from business-reported usage facts. */
     Finalize(request: FinalizeRequest): Promise<SettlementDecision>;
+    /** Release releases held points without capture. */
     Release(request: ReleaseRequest): Promise<SettlementDecision>;
+    /** Refund compensates a captured authorization or releases an uncaptured hold. */
     Refund(request: RefundRequest): Promise<SettlementDecision>;
+    /** QueryBalance returns the current derived balance snapshot for a subject. */
     QueryBalance(request: QueryBalanceRequest): Promise<BalanceSnapshot>;
+    /** GrantCredits grants credits to a billing subject. */
     GrantCredits(request: GrantCreditsRequest): Promise<CreditGrant>;
+    /** ListGrants lists credit grants for a billing subject. */
     ListGrants(request: ListGrantsRequest): Promise<ListGrantsResponse>;
+    /** QueryTransactions lists matching billing transactions. */
     QueryTransactions(request: QueryTransactionsRequest): Promise<QueryTransactionsResponse>;
-    QuerySnapshot(request: QuerySnapshotRequest): Promise<UsageCostSnapshot>;
+    /** CreatePolicyArtifact creates or returns an immutable policy artifact version. */
+    CreatePolicyArtifact(request: CreateBillingPolicyArtifactRequest): Promise<BillingPolicyArtifact>;
+    /** GetPolicyArtifact returns a single immutable policy artifact. */
+    GetPolicyArtifact(request: GetBillingPolicyArtifactRequest): Promise<BillingPolicyArtifact>;
+    /** ListPolicyArtifacts lists policy artifacts under a business, optionally filtered by policy and type. */
+    ListPolicyArtifacts(request: ListBillingPolicyArtifactsRequest): Promise<ListBillingPolicyArtifactsResponse>;
+    /** PublishPolicyBundle publishes a concrete bundle and makes it the active version for the policy_id. */
+    PublishPolicyBundle(request: PublishBillingPolicyBundleRequest): Promise<BillingPolicyBundle>;
+    /** GetPolicyBundle returns a concrete published bundle version. */
+    GetPolicyBundle(request: GetBillingPolicyBundleRequest): Promise<BillingPolicyBundle>;
+    /** ListPolicyBundles lists published bundle versions, or only active bundles when requested. */
+    ListPolicyBundles(request: ListBillingPolicyBundlesRequest): Promise<ListBillingPolicyBundlesResponse>;
+    /** QuerySnapshot returns the immutable settlement snapshot for a finalized request. */
+    QuerySnapshot(request: QuerySnapshotRequest): Promise<BillingSettlementSnapshot>;
+    /** ManualReconcile triggers a reconciliation pass for a request and authorization pair. */
     ManualReconcile(request: ManualReconcileRequest): Promise<ManualReconcileResponse>;
 }
 export declare const BillingServiceServiceName = "stew.api.v1.BillingService";
@@ -326,20 +478,20 @@ export declare class BillingServiceClientImpl implements BillingService {
     GrantCredits(request: GrantCreditsRequest): Promise<CreditGrant>;
     ListGrants(request: ListGrantsRequest): Promise<ListGrantsResponse>;
     QueryTransactions(request: QueryTransactionsRequest): Promise<QueryTransactionsResponse>;
-    QuerySnapshot(request: QuerySnapshotRequest): Promise<UsageCostSnapshot>;
+    CreatePolicyArtifact(request: CreateBillingPolicyArtifactRequest): Promise<BillingPolicyArtifact>;
+    GetPolicyArtifact(request: GetBillingPolicyArtifactRequest): Promise<BillingPolicyArtifact>;
+    ListPolicyArtifacts(request: ListBillingPolicyArtifactsRequest): Promise<ListBillingPolicyArtifactsResponse>;
+    PublishPolicyBundle(request: PublishBillingPolicyBundleRequest): Promise<BillingPolicyBundle>;
+    GetPolicyBundle(request: GetBillingPolicyBundleRequest): Promise<BillingPolicyBundle>;
+    ListPolicyBundles(request: ListBillingPolicyBundlesRequest): Promise<ListBillingPolicyBundlesResponse>;
+    QuerySnapshot(request: QuerySnapshotRequest): Promise<BillingSettlementSnapshot>;
     ManualReconcile(request: ManualReconcileRequest): Promise<ManualReconcileResponse>;
 }
 interface Rpc {
     request(service: string, method: string, data: Uint8Array): Promise<Uint8Array>;
 }
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
-export type DeepPartial<T> = T extends Builtin ? T : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>> : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>> : T extends {
-    $case: string;
-} ? {
-    [K in keyof Omit<T, "$case">]?: DeepPartial<T[K]>;
-} & {
-    $case: T["$case"];
-} : T extends {} ? {
+export type DeepPartial<T> = T extends Builtin ? T : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>> : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>> : T extends {} ? {
     [K in keyof T]?: DeepPartial<T[K]>;
 } : Partial<T>;
 type KeysOfUnion<T> = T extends T ? keyof T : never;

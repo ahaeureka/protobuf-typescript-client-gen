@@ -90,12 +90,17 @@ export declare const RefreshTokenRequest: MessageFns<RefreshTokenRequest>;
 export declare const RefreshTokenResponse: MessageFns<RefreshTokenResponse>;
 export declare const DeviceFingerprintRequest: MessageFns<DeviceFingerprintRequest>;
 export declare const AnonymousSessionResponse: MessageFns<AnonymousSessionResponse>;
+/** AuthService handles login flows, logout flows, and session lifecycle APIs. */
 export interface AuthService {
     /** OpenID Connect callback endpoint */
     Callback(request: OpenIDConnectCallbackRequest): Promise<RedirectResponse>;
+    /** Start the interactive login flow. */
     Login(request: LoginRequest): Promise<RedirectResponse>;
+    /** Store client context before the user is authenticated. */
     Context(request: ClientContext): Promise<Empty>;
+    /** Start the logout flow for the current authenticated session. */
     Logout(request: LogoutRequest): Promise<RedirectResponse>;
+    /** Complete the OpenID Connect logout callback flow. */
     LogoutCallback(request: OpenIDConnectCallbackRequest): Promise<RedirectResponse>;
     /** 获取当前登录用户信息（基于 session_id） */
     GetCurrentUser(request: GetCurrentUserRequest): Promise<CurrentUserResponse>;

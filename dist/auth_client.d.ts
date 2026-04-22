@@ -16,6 +16,8 @@ export interface UpdateUserRequest {
     nickname?: string;
     gender?: string;
     birthdate?: string;
+    /** 手机号（E.164 格式，例如 +8613800000000），通过网关转发至 SCIM provider 更新 */
+    phoneNumber?: string;
 }
 /**
  * 上传头像请求

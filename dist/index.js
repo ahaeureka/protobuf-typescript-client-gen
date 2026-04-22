@@ -39,7 +39,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ExportAssetEntryRequest = exports.BusinessAssetBrowserServiceServiceName = exports.BusinessAssetBrowserServiceClientImpl = exports.AssetBrowserClient = exports.FileStorageClient = exports.collectFingerprintComponents = exports.hashComponents = exports.AnonymousUserClient = exports.HttpBody = exports.BusinessAssetBrowser = exports.Audit = exports.ApiKey = exports.Authorization = exports.APIResponse = exports.Address = exports.User = exports.LogoutCallbackRequest = exports.LoginCallbackResponse = exports.LogoutRequest = exports.LoginRequest = exports.OpenIDConnectCallbackRequest = exports.AuthServiceClient = void 0;
+exports.EntitlementServiceServiceName = exports.EntitlementServiceClientImpl = exports.EntitlementProto = exports.BillingServiceServiceName = exports.BillingServiceClientImpl = exports.BillingProto = exports.PaymentGatewayServiceServiceName = exports.PaymentGatewayServiceClientImpl = exports.PaymentClientError = exports.PaymentClient = exports.ExportAssetEntryRequest = exports.BusinessAssetBrowserServiceServiceName = exports.BusinessAssetBrowserServiceClientImpl = exports.AssetBrowserClient = exports.FileStorageClient = exports.collectFingerprintComponents = exports.hashComponents = exports.AnonymousUserClient = exports.HttpBody = exports.BusinessAssetBrowser = exports.Audit = exports.ApiKey = exports.Authorization = exports.APIResponse = exports.Address = exports.User = exports.LogoutCallbackRequest = exports.LoginCallbackResponse = exports.LogoutRequest = exports.LoginRequest = exports.OpenIDConnectCallbackRequest = exports.AuthServiceClient = void 0;
 // Main exports for the protobuf TypeScript client generator
 __exportStar(require("./plugin"), exports);
 // Re-export auth client which should be browser-safe
@@ -82,3 +82,20 @@ var business_asset_browser_1 = require("./proto/business_asset_browser");
 Object.defineProperty(exports, "BusinessAssetBrowserServiceClientImpl", { enumerable: true, get: function () { return business_asset_browser_1.BusinessAssetBrowserServiceClientImpl; } });
 Object.defineProperty(exports, "BusinessAssetBrowserServiceServiceName", { enumerable: true, get: function () { return business_asset_browser_1.BusinessAssetBrowserServiceServiceName; } });
 Object.defineProperty(exports, "ExportAssetEntryRequest", { enumerable: true, get: function () { return business_asset_browser_1.ExportAssetEntryRequest; } });
+// Payment client
+var payment_client_1 = require("./payment_client");
+Object.defineProperty(exports, "PaymentClient", { enumerable: true, get: function () { return payment_client_1.PaymentClient; } });
+Object.defineProperty(exports, "PaymentClientError", { enumerable: true, get: function () { return payment_client_1.PaymentClientError; } });
+// Proto-generated payment types (for advanced / direct proto usage)
+var payment_1 = require("./proto/payment");
+Object.defineProperty(exports, "PaymentGatewayServiceClientImpl", { enumerable: true, get: function () { return payment_1.PaymentGatewayServiceClientImpl; } });
+Object.defineProperty(exports, "PaymentGatewayServiceServiceName", { enumerable: true, get: function () { return payment_1.PaymentGatewayServiceServiceName; } });
+exports.BillingProto = __importStar(require("./proto/stew/api/v1/billing"));
+var billing_1 = require("./proto/stew/api/v1/billing");
+Object.defineProperty(exports, "BillingServiceClientImpl", { enumerable: true, get: function () { return billing_1.BillingServiceClientImpl; } });
+Object.defineProperty(exports, "BillingServiceServiceName", { enumerable: true, get: function () { return billing_1.BillingServiceServiceName; } });
+// Proto-generated entitlement types
+exports.EntitlementProto = __importStar(require("./proto/entitlement"));
+var entitlement_1 = require("./proto/entitlement");
+Object.defineProperty(exports, "EntitlementServiceClientImpl", { enumerable: true, get: function () { return entitlement_1.EntitlementServiceClientImpl; } });
+Object.defineProperty(exports, "EntitlementServiceServiceName", { enumerable: true, get: function () { return entitlement_1.EntitlementServiceServiceName; } });

@@ -63,3 +63,39 @@ export {
     ExportAssetEntryRequest,
 } from './proto/business_asset_browser';
 
+// Payment client
+export { PaymentClient, PaymentClientError } from './payment_client';
+export type {
+    PaymentClientOptions,
+    PaymentProviderKind as PaymentProviderKindAlias,
+    PaymentOrderStatus as PaymentOrderStatusAlias,
+    PaymentBillingInterval as PaymentBillingIntervalAlias,
+    CheckoutLineItem,
+    CreateCheckoutInput,
+    CheckoutSession,
+    PaymentOrder,
+    RefundInput,
+    RefundResult,
+    ListOrdersInput,
+    ListOrdersResult,
+    PaymentPageInfo,
+} from './payment_client';
+
+// Proto-generated payment types (for advanced / direct proto usage)
+export {
+    PaymentGatewayServiceClientImpl,
+    PaymentGatewayServiceServiceName,
+} from './proto/payment';
+export * as BillingProto from './proto/stew/api/v1/billing';
+export {
+    BillingServiceClientImpl,
+    BillingServiceServiceName,
+} from './proto/stew/api/v1/billing';
+
+// Proto-generated entitlement types
+export * as EntitlementProto from './proto/entitlement';
+export {
+    EntitlementServiceClientImpl,
+    EntitlementServiceServiceName,
+} from './proto/entitlement';
+

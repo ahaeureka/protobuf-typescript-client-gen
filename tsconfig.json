@@ -27,6 +27,7 @@
         "node_modules",
         "dist",
         "build",
-        "src/examples"
+        "src/examples",
+        "src/proto/*_client.ts"
     ]
 }

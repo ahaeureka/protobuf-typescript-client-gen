@@ -21,7 +21,7 @@ export declare enum PathEntryKind {
 export declare function pathEntryKindFromJSON(object: any): PathEntryKind;
 export declare function pathEntryKindToJSON(object: PathEntryKind): string;
 export interface UploadFileRequest {
-    payload?: //
+    payload: //
     /** First message: file metadata. */
     {
         $case: "metadata";
@@ -79,7 +79,7 @@ export interface InitResumableUploadResponse {
     expires_at: Date | undefined;
 }
 export interface UploadPartRequest {
-    payload?: //
+    payload: //
     /** First message: part header. */
     {
         $case: "header";
@@ -237,7 +237,7 @@ export interface VirtualPathRef {
 }
 /** Selects a target by file_id or virtual path. */
 export interface PathSelector {
-    selector?: {
+    selector: {
         $case: "file_id";
         file_id: string;
     } | {

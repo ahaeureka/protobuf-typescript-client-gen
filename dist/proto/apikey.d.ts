@@ -11,6 +11,8 @@ export interface ApiKey {
     description: string;
     scopes: string[];
     created_at: Date | undefined;
+    updated_at: Date | undefined;
+    deleted_at: Date | undefined;
     expires_at: Date | undefined;
     last_used_at: Date | undefined;
     is_active: boolean;
