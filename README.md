@@ -1,590 +1,96 @@
 # protobuf-typescript-client-gen
 
-Stew gRPC/HTTP 网关的 TypeScript 前端 SDK，提供：
+Stew 的独立 TypeScript protoc 插件包。
 
-- **自动生成的业务服务客户端** — 基于 `.proto` 文件由 protoc 插件生成，封装 Axios，自动处理认证
-- **OIDC 认证客户端** (`AuthServiceClient`) — 完整的 Session 认证流程封装
-- **业务资产浏览客户端** (`AssetBrowserClient`) — 覆盖资产集合、版本树、草稿编辑、Diff 与导出下载
-- **TypeScript 类型定义** — 从 `.proto` 生成的 Protobuf 消息类型
-- **流式支持** — WebSocket（双向流/客户端流）和 SSE（服务端流）
+当前这个仓库只负责一件事：把 .proto 生成成浏览器侧可用的 Axios 客户端。
 
----
+公共运行时客户端与 React UI 已迁到 stew-sdk-react，管理端生成产物直接输出到 stew-dashboard。
+
+这个包现在可以作为独立 Git 仓库直接安装。安装后可执行文件名为 protoc-gen-ts_client。
+
+## 当前边界
+
+- 生成器入口：dist/plugin.js
+- 二进制名：protoc-gen-ts_client
+- 仓库内标准调用方：/app/proto/Makefile
+- 公共运行时消费方：/app/stew-sdk-react
+- 管理端消费方：/app/stew-dashboard
+
+不要再从这个包根入口导入 AuthServiceClient、FileStorageClient、AssetBrowserClient 或任何 UI 组件。
 
 ## 安装
 
-### 方式一：本地工作区引用（Monorepo）
-
-在项目的 `package.json` 中：
-
-```json
-{
-  "dependencies": {
-    "protobuf-typescript-client-gen": "link:../protobuf-typescript-client-gen",
-    "axios": "^1.11.0"
-  }
-}
-```
-
-然后执行：
+### 从 GitHub 安装
 
 ```bash
-pnpm install
+pnpm add -D github:ahaeureka/protobuf-typescript-client-gen
 ```
 
-### 方式二：git 仓库安装
+### 本地仓库开发
 
 ```bash
-pnpm add git+https://github.com/your-org/protobuf-typescript-client-gen.git
-
-# 指定分支/tag
-pnpm add github:your-org/protobuf-typescript-client-gen#main
-pnpm add github:your-org/protobuf-typescript-client-gen#v1.0.1
-```
-
-### 方式三：构建后使用
-
-```bash
-# 在本包目录下构建
+cd /app/protobuf-typescript-client-gen
 pnpm install
 pnpm build
-
-# 构建产物在 dist/ 目录
 ```
 
----
+说明：为了支持直接通过 GitHub 安装后立即执行，仓库内会提交 dist/plugin.js 以及 dist/google/api 下的运行时依赖文件。
 
-## 项目结构
-
-```
-protobuf-typescript-client-gen/
-├── src/
-│   ├── index.ts                  # 主入口，统一导出
-│   ├── auth_client.ts            # OIDC 认证客户端
-│   ├── asset_browser_client.ts   # 业务资产浏览高层客户端
-│   ├── plugin.ts                 # protoc 插件（生成业务客户端代码）
-│   ├── sse-utils.ts              # Server-Sent Events 工具
-│   ├── websocket-utils.ts        # WebSocket 工具
-│   ├── websocket-message-utils.ts
-│   ├── google/api/               # google.api proto JS 实现
-│   └── proto/                    # 内置 Protobuf 消息类型
-│       ├── authentication.ts
-│       ├── user.ts
-│       ├── apikey.ts
-│       ├── audit.ts
-│       ├── business_asset_browser.ts
-│       ├── authorization.ts
-│       ├── service_discovery.ts
-│       ├── helloworld.ts
-│       └── stew/api/v1/
-│           ├── context.ts        # ClientContext / Tenant 类型
-│           ├── web.ts            # APIResponse / Code 枚举
-│           └── options.ts
-├── bin/
-│   ├── protoc                    # protoc 二进制（Linux x86_64）
-│   └── protoc-gen-js
-├── dist/                         # 构建产物（TypeScript 编译输出）
-├── tsconfig.json
-└── package.json
-```
-
----
-
-## 快速开始
-
-### 一、OIDC 登录集成
-
-#### 1. 初始化认证客户端
-
-```typescript
-// src/auth.ts
-import AuthServiceClient from 'protobuf-typescript-client-gen/src/auth_client';
-
-export const authClient = new AuthServiceClient(
-  'http://localhost:3012',              // Stew 网关地址
-  'http://localhost:5173/auth/callback', // 登录成功后的回调 URL
-  'http://localhost:5173/'              // 登出后跳转 URL
-);
-```
-
-#### 2. 登录页面
-
-```typescript
-// pages/Login.tsx
-import { authClient } from '@/auth';
-
-function LoginPage() {
-  const handleLogin = () => {
-    // 方式一：使用 AuthServiceClient（会自动拼接 callback 参数）
-    authClient.login();
-
-    // 方式二：手动跳转（更灵活）
-    const callback = encodeURIComponent(window.location.origin + '/auth/callback');
-    window.location.href = `/auth/login?callback=${callback}`;
-  };
-
-  return <button onClick={handleLogin}>使用 OIDC 登录</button>;
-}
-```
-
-#### 3. 回调页面（必须实现）
-
-```typescript
-// pages/Auth/Callback.tsx
-import { useEffect } from 'react';
-
-export default function AuthCallback() {
-  useEffect(() => {
-    // 网关登录成功后跳转格式：
-    // /auth/callback?code=success
-    // 服务端已通过 Set-Cookie 设置 HttpOnly session cookie，无需客户端处理
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
-
-    if (code === 'success') {
-      window.location.href = '/dashboard';
-    } else {
-      const msg = params.get('message') || '登录失败';
-      console.error('Login failed:', msg);
-      window.location.href = `/login?error=${encodeURIComponent(msg)}`;
-    }
-  }, []);
-
-  return <div>正在处理登录...</div>;
-}
-```
-
-#### 4. 路由守卫
-
-```typescript
-// 推荐：在应用顶层通过服务端验证获取用户状态，然后在路由守卫中使用
-function ProtectedRoute({ children }) {
-  const { currentUser } = useAppContext(); // 来自 getInitialState 或等效服务端验证
-
-  if (!currentUser) {
-    return <Navigate to="/login" />;
-  }
-  return <>{children}</>;
-}
-```
-
-#### 5. 登出
-
-```typescript
-import { authClient } from '@/auth';
-
-// 方式一：使用 AuthServiceClient
-authClient.logout(); // 清除本地数据并跳转到网关登出端点
-
-// 方式二：手动
-function logout() {
-  const callback = encodeURIComponent(window.location.origin + '/login');
-  window.location.href = `/auth/logout?callback=${callback}`;
-}
-```
-
-#### 6. 获取当前用户
-
-```typescript
-import { authClient } from '@/auth';
-
-// 通过认证客户端（依赖 HttpOnly Cookie，无需手动传 token）
-const { user, session_id, expires_at } = await authClient.getCurrentUser();
-
-// 验证 session 是否有效（推荐在应用启动时调用）
-const { valid, user_id } = await authClient.validateSession();
-
-// 刷新 token
-const { access_token } = await authClient.refreshToken();
-```
-
----
-
-### 二、业务资产浏览与导出
-
-资产浏览相关能力同时提供高层 REST 友好封装和低层生成式导出，适合浏览器页面、React UI 工作台以及已有 protobuf RPC 传输层的项目复用。
-
-统一导出协议：
-
-- gRPC：`ExportAssetEntry(ExportAssetEntryRequest) returns (google.api.HttpBody)`
-- HTTP：`GET /api/v1/assets/{asset_space}/{asset_id}/export?version_id=...&path=...`
-- 语义：文件返回原始内容；目录或根路径返回 zip
-
-#### 高层客户端
-
-```typescript
-import { AssetBrowserClient } from 'protobuf-typescript-client-gen/dist/asset_browser_client';
-
-const client = new AssetBrowserClient({
-  baseUrl: window.location.origin,
-  timeout: 30000,
-});
-
-const tree = await client.listTree('configs', 'gateway-routing', {
-  versionId: 'v20260401',
-  folder: '/',
-});
-
-console.log(tree.entries.map((entry) => entry.path));
-
-// folder: '/' returns the flattened subtree for the whole version.
-// Non-root folders keep direct-child semantics.
-
-const exported = await client.downloadEntry('configs', 'gateway-routing', {
-  versionId: 'v20260401',
-  path: '/templates',
-});
-
-console.log(exported.filename, exported.contentType, exported.blob.size);
-```
-
-高层 `AssetBrowserClient` 的特点：
-
-- 使用 camelCase 参数与返回值，适合前端业务代码直接调用
-- 下载接口返回浏览器友好的 `Blob`
-- 与 `stew-asset-browser-react` 的 `AssetBrowserWorkspace` 直接兼容
-
-浏览器端导入约束：
-
-- 前端页面、React Client Component、Vite 页面中，优先使用深路径导入：`protobuf-typescript-client-gen/dist/asset_browser_client`
-- 不要在浏览器端直接从包根导入整个 SDK；包根会带出插件侧导出，某些前端构建链会把 Node 依赖一起扫描进去
-- 包根导出更适合服务端脚本、Node 工具或直接消费低层生成客户端的场景
-
-版本字段语义：
-
-- `versionId`、`activeVersionId`、`draftVersionId`、`baseVersionId` 都是业务版本号，对应 `asset_versions.version_id`
-- SDK 返回值不会暴露内部数据库 UUID
-- 网关请求参数仍兼容传入内部 UUID，但新代码应始终使用业务版本号
-
-### 高层客户端与当前后端接口对齐关系
-
-当前 README 以下内容按已经落地的后端实现编写，而不是只按 proto 草案描述。
-
-已在高层 `AssetBrowserClient` 中封装的接口：
-
-- `listCollections()` 对应 `GET /api/v1/assets`
-- `getCollection()` 对应 `GET /api/v1/assets/{asset_space}/{asset_id}`
-- `ensureCollection()` 对应 `POST /api/v1/assets:ensure`
-- `listTree()` 对应 `GET /api/v1/assets/{asset_space}/{asset_id}/tree`
-- `listVersions()` 对应 `GET /api/v1/assets/{asset_space}/{asset_id}/versions`
-- `getVersion()` 对应 `GET /api/v1/assets/{asset_space}/{asset_id}/versions/{version_id}`
-- `createDraft()` 对应 `POST /api/v1/assets/{asset_space}/{asset_id}:createDraft`
-- `discardDraft()` 对应 `POST /api/v1/assets/{asset_space}/{asset_id}:discardDraft`
-- `getEntryText()` 对应 `POST /api/v1/assets/{asset_space}/{asset_id}:getEntryText`
-- `saveDraftText()` 对应 `POST /api/v1/assets/{asset_space}/{asset_id}:saveDraftText`
-- `renameDraftEntry()` 对应 `POST /api/v1/assets/{asset_space}/{asset_id}:renameDraftEntry`
-- `deleteDraftEntry()` 对应 `POST /api/v1/assets/{asset_space}/{asset_id}:deleteDraftEntry`
-- `diffVersions()` 对应 `POST /api/v1/assets/{asset_space}/{asset_id}:diffVersions`
-- `diffDraft()` 对应 `POST /api/v1/assets/{asset_space}/{asset_id}:diffDraft`
-- `getDiffEntryDetail()` 对应 `POST /api/v1/assets/{asset_space}/{asset_id}:getDiffEntry`
-- `publishDraft()` 对应 `POST /api/v1/assets/{asset_space}/{asset_id}:publishDraft`
-- `activateVersion()` 对应 `POST /api/v1/assets/{asset_space}/{asset_id}:activateVersion`
-- `downloadEntry()` 对应 `GET /api/v1/assets/{asset_space}/{asset_id}/export`
-
-当前后端已实现、文档中需要特别注意的语义：
-
-- `listTree({ folder: '/' })` 返回整版资产的递归平铺条目，前端需要自行重建目录树
-- `listTree()` 在非根目录下仍保持 direct children 语义
-- `downloadEntry()` 选中文件时返回原文件，选中目录或根路径时返回 zip
-- `getVersion()` 现在会额外返回 `baseVersion`，当目标版本是 draft 时还会返回 `draftDiffSummary`
-- `diffVersions()` / `diffDraft()` 现在真正支持 `diffMode` 和 `pathPrefix`
-- `diffMode: 'structure_only'` 只返回结构差异；`diffMode: 'with_text'` 会为文本文件补充 `isText`、`oldPreview`、`newPreview`、`unifiedDiff`、`textDiffStatus`
-- `pathPrefix` 会把 Diff 范围收窄到某个目录或文件路径，例如 `/assets` 或 `/assets/templates/onboarding.yaml`
-
-### getVersion 返回值示例
-
-```typescript
-const detail = await client.getVersion('configs', 'gateway-routing', 'draft-20260407');
-
-console.log(detail.version.versionId);
-console.log(detail.baseVersion?.versionId);
-console.log(detail.draftDiffSummary?.totalChanges);
-```
-
-### diffMode / pathPrefix 示例
-
-```typescript
-const diff = await client.diffDraft('configs', 'gateway-routing', 'draft-20260407', {
-  diffMode: 'with_text',
-  pathPrefix: '/assets',
-  pageSize: 50,
-});
-
-console.log(diff.summary.textDiffCount);
-console.log(diff.entries[0]?.unifiedDiff);
-```
-
-### EnsureAssetCollection 示例
-
-```typescript
-import { AssetBrowserClient } from 'protobuf-typescript-client-gen/dist/asset_browser_client';
-
-const client = new AssetBrowserClient({
-  baseUrl: window.location.origin,
-});
-
-const collection = await client.ensureCollection('configs', 'gateway-routing', {
-  scopeKind: 'service',
-  scopeValue: 'gateway',
-  displayName: 'Gateway Routing',
-  description: '路由配置资产集合',
-});
-
-console.log(collection.assetId, collection.scopeKind);
-```
-
-#### 低层生成式导出入口
-
-以下符号已从包根导出，可直接用于已有 `Rpc` 适配层：
-
-- `BusinessAssetBrowserServiceClientImpl`
-- `BusinessAssetBrowserServiceServiceName`
-- `ExportAssetEntryRequest`
-- `HttpBody`
-- `BusinessAssetBrowser` 命名空间下的其余消息类型
-
-```typescript
-import {
-  BusinessAssetBrowserServiceClientImpl,
-  BusinessAssetBrowserServiceServiceName,
-  type ExportAssetEntryRequest,
-  type HttpBody,
-} from 'protobuf-typescript-client-gen';
-
-type Rpc = {
-  request(service: string, method: string, data: Uint8Array): Promise<Uint8Array>;
-};
-
-declare const rpc: Rpc;
-
-const rawClient = new BusinessAssetBrowserServiceClientImpl(rpc, {
-  service: BusinessAssetBrowserServiceServiceName,
-});
-
-const request: ExportAssetEntryRequest = {
-  asset_space: 'configs',
-  asset_id: 'gateway-routing',
-  version_id: 'v20260401',
-  path: '/templates',
-};
-
-const body: HttpBody = await rawClient.ExportAssetEntry(request);
-console.log(body.content_type, body.data.length);
-```
-
-低层使用约定：
-
-- 保留 protobuf 原始字段命名，如 `asset_space`、`version_id`
-- 直接返回 `HttpBody`，便于与自定义传输层、测试或中间件打通
-- 如果只是在浏览器中做页面集成，优先使用高层 `AssetBrowserClient`
-
----
-
-### 三、使用生成的业务服务客户端
-
-业务客户端由 protoc 插件从 `.proto` 文件自动生成。生成后放入 `src/services/` 目录。
-
-#### 调用接口示例
-
-```typescript
-// src/services/order_client.ts 由 protoc 插件生成
-import { OrderClient } from './services/order_client';
-
-const client = new OrderClient({
-  baseUrl: window.location.origin, // 指向 Stew 网关
-  timeout: 30000,
-});
-
-// GET 接口（路径参数自动替换）
-const order = await client.get_order({ order_id: 'ord-123' });
-
-// POST 接口
-const newOrder = await client.create_order({
-  product_id: 'prod-456',
-  quantity: 2,
-});
-```
-
-客户端会自动：
-- 使用 `withCredentials: true` 确保请求携带 HttpOnly Cookie
-- 遇到 `401` 时清除内部认证状态
-
-#### 使用 protoc 插件生成客户端
+## 构建
 
 ```bash
-# 将 bin/ 加入 PATH 或直接引用
-export PATH="$PATH:./protobuf-typescript-client-gen/bin"
+cd /app/protobuf-typescript-client-gen
+pnpm install
+pnpm build
+```
 
+构建后会得到：
+
+- dist/plugin.js
+- dist/plugin.d.ts
+- dist/google/api/* 运行时依赖文件
+
+## 标准消费方式
+
+如果你在 Stew monorepo 内使用，标准入口是 /app/proto/package.json 和 /app/proto/Makefile。
+
+它们会从已安装依赖中解析：
+
+- node_modules/.bin/protoc-gen-ts_client
+- node_modules/stew-sdk-react/src/websocket-utils.ts
+- node_modules/stew-sdk-react/src/websocket-message-utils.ts
+- node_modules/stew-sdk-react/src/sse-utils.ts
+
+## 仓库内的标准用法
+
+```bash
+cd /app/protobuf-typescript-client-gen
+pnpm build
+
+cd /app/proto
+make ts-public
+make ts-admin
+make ts
+```
+
+对应输出目录：
+
+- make ts-public -> /app/stew-sdk-react/src/generated/proto
+- make ts-admin -> /app/stew-dashboard/lib/gateway/generated
+- make ts -> 同时更新上述两处
+
+## 仓库外手动调用
+
+```bash
 protoc \
-  --plugin=protoc-gen-ts_client=./node_modules/.bin/protoc-gen-ts_client \
-  --ts_client_out=./src/services \
+  --plugin=protoc-gen-ts_client=/absolute/path/to/dist/plugin.js \
+  --ts_client_out=ts_out=./generated,axios_out=./generated:./generated \
   --proto_path=./proto \
-  --proto_path=/path/to/stew/proto \
-  --proto_path=/path/to/googleapis \
   ./proto/order_service.proto
 ```
 
----
+## 迁移说明
 
-### 四、类型导入
-
-```typescript
-// 认证相关类型
-import {
-  AuthServiceClient,
-  LoginRequest,
-  LogoutRequest,
-  LoginCallbackResponse,
-  User,
-} from 'protobuf-typescript-client-gen';
-
-// 资产浏览高层类型
-import type {
-  AssetCollection,
-  AssetTreeEntry,
-  DownloadEntryResult,
-} from 'protobuf-typescript-client-gen';
-
-// 资产浏览低层 protobuf 消息
-import { BusinessAssetBrowser } from 'protobuf-typescript-client-gen';
-
-type AssetVersionSummary = BusinessAssetBrowser.AssetVersionSummary;
-
-// 客户端上下文（网关注入，gRPC 服务端可读取）
-import type {
-  ClientContext,
-  Tenant,
-} from 'protobuf-typescript-client-gen/src/proto/stew/api/v1/context';
-
-// 统一响应格式
-import type { APIResponse } from 'protobuf-typescript-client-gen/src/proto/stew/api/v1/web';
-import { Code } from 'protobuf-typescript-client-gen/src/proto/stew/api/v1/web';
-
-// API Key
-import * as ApiKey from 'protobuf-typescript-client-gen/src/proto/apikey';
-```
-
----
-
-### 五、流式接口
-
-#### Server-Sent Events（服务端推送流）
-
-```typescript
-import { parseSSEChunk } from 'protobuf-typescript-client-gen/src/sse-utils';
-import { OrderUpdate } from './services/proto/order';
-
-const response = await fetch('/api/v1/orders/stream', {
-  credentials: 'include', // 携带 Cookie
-  headers: { Accept: 'text/event-stream' },
-});
-
-const reader = response.body!.getReader();
-let buffer = '';
-
-while (true) {
-  const { done, value } = await reader.read();
-  if (done) break;
-
-  const { messages, buffer: next } = parseSSEChunk(value, buffer, OrderUpdate, false);
-  buffer = next;
-
-  for (const msg of messages) {
-    console.log('推送消息:', msg);
-  }
-}
-```
-
-#### WebSocket（双向流）
-
-```typescript
-import { createWebSocket, buildWebSocketUrl } from 'protobuf-typescript-client-gen/src/websocket-utils';
-
-const ws = createWebSocket(buildWebSocketUrl('http://localhost:3012', '/api/v1/chat/stream'));
-
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  console.log('收到:', data);
-};
-
-ws.onopen = () => {
-  ws.send(JSON.stringify({ message: 'hello' }));
-};
-```
-
----
-
-## 认证 API 端点参考
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/auth/login?callback=<url>` | 发起 OIDC 登录，302 跳转到 IDP |
-| GET | `/auth/callback` | OIDC 回调，设置 HttpOnly Cookie，302 跳转回前端 |
-| GET | `/auth/logout?callback=<url>` | 登出，清除 session，302 跳转到 IDP 登出端点 |
-| GET | `/auth/me` | 获取当前用户信息（依赖 Cookie） |
-| POST | `/auth/session/validate` | 验证 session 有效性 |
-| POST | `/auth/token/refresh` | 刷新 access_token |
-
-回调 URL 参数格式：
-
-```
-成功：<callback_url>?code=success
-失败：<callback_url>?code=error&message=<error_message>
-```
-
----
-
-## session 认证机制说明
-
-```
-OIDC 登录完成
-    |
-    v
-网关设置 HttpOnly Cookie（session_id）   <- 所有 API 请求的实际认证凭证
-    |
-    v
-302 跳转到前端 /auth/callback?code=success
-    |
-    v
-前端检查 code=success，跳转到 /dashboard（无需客户端存储 session_id）
-    |
-    v
-后续请求：浏览器自动携带 HttpOnly Cookie
-网关验证 Cookie -> 注入 x-user-id 等用户头 -> 转发到业务 gRPC 服务
-```
-
-**重要：**
-- `HttpOnly Cookie` 无法被 JavaScript 读取，可防止 XSS 攻击窃取 token
-- 客户端不存储 session_id，登录状态通过服务端 `/auth/me` 验证
-- 回调 URL 中不携带 session_id，避免 URL 泄露风险
-
----
-
-## APIResponse 响应格式
-
-网关统一响应包装（通过 proto `http_response` 选项开启）：
-
-```json
-{ "code": 2000, "message": "success", "data": { ... } }
-```
-
-`Code` 枚举值：
-
-| 枚举 | 值 | 含义 |
-|---|---|---|
-| `OK` | 2000 | 成功 |
-| `PARAMS_ERROR` | 4000 | 参数错误 |
-| `AUTH_ERROR` | 4001 | 认证失败 |
-| `PREMISSION_DENIED` | 4003 | 权限不足 |
-| `NOT_FOUND` | 4004 | 资源不存在 |
-| `INTERNAL_ERROR` | 5000 | 服务器错误 |
-
-生成的 Axios 客户端已自动处理 `data` 字段解包，业务代码直接获得强类型消息对象。
-
----
-
-## 注意事项
-
-1. **回调页面必须实现** — 网关登录成功后 302 跳转到 callback URL，该页面检查 `code=success` 后跳转到主页
-2. **CORS 与 Cookie** — 跨域场景需确保网关配置 `Access-Control-Allow-Credentials: true`，客户端请求使用 `withCredentials: true`
-3. **HTTPS** — 生产环境必须使用 HTTPS，否则 Cookie 安全标志可能导致认证失败
-4. **OIDC Provider 配置** — 前端回调 URL 必须在 OIDC Provider 的允许重定向列表中注册
+- 业务前端运行时请使用 stew-sdk-react
+- 资产浏览 UI 已并入 stew-sdk-react
+- 只在你需要自定义 codegen 流程时，才直接引用这个插件包

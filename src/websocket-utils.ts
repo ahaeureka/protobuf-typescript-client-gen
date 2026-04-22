@@ -3,6 +3,10 @@
  * Only imported when WebSocket functionality is needed
  */
 
+type WebSocketOpenOrErrorListener = (event: Event) => void;
+type WebSocketMessageListener = (event: MessageEvent) => void;
+type WebSocketCloseListener = (event: CloseEvent) => void;
+
 // WebSocket interface for cross-platform compatibility
 interface WebSocketLike {
     readonly CONNECTING: number;
@@ -20,8 +24,12 @@ interface WebSocketLike {
     onmessage: ((event: MessageEvent) => void) | null;
     onerror: ((event: Event) => void) | null;
 
-    addEventListener(type: string, listener: EventListener): void;
-    removeEventListener(type: string, listener: EventListener): void;
+    addEventListener(type: 'open' | 'error', listener: WebSocketOpenOrErrorListener): void;
+    addEventListener(type: 'message', listener: WebSocketMessageListener): void;
+    addEventListener(type: 'close', listener: WebSocketCloseListener): void;
+    removeEventListener(type: 'open' | 'error', listener: WebSocketOpenOrErrorListener): void;
+    removeEventListener(type: 'message', listener: WebSocketMessageListener): void;
+    removeEventListener(type: 'close', listener: WebSocketCloseListener): void;
 }
 
 /**

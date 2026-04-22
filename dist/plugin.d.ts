@@ -11,8 +11,8 @@ declare class AxiosClientPlugin {
     private getOutputFileName;
     /**
      * 计算从 fromPath 到 toPath 的相对路径
-     * 例如: fromPath="../web/src/services", toPath="../web/src/proto"
-     * 返回: "../proto"
+     * 例如: fromPath="../stew-sdk-react/src/generated/proto", toPath="../stew-sdk-react/src"
+     * 返回: ".."
      */
     private calculateRelativePath;
     /**

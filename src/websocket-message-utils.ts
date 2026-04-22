@@ -83,6 +83,9 @@ export function processWebSocketStreamingMessage<T>(
 
         return null;
     } catch (error) {
-        return error as Error;
+        if (error instanceof Error) {
+            return error;
+        }
+        return new Error(typeof error === 'string' ? error : 'Unknown WebSocket message error');
     }
 }

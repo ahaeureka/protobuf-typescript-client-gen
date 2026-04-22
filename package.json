@@ -1,37 +1,30 @@
 {
     "name": "protobuf-typescript-client-gen",
     "version": "1.0.1",
-    "description": "",
-    "main": "dist/index.js",
-    "types": "dist/index.d.ts",
+    "description": "Standalone protoc plugin for Stew TypeScript Axios client generation.",
     "bin": {
         "protoc-gen-ts_client": "./dist/plugin.js"
     },
+    "files": [
+        "dist",
+        "README.md"
+    ],
     "scripts": {
-        "build": "tsc",
-        "clean": "rm -rf dist build",
-        "watch": "tsc --watch"
+        "build": "rm -rf dist && tsc -p tsconfig.json && node ./scripts/copy-google-runtime.mjs",
+        "clean": "rm -rf dist",
+        "watch": "tsc -p tsconfig.json --watch"
     },
     "keywords": [],
     "author": "",
     "license": "ISC",
     "packageManager": "pnpm@10.14.0",
     "dependencies": {
-        "@bufbuild/protobuf": "^2.7.0",
-        "@fingerprintjs/fingerprintjs": "^4.5.1",
-        "@types/axios": "0.9.36",
-        "axios": "^1.11.0",
         "google-protobuf": "^4.0.0",
-        "handlebars": "^4.7.8",
-        "protobufjs": "^7.5.4",
-        "rxjs": "^7.8.2",
-        "ts-proto": "^2.7.7",
-        "ws": "^8.18.3"
+        "handlebars": "^4.7.8"
     },
     "devDependencies": {
         "@types/google-protobuf": "^3.15.12",
         "@types/node": "^24.3.0",
-        "@types/ws": "^8.18.1",
         "typescript": "^5.9.2"
     }
 }
