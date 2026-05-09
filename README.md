@@ -6,6 +6,8 @@ Stew 的独立 TypeScript protoc 插件包。
 
 公共运行时客户端与 React UI 已迁到 stew-sdk-react，管理端生成产物直接输出到 stew-dashboard。
 
+从当前版本开始，生成器只负责 transport client 生成，不再在 generated client 内嵌浏览器 token、cookie、session 同步与 401 清理逻辑。
+
 这个包现在可以作为独立 Git 仓库直接安装。安装后可执行文件名为 protoc-gen-ts_client。
 
 ## 当前边界
@@ -61,6 +63,44 @@ pnpm build
 - node_modules/stew-sdk-react/src/websocket-message-utils.ts
 - node_modules/stew-sdk-react/src/sse-utils.ts
 
+## 运行时注入约定
+
+生成出来的 client 现在支持通过外部 axios runtime 注入鉴权与业务边界头：
+
+```ts
+import axios from 'axios';
+import {
+  applyCustomHeaderInterceptor,
+  applySessionAuthInterceptor,
+} from 'stew-sdk-react/auth';
+
+const axiosInstance = axios.create({
+  baseURL: baseUrl,
+  withCredentials: true,
+});
+
+applySessionAuthInterceptor(axiosInstance, {
+  getToken: () => localStorage.getItem('token'),
+});
+
+applyCustomHeaderInterceptor(axiosInstance, () => ({
+  'x-business-id': businessId,
+}));
+
+const client = new SkillServiceClient({
+  baseUrl,
+  axiosInstance,
+});
+```
+
+如果你不直接传入 `axiosInstance`，也可以使用 `configureAxios(instance)` 在生成 client 创建默认实例后补充拦截器。
+
+这意味着：
+
+- generated client 默认只保留 `baseUrl`、`timeout` 和基础 `Content-Type`
+- 浏览器鉴权运行时由上层 SDK 或业务项目决定
+- 重新生成不会再把 `ensureSessionCookie`、`getToken`、`clearAuthState` 复制进每个 client 文件
+
 ## 仓库内的标准用法
 
 ```bash
@@ -93,4 +133,5 @@ protoc \
 
 - 业务前端运行时请使用 stew-sdk-react
 - 资产浏览 UI 已并入 stew-sdk-react
+- 浏览器鉴权逻辑请挂到外部 axios instance 或 `configureAxios`，不要再依赖 generated client 内置认证
 - 只在你需要自定义 codegen 流程时，才直接引用这个插件包

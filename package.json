@@ -10,7 +10,7 @@
         "README.md"
     ],
     "scripts": {
-        "build": "rm -rf dist && tsc -p tsconfig.json && node ./scripts/copy-google-runtime.mjs",
+        "build": "rm -rf dist && tsc -p tsconfig.json && chmod +x dist/plugin.js && node ./scripts/copy-google-runtime.mjs",
         "clean": "rm -rf dist",
         "watch": "tsc -p tsconfig.json --watch"
     },

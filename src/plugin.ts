@@ -110,6 +110,8 @@ import axios, { AxiosInstance, AxiosResponse } from 'axios';
 export interface ClientConfig {
   baseUrl: string;
   timeout?: number;
+  axiosInstance?: AxiosInstance;
+  configureAxios?: (instance: AxiosInstance) => void;
 }
 
 export interface EmptyRequest {}
@@ -117,292 +119,90 @@ export interface EmptyRequest {}
 type ResponseWrapper<T> = { data?: T } | T;
 
 interface ApiResponseEnvelope {
-  code: number;
-  message: string;
-  data?: unknown;
+    code: number;
+    message: string;
+    data?: unknown;
 }
 
 /**
  * Convert Uint8Array to Base64 string
  */
 function uint8ArrayToBase64(bytes: Uint8Array): string {
-  if (typeof window !== 'undefined' && window.btoa) {
-    // Browser environment
-    const binary = Array.from(bytes).map(b => String.fromCharCode(b)).join('');
-    return window.btoa(binary);
-  } else {
-    // Node.js environment
-    return Buffer.from(bytes).toString('base64');
-  }
+    if (typeof window !== 'undefined' && window.btoa) {
+        // Browser environment
+        const binary = Array.from(bytes).map(b => String.fromCharCode(b)).join('');
+        return window.btoa(binary);
+    } else {
+        // Node.js environment
+        return Buffer.from(bytes).toString('base64');
+    }
 }
 
 /**
  * Recursively convert all Uint8Array fields to Base64 strings in request object
  */
 function preprocessRequest(obj: any): any {
-  if (!obj || typeof obj !== 'object') {
-    return obj;
-  }
+    if (!obj || typeof obj !== 'object') {
+        return obj;
+    }
 
-  if (obj instanceof Uint8Array) {
-    return uint8ArrayToBase64(obj);
-  }
+    if (obj instanceof Uint8Array) {
+        return uint8ArrayToBase64(obj);
+    }
 
-  if (Array.isArray(obj)) {
-    return obj.map(item => preprocessRequest(item));
-  }
+    if (Array.isArray(obj)) {
+        return obj.map(item => preprocessRequest(item));
+    }
 
-  const result: any = {};
-  for (const [key, value] of Object.entries(obj)) {
-    result[key] = preprocessRequest(value);
-  }
-  return result;
+    const result: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+        result[key] = preprocessRequest(value);
+    }
+    return result;
 }
 
 /**
  * Type guard to check if a value is an APIResponse-like structure
  */
 function isAPIResponse(data: any): data is ApiResponseEnvelope {
-  return (
-    data !== null &&
-    typeof data === 'object' &&
-    typeof data.code === 'number' &&
-    'data' in data &&
-    'message' in data
-  );
+    return (
+        data !== null &&
+        typeof data === 'object' &&
+        typeof data.code === 'number' &&
+        'data' in data &&
+        'message' in data
+    );
 }
 
 function toError(error: unknown): Error {
-  if (error instanceof Error) {
-    return error;
-  }
+    if (error instanceof Error) {
+        return error;
+    }
 
-  if (typeof Event !== 'undefined' && error instanceof Event) {
-    return new Error(error.type || 'WebSocket event error');
-  }
+    if (typeof Event !== 'undefined' && error instanceof Event) {
+        return new Error(error.type || 'WebSocket event error');
+    }
 
-  return new Error(typeof error === 'string' ? error : 'Unknown error');
+    return new Error(typeof error === 'string' ? error : 'Unknown error');
 }
 
 export class {{class_name}} {
-  private client: AxiosInstance;
-  private baseUrl: string;
-  private accessToken: string | null = null;
-  private tokenExpiry: Date | null = null;
+    readonly client: AxiosInstance;
+    private baseUrl: string;
 
-  constructor(config: ClientConfig) {
-    this.baseUrl = config.baseUrl.replace(/\\/$/, '');
-    
-    this.client = axios.create({
-      baseURL: this.baseUrl,
-      timeout: config.timeout || 30000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      withCredentials: true, // 允许发送 Cookie
-    });
+    constructor(config: ClientConfig) {
+        this.baseUrl = config.baseUrl.replace(/\\/$/, '');
 
-    // Add request interceptor for authentication
-    this.client.interceptors.request.use(async (config) => {
-      // 处理 Session-based 认证
-      this.ensureSessionCookie();
-      
-      // 处理 Bearer token 认证
-      this.accessToken = this.getToken();
-      if (this.accessToken) {
-        config.headers.Authorization = \`Bearer \${this.accessToken}\`;
-      }
-      return config;
-    });
-
-    // Add response interceptor to handle authentication failures
-    this.client.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        // Check for authentication errors (401 Unauthorized)
-        if (error.response && error.response.status === 401) {
-          this.clearAuthState();
-        }
-        return Promise.reject(error);
-      }
-    );
-  }
-
-  /**
-   * 手动登出 - 清除所有认证状态
-   * 公共方法，允许用户主动调用
-   */
-  public clearClientAuthState(): void {
-    this.clearAuthState();
-  }
-
-  /**
-   * 清除所有认证状态
-   * 当认证失败时调用，清除 localStorage、sessionStorage 和所有 Cookie
-   */
-  private clearAuthState(): void {
-    // 仅在浏览器环境中执行
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    try {
-      // 清除 localStorage 中的认证相关信息
-      if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem('session_id');
-        localStorage.removeItem('token');
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        console.debug('[Auth] Cleared localStorage auth data');
-      }
-
-      // 清除 sessionStorage 中的认证相关信息
-      if (typeof sessionStorage !== 'undefined') {
-        sessionStorage.removeItem('session_id');
-        sessionStorage.removeItem('token');
-        sessionStorage.removeItem('access_token');
-        sessionStorage.removeItem('refresh_token');
-        console.debug('[Auth] Cleared sessionStorage auth data');
-      }
-
-      // 清除所有 Cookie
-      if (typeof document !== 'undefined' && document.cookie) {
-        const cookies = document.cookie.split(';');
-        for (let cookie of cookies) {
-          const [name] = cookie.trim().split('=');
-          if (name) {
-            // 删除 Cookie（设置过期时间为过去）
-            // 尝试多种路径和域组合以确保删除
-            document.cookie = \`\${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;\`;
-            document.cookie = \`\${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=\${window.location.hostname};\`;
-            
-            // 如果域名有子域，尝试删除父域的 Cookie
-            const hostnameParts = window.location.hostname.split('.');
-            if (hostnameParts.length > 2) {
-              const parentDomain = hostnameParts.slice(-2).join('.');
-              document.cookie = \`\${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.\${parentDomain};\`;
-            }
-          }
-        }
-        console.debug('[Auth] Cleared all cookies');
-      }
-
-      // 清除当前实例的 token
-      this.accessToken = null;
-      this.tokenExpiry = null;
-
-      console.warn('[Auth] Authentication failed - all auth state cleared');
-    } catch (error) {
-      console.error('[Auth] Failed to clear auth state:', error);
-    }
-  }
-
-  /**
-   * 确保 session_id Cookie 已设置
-   * 从 localStorage 读取 session_id，如果存在则设置到 Cookie
-   */
-  private ensureSessionCookie(): void {
-    // 仅在浏览器环境中执行
-    if (typeof window === 'undefined' || typeof document === 'undefined') {
-      return;
-    }
-
-    try {
-      // 从 localStorage 读取 session_id
-      const sessionId = localStorage.getItem('session_id');
-      
-      if (sessionId) {
-        // 检查 Cookie 中是否已存在 session_id
-        const cookies = document.cookie.split(';');
-        const hasSessionCookie = cookies.some(cookie => {
-          const [name] = cookie.trim().split('=');
-          return name === 'session_id';
+        this.client = config.axiosInstance ?? axios.create({
+            baseURL: this.baseUrl,
+            timeout: config.timeout || 30000,
+            headers: {
+                'Content-Type': 'application/json',
+            },
         });
 
-        // 如果 Cookie 中没有 session_id，则设置它
-        if (!hasSessionCookie) {
-          // 设置 Cookie（路径为 /，SameSite=Lax 以支持跨页面导航）
-          document.cookie = \`session_id=\${sessionId}; path=/; SameSite=Lax\`;
-          console.debug('[Auth] Set session_id cookie from localStorage');
-        }
-      }
-    } catch (error) {
-      console.warn('[Auth] Failed to sync session_id to cookie:', error);
+        config.configureAxios?.(this.client);
     }
-  }
-
-  /**
-   * 从 localStorage/Cookie 获取 session_id
-   */
-  private getSessionId(): string | null {
-    // 检查浏览器环境
-    if (typeof window !== 'undefined') {
-      // 优先从 localStorage 获取
-      if (typeof localStorage !== 'undefined') {
-        const sessionId = localStorage.getItem('session_id');
-        if (sessionId) {
-          return sessionId;
-        }
-      }
-      
-      // 从 Cookie 获取作为后备
-      if (typeof document !== 'undefined' && document.cookie) {
-        const cookies = document.cookie.split(';');
-        for (let cookie of cookies) {
-          const [name, value] = cookie.trim().split('=');
-          if (name === 'session_id') {
-            return decodeURIComponent(value);
-          }
-        }
-      }
-    }
-    
-    return null;
-  }
-
-private getToken(): string | null {
-  // Check if we're in a browser environment
-  if (typeof window !== 'undefined') {
-    // Browser environment - use localStorage, sessionStorage, and cookies
-    
-    // 从localStorage获取token
-    if (typeof localStorage !== 'undefined') {
-      const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-      if (token) {
-        return token;
-      }
-    }
-    
-    // 从sessionStorage获取token
-    if (typeof sessionStorage !== 'undefined') {
-      const sessionToken = sessionStorage.getItem('token') || sessionStorage.getItem('access_token');
-      if (sessionToken) {
-        return sessionToken;
-      }
-    }
-    
-    // 从cookie获取token（如果使用cookie存储）
-    if (typeof document !== 'undefined' && document.cookie) {
-      const cookies = document.cookie.split(';');
-      for (let cookie of cookies) {
-        const [name, value] = cookie.trim().split('=');
-        if (name === 'token' || name === 'access_token') {
-          return decodeURIComponent(value);
-        }
-      }
-    }
-  } else if (typeof process !== 'undefined' && process.env) {
-    // Node.js environment - try to get token from environment variables
-    return process.env.ACCESS_TOKEN || process.env.TOKEN || null;
-  }
-  
-  return null;
-}
-
-  private async getAuthHeaders(): Promise<Record<string, string>> {
-    this.accessToken = this.getToken();
-    return this.accessToken ? { Authorization: \`Bearer \${this.accessToken}\` } : {};
-  }
 
 {{#each services}}
   // {{@key}} methods
@@ -436,11 +236,6 @@ private getToken(): string | null {
     const processedRequest = preprocessRequest(request);
     
     const requestHeaders = { ...headers };
-    
-    {{#if auth_required}}
-    const authHeaders = await this.getAuthHeaders();
-    Object.assign(requestHeaders, authHeaders);
-    {{/if}}
     
     {{#if is_redirect}}
     // Handle redirect response - don't follow redirects
@@ -583,14 +378,9 @@ private getToken(): string | null {
       'Cache-Control': 'no-cache'
     };
     
-    {{#if auth_required}}
-    const authHeaders = await this.getAuthHeaders();
-    Object.assign(requestHeaders, authHeaders);
-    {{/if}}
-    
     {{#if (isBodyMethod http.method)}}
     // POST/PUT/PATCH: pass data in request body
-    const response = await axios({
+    const response = await this.client.request({
       method: '{{http.method}}',
       url,
       data: processedRequest,
@@ -599,7 +389,7 @@ private getToken(): string | null {
     });
     {{else}}
     // GET/DELETE/HEAD/OPTIONS: pass params in query string
-    const response = await axios({
+    const response = await this.client.request({
       method: '{{http.method}}',
       url,
       params: processedRequest,
@@ -641,10 +431,8 @@ private getToken(): string | null {
     
     return new Promise(async (resolve, reject) => {
       const wsUrl = buildWebSocketUrl(this.baseUrl, '{{http.path}}');
-      const authHeaders = await this.getAuthHeaders();
-      
       const ws = createWebSocket(wsUrl, undefined, {
-        headers: { ...headers, ...authHeaders }
+        headers: { ...headers }
       });
 
       const onOpen = async () => {
@@ -709,10 +497,8 @@ private getToken(): string | null {
     const { processWebSocketStreamingMessage } = await import('./websocket-message-utils');
     
     const wsUrl = buildWebSocketUrl(this.baseUrl, '{{http.path}}');
-    const authHeaders = await this.getAuthHeaders();
-    
     const ws = createWebSocket(wsUrl, undefined, {
-      headers: { ...headers, ...authHeaders }
+      headers: { ...headers }
     });
 
     return {
