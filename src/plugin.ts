@@ -112,9 +112,16 @@ export interface ClientConfig {
   timeout?: number;
   axiosInstance?: AxiosInstance;
   configureAxios?: (instance: AxiosInstance) => void;
+    authMode?: ClientAuthMode;
+    getAuthToken?: () => string | null | undefined | Promise<string | null | undefined>;
+    clearAuthStateOnUnauthorized?: () => void;
+    sessionCookieName?: string;
+    sessionStorageKey?: string;
 }
 
 export interface EmptyRequest {}
+
+export type ClientAuthMode = 'session' | 'bearer';
 
 type ResponseWrapper<T> = { data?: T } | T;
 
@@ -186,6 +193,72 @@ function toError(error: unknown): Error {
     return new Error(typeof error === 'string' ? error : 'Unknown error');
 }
 
+function ensureSessionCookie(cookieName = 'session_id', storageKey = cookieName): void {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+        return;
+    }
+
+    try {
+        const sessionId = localStorage.getItem(storageKey) ?? sessionStorage.getItem(storageKey);
+        if (!sessionId) {
+            return;
+        }
+
+        const hasSessionCookie = document.cookie
+            .split(';')
+            .some((cookie) => cookie.trim().split('=')[0] === cookieName);
+        if (!hasSessionCookie) {
+            document.cookie = \`\${cookieName}=\${encodeURIComponent(sessionId)}; path=/; SameSite=Lax\`;
+        }
+    } catch {
+        // Ignore browser storage errors.
+    }
+}
+
+function applyGeneratedClientAuth(instance: AxiosInstance, config: ClientConfig): void {
+    const authMode = config.authMode ?? 'session';
+    const sessionCookieName = config.sessionCookieName ?? 'session_id';
+    const sessionStorageKey = config.sessionStorageKey ?? sessionCookieName;
+
+    instance.interceptors.request.use(async (requestConfig) => {
+        ensureSessionCookie(sessionCookieName, sessionStorageKey);
+
+        const existingAuthorization =
+            (requestConfig.headers as Record<string, string> | undefined)?.Authorization
+            ?? (requestConfig.headers as Record<string, string> | undefined)?.authorization;
+        if (!existingAuthorization && authMode === 'bearer' && config.getAuthToken) {
+            const token = await Promise.resolve(config.getAuthToken());
+            if (token) {
+                requestConfig.headers = requestConfig.headers ?? {};
+                (requestConfig.headers as Record<string, string>).Authorization = \`Bearer \${token}\`;
+            }
+        }
+
+        return requestConfig;
+    });
+
+    if (config.clearAuthStateOnUnauthorized) {
+        instance.interceptors.response.use(
+            (response) => response,
+            (error: unknown) => {
+                const status =
+                    error
+                    && typeof error === 'object'
+                    && 'response' in error
+                    && error.response
+                    && typeof error.response === 'object'
+                    && 'status' in error.response
+                        ? (error.response as { status: number }).status
+                        : undefined;
+                if (status === 401) {
+                    config.clearAuthStateOnUnauthorized?.();
+                }
+                return Promise.reject(error);
+            },
+        );
+    }
+}
+
 export class {{class_name}} {
     readonly client: AxiosInstance;
     private baseUrl: string;
@@ -201,6 +274,7 @@ export class {{class_name}} {
             },
         });
 
+        applyGeneratedClientAuth(this.client, config);
         config.configureAxios?.(this.client);
     }
 
