@@ -13,23 +13,20 @@
         "forceConsistentCasingInFileNames": true,
         "resolveJsonModule": true,
         "lib": [
-            "ES2020"
+            "ES2020",
+            "DOM"
         ],
         "types": [
             "node"
         ]
     },
     "include": [
-        "src/plugin.ts",
-        "src/google/**/*.js",
-        "src/google/**/*.d.ts"
+        "src/**/*"
     ],
     "exclude": [
         "node_modules",
         "dist",
         "build",
-        "src/examples",
-        "src/index.ts",
-        "src/proto"
+        "src/examples"
     ]
 }
