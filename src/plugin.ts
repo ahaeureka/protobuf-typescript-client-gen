@@ -110,6 +110,7 @@ import { APIResponse } from 'protobuf-typescript-client-gen';
 export interface ClientConfig {
   baseUrl: string;
   timeout?: number;
+  axiosInstance?: AxiosInstance;
 }
 
 export interface EmptyRequest {}
@@ -174,47 +175,51 @@ export class {{class_name}} {
 
   constructor(config: ClientConfig) {
     this.baseUrl = config.baseUrl.replace(/\\/$/, '');
-    
-    this.client = axios.create({
-      baseURL: this.baseUrl,
-      timeout: config.timeout || 30000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      withCredentials: true, // 允许发送 Cookie
-    });
 
-    // Add request interceptor for authentication
-    this.client.interceptors.request.use(async (config) => {
-      // 处理 Session-based 认证
-      this.ensureSessionCookie();
-      
-      // 处理 Bearer token 认证
-      this.accessToken = this.getToken();
-      if (this.accessToken) {
-        config.headers.Authorization = \`Bearer \${this.accessToken}\`;
-      }
-      return config;
-    });
+    if (config.axiosInstance) {
+      this.client = config.axiosInstance;
+    } else {
+      this.client = axios.create({
+        baseURL: this.baseUrl,
+        timeout: config.timeout || 30000,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true, // 允许发送 Cookie
+      });
 
-    // Add response interceptor to handle authentication failures
-    this.client.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        // Check for authentication errors (401 Unauthorized)
-        if (error.response && error.response.status === 401) {
-          this.clearAuthState();
+      // Add request interceptor for authentication
+      this.client.interceptors.request.use(async (config) => {
+        // 处理 Session-based 认证
+        this.ensureSessionCookie();
+
+        // 处理 Bearer token 认证
+        this.accessToken = this.getToken();
+        if (this.accessToken) {
+          config.headers.Authorization = \`Bearer \${this.accessToken}\`;
         }
-        return Promise.reject(error);
-      }
-    );
+        return config;
+      });
+
+      // Add response interceptor to handle authentication failures
+      this.client.interceptors.response.use(
+        (response) => response,
+        (error) => {
+          // Check for authentication errors (401 Unauthorized)
+          if (error.response && error.response.status === 401) {
+            this.clearAuthState();
+          }
+          return Promise.reject(error);
+        }
+      );
+    }
   }
 
   /**
    * 手动登出 - 清除所有认证状态
    * 公共方法，允许用户主动调用
    */
-  public logout(): void {
+  public clearSession(): void {
     this.clearAuthState();
   }
 
