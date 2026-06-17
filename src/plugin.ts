@@ -95,11 +95,11 @@ interface TemplateContext {
 
 // Main client template
 const CLIENT_TEMPLATE = `/**
- * Auto-generated Axios TypeScript client
+ * Auto-generated Gateway TypeScript client
  * Generated from protobuf definitions
+ * Uses gatewayRequest (authenticatedFetch) instead of standalone Axios
  */
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { APIResponse } from 'protobuf-typescript-client-gen';
+import { gatewayRequest } from '@/lib/gateway/http';
 
 // Import all required models
 {{#each model_imports}}
@@ -109,13 +109,9 @@ import { APIResponse } from 'protobuf-typescript-client-gen';
 
 export interface ClientConfig {
   baseUrl: string;
-  timeout?: number;
-  axiosInstance?: AxiosInstance;
 }
 
 export interface EmptyRequest {}
-
-type ResponseWrapper<T> = { data?: T } | T;
 
 /**
  * Convert Uint8Array to Base64 string
@@ -155,240 +151,23 @@ function preprocessRequest(obj: any): any {
 }
 
 /**
- * Type guard to check if a value is an APIResponse structure
+ * Get bearer token from storage (for streaming/SSE methods only)
  */
-function isAPIResponse(data: any): data is APIResponse {
-  return (
-    data !== null &&
-    typeof data === 'object' &&
-    typeof data.code === 'number' &&
-    'data' in data &&
-    'message' in data
-  );
+function getBearerToken(): Record<string, string> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+    return token ? { Authorization: \`Bearer \${token}\` } : {};
+  } catch {
+    return {};
+  }
 }
 
 export class {{class_name}} {
-  private client: AxiosInstance;
   private baseUrl: string;
-  private accessToken: string | null = null;
-  private tokenExpiry: Date | null = null;
 
   constructor(config: ClientConfig) {
     this.baseUrl = config.baseUrl.replace(/\\/$/, '');
-
-    if (config.axiosInstance) {
-      this.client = config.axiosInstance;
-    } else {
-      this.client = axios.create({
-        baseURL: this.baseUrl,
-        timeout: config.timeout || 30000,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        withCredentials: true, // 允许发送 Cookie
-      });
-
-      // Add request interceptor for authentication
-      this.client.interceptors.request.use(async (config) => {
-        // 处理 Session-based 认证
-        this.ensureSessionCookie();
-
-        // 处理 Bearer token 认证
-        this.accessToken = this.getToken();
-        if (this.accessToken) {
-          config.headers.Authorization = \`Bearer \${this.accessToken}\`;
-        }
-        return config;
-      });
-
-      // Add response interceptor to handle authentication failures
-      this.client.interceptors.response.use(
-        (response) => response,
-        (error) => {
-          // Check for authentication errors (401 Unauthorized)
-          if (error.response && error.response.status === 401) {
-            this.clearAuthState();
-          }
-          return Promise.reject(error);
-        }
-      );
-    }
-  }
-
-  /**
-   * 手动登出 - 清除所有认证状态
-   * 公共方法，允许用户主动调用
-   */
-  public clearSession(): void {
-    this.clearAuthState();
-  }
-
-  /**
-   * 清除所有认证状态
-   * 当认证失败时调用，清除 localStorage、sessionStorage 和所有 Cookie
-   */
-  private clearAuthState(): void {
-    // 仅在浏览器环境中执行
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    try {
-      // 清除 localStorage 中的认证相关信息
-      if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem('session_id');
-        localStorage.removeItem('token');
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        console.debug('[Auth] Cleared localStorage auth data');
-      }
-
-      // 清除 sessionStorage 中的认证相关信息
-      if (typeof sessionStorage !== 'undefined') {
-        sessionStorage.removeItem('session_id');
-        sessionStorage.removeItem('token');
-        sessionStorage.removeItem('access_token');
-        sessionStorage.removeItem('refresh_token');
-        console.debug('[Auth] Cleared sessionStorage auth data');
-      }
-
-      // 清除所有 Cookie
-      if (typeof document !== 'undefined' && document.cookie) {
-        const cookies = document.cookie.split(';');
-        for (let cookie of cookies) {
-          const [name] = cookie.trim().split('=');
-          if (name) {
-            // 删除 Cookie（设置过期时间为过去）
-            // 尝试多种路径和域组合以确保删除
-            document.cookie = \`\${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;\`;
-            document.cookie = \`\${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=\${window.location.hostname};\`;
-            
-            // 如果域名有子域，尝试删除父域的 Cookie
-            const hostnameParts = window.location.hostname.split('.');
-            if (hostnameParts.length > 2) {
-              const parentDomain = hostnameParts.slice(-2).join('.');
-              document.cookie = \`\${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.\${parentDomain};\`;
-            }
-          }
-        }
-        console.debug('[Auth] Cleared all cookies');
-      }
-
-      // 清除当前实例的 token
-      this.accessToken = null;
-      this.tokenExpiry = null;
-
-      console.warn('[Auth] Authentication failed - all auth state cleared');
-    } catch (error) {
-      console.error('[Auth] Failed to clear auth state:', error);
-    }
-  }
-
-  /**
-   * 确保 session_id Cookie 已设置
-   * 从 localStorage 读取 session_id，如果存在则设置到 Cookie
-   */
-  private ensureSessionCookie(): void {
-    // 仅在浏览器环境中执行
-    if (typeof window === 'undefined' || typeof document === 'undefined') {
-      return;
-    }
-
-    try {
-      // 从 localStorage 读取 session_id
-      const sessionId = localStorage.getItem('session_id');
-      
-      if (sessionId) {
-        // 检查 Cookie 中是否已存在 session_id
-        const cookies = document.cookie.split(';');
-        const hasSessionCookie = cookies.some(cookie => {
-          const [name] = cookie.trim().split('=');
-          return name === 'session_id';
-        });
-
-        // 如果 Cookie 中没有 session_id，则设置它
-        if (!hasSessionCookie) {
-          // 设置 Cookie（路径为 /，SameSite=Lax 以支持跨页面导航）
-          document.cookie = \`session_id=\${sessionId}; path=/; SameSite=Lax\`;
-          console.debug('[Auth] Set session_id cookie from localStorage');
-        }
-      }
-    } catch (error) {
-      console.warn('[Auth] Failed to sync session_id to cookie:', error);
-    }
-  }
-
-  /**
-   * 从 localStorage/Cookie 获取 session_id
-   */
-  private getSessionId(): string | null {
-    // 检查浏览器环境
-    if (typeof window !== 'undefined') {
-      // 优先从 localStorage 获取
-      if (typeof localStorage !== 'undefined') {
-        const sessionId = localStorage.getItem('session_id');
-        if (sessionId) {
-          return sessionId;
-        }
-      }
-      
-      // 从 Cookie 获取作为后备
-      if (typeof document !== 'undefined' && document.cookie) {
-        const cookies = document.cookie.split(';');
-        for (let cookie of cookies) {
-          const [name, value] = cookie.trim().split('=');
-          if (name === 'session_id') {
-            return decodeURIComponent(value);
-          }
-        }
-      }
-    }
-    
-    return null;
-  }
-
-private getToken(): string | null {
-  // Check if we're in a browser environment
-  if (typeof window !== 'undefined') {
-    // Browser environment - use localStorage, sessionStorage, and cookies
-    
-    // 从localStorage获取token
-    if (typeof localStorage !== 'undefined') {
-      const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-      if (token) {
-        return token;
-      }
-    }
-    
-    // 从sessionStorage获取token
-    if (typeof sessionStorage !== 'undefined') {
-      const sessionToken = sessionStorage.getItem('token') || sessionStorage.getItem('access_token');
-      if (sessionToken) {
-        return sessionToken;
-      }
-    }
-    
-    // 从cookie获取token（如果使用cookie存储）
-    if (typeof document !== 'undefined' && document.cookie) {
-      const cookies = document.cookie.split(';');
-      for (let cookie of cookies) {
-        const [name, value] = cookie.trim().split('=');
-        if (name === 'token' || name === 'access_token') {
-          return decodeURIComponent(value);
-        }
-      }
-    }
-  } else if (typeof process !== 'undefined' && process.env) {
-    // Node.js environment - try to get token from environment variables
-    return process.env.ACCESS_TOKEN || process.env.TOKEN || null;
-  }
-  
-  return null;
-}
-
-  private async getAuthHeaders(): Promise<Record<string, string>> {
-    this.accessToken = this.getToken();
-    return this.accessToken ? { Authorization: \`Bearer \${this.accessToken}\` } : {};
   }
 
 {{#each services}}
@@ -422,135 +201,20 @@ private getToken(): string | null {
     // Preprocess request to convert Uint8Array to Base64
     const processedRequest = preprocessRequest(request);
     
-    const requestHeaders = { ...headers };
-    
-    {{#if auth_required}}
-    const authHeaders = await this.getAuthHeaders();
-    Object.assign(requestHeaders, authHeaders);
-    {{/if}}
-    
-    {{#if is_redirect}}
-    // Handle redirect response - don't follow redirects
-    // v1.0.1
     {{#if (isBodyMethod http.method)}}
-    const response: AxiosResponse<any> = await this.client.{{lower http.method}}(
-      url,
-      processedRequest,
-      { 
-        headers: requestHeaders,
-        maxRedirects: 0,
-        validateStatus: (status) => status >= 200 && status < 400
-      }
-    );
+    // POST/PUT/PATCH: pass data as body
+    return gatewayRequest<{{output_type}}>(url, {
+      method: '{{http.method}}',
+      body: processedRequest,
+      headers,
+    });
     {{else}}
-    const response: AxiosResponse<any> = await this.client.{{lower http.method}}(
-      url,
-      { 
-        params: processedRequest,
-        headers: requestHeaders,
-        maxRedirects: 0,
-        validateStatus: (status) => status >= 200 && status < 400
-      }
-    );
-    {{/if}}
-    
-    // For redirect responses, handle HttpResponse format if configured
-    {{#if use_http_response}}
-    // Check if response uses HttpResponse format for redirect
-    const contentType = response.headers['content-type'] || response.headers['Content-Type'] || '';
-    const isJsonResponse = contentType.includes('application/json');
-    
-    if (isJsonResponse && isAPIResponse(response.data)) {
-      // Response is wrapped in HttpResponse
-      if (response.data.code >= 200 && response.data.code < 400) {
-        // Success redirect - extract actual data from HttpResponse.data
-        if (response.data.data !== undefined && response.data.data !== null) {
-          return {{output_type}}.fromJSON(response.data.data);
-        }
-        // Empty successful redirect response
-        return {{output_type}}.fromJSON({});
-      } else {
-        // Error response - extract message from HttpResponse.message
-        const errorMessage = response.data.message || 'Unknown redirect error';
-        throw new Error(\`Redirect failed with code \${response.data.code}: \${errorMessage}\`);
-      }
-    }
-    // Fallback: treat as direct response for non-JSON or non-HttpResponse format
-    return {{output_type}}.fromJSON(response.data);
-    {{else}}
-    // For redirect responses, return the response data directly
-    return {{output_type}}.fromJSON(response.data);
-    {{/if}}
-    
-    {{else}}
-    {{#if (isBodyMethod http.method)}}
-    // POST/PUT/PATCH: pass data as second parameter
-    //     // v1.0.1
-
-    const response: AxiosResponse<any> = await this.client.{{lower http.method}}(
-      url,
-      processedRequest,
-      { headers: requestHeaders }
-    );
-    {{else}}
-    // GET/DELETE/HEAD/OPTIONS: pass params in config object
-    const response: AxiosResponse<any> = await this.client.{{lower http.method}}(
-      url,
-      { 
-        params: processedRequest,
-        headers: requestHeaders 
-      }
-    );
-    {{/if}}
-    
-    {{#if use_http_response}}
-    // Handle HttpResponse wrapped format (stew.api.v1.HttpResponse)
-    // Check if response content-type is JSON and protocol uses HttpResponse
-    const contentType = response.headers['content-type'] || response.headers['Content-Type'] || '';
-    const isJsonResponse = contentType.includes('application/json');
-    
-    if (isJsonResponse && isAPIResponse(response.data)) {
-      // Response is wrapped in HttpResponse
-      if (response.data.code >= 200 && response.data.code < 300) {
-        // Success response - extract actual data from HttpResponse.data
-        if (response.data.data !== undefined && response.data.data !== null) {
-          return {{output_type}}.fromJSON(response.data.data);
-        }
-        // Empty successful response
-        return {{output_type}}.fromJSON({});
-      } else {
-        // Error response - extract message from HttpResponse.message
-        const errorMessage = response.data.message || 'Unknown error';
-        throw new Error(\`Request failed with code \${response.data.code}: \${errorMessage}\`);
-      }
-    }
-    // Fallback: treat as direct response for non-JSON or non-HttpResponse format
-    return {{output_type}}.fromJSON(response.data);
-    {{else}}
-    // Handle response format (APIResponse wrapper or direct response)
-    if (isAPIResponse(response.data)) {
-      // Check if wrapped in APIResponse format
-      if (response.data.data !== undefined) {
-        // API response format: { code: 2000, data: { user: {...}, session_id: "...", expires_at: ... }, message: "..." }
-        const userData = response.data.data;
-
-        // Check if data contains a nested 'user' object
-        if (userData && typeof userData === 'object' && 'user' in userData) {
-          console.log('[{{@../key}}] Extracting user from nested structure:', userData.user);
-          return {{output_type}}.fromJSON(userData.user);
-        }
-
-        console.log('[{{@../key}}] Using data directly as {{output_type}}:', userData);
-        return {{output_type}}.fromJSON(userData);
-      }
-      // Direct response (APIResponse but without data field - shouldn't normally happen)
-      console.log('[{{@../key}}] Using response.data directly as {{output_type}}:', response.data);
-      return {{output_type}}.fromJSON(response.data);
-    }
-    // Not an APIResponse - treat as direct protobuf response
-    console.log('[{{@../key}}] Using response directly as {{output_type}} (non-wrapped):', response.data);
-    return {{output_type}}.fromJSON(response.data);
-    {{/if}}
+    // GET/DELETE/HEAD/OPTIONS: pass params in query string
+    return gatewayRequest<{{output_type}}>(url, {
+      method: '{{http.method}}',
+      query: processedRequest,
+      headers,
+    });
     {{/if}}
   }{{else if (eq streaming_type "server_streaming")}}
   async {{snake_name}}(
@@ -571,12 +235,12 @@ private getToken(): string | null {
     };
     
     {{#if auth_required}}
-    const authHeaders = await this.getAuthHeaders();
-    Object.assign(requestHeaders, authHeaders);
+    Object.assign(requestHeaders, getBearerToken());
     {{/if}}
     
     {{#if (isBodyMethod http.method)}}
     // POST/PUT/PATCH: pass data in request body
+    const { default: axios } = await import('axios');
     const response = await axios({
       method: '{{http.method}}',
       url,
@@ -586,6 +250,7 @@ private getToken(): string | null {
     });
     {{else}}
     // GET/DELETE/HEAD/OPTIONS: pass params in query string
+    const { default: axios } = await import('axios');
     const response = await axios({
       method: '{{http.method}}',
       url,
@@ -628,7 +293,12 @@ private getToken(): string | null {
     
     return new Promise(async (resolve, reject) => {
       const wsUrl = buildWebSocketUrl(this.baseUrl, '{{http.path}}');
-      const authHeaders = await this.getAuthHeaders();
+      
+      {{#if auth_required}}
+      const authHeaders = getBearerToken();
+      {{else}}
+      const authHeaders = {};
+      {{/if}}
       
       const ws = createWebSocket(wsUrl, undefined, {
         headers: { ...headers, ...authHeaders }
@@ -696,7 +366,12 @@ private getToken(): string | null {
     const { processWebSocketStreamingMessage } = await import('./websocket-message-utils');
     
     const wsUrl = buildWebSocketUrl(this.baseUrl, '{{http.path}}');
-    const authHeaders = await this.getAuthHeaders();
+    
+    {{#if auth_required}}
+    const authHeaders = getBearerToken();
+    {{else}}
+    const authHeaders = {};
+    {{/if}}
     
     const ws = createWebSocket(wsUrl, undefined, {
       headers: { ...headers, ...authHeaders }
@@ -795,7 +470,7 @@ private getToken(): string | null {
 
 {{/each}}
 {{/each}}
-}`;
+`
 
 
 // Plugin implementation
