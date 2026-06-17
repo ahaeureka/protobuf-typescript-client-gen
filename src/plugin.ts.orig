@@ -110,7 +110,6 @@ import { gatewayRequest } from '{{gw_import}}';
 
 export interface ClientConfig {
   baseUrl: string;
-  timeout?: number;
 }
 
 export interface EmptyRequest {}
@@ -407,7 +406,7 @@ export class {{class_name}} {
         };
 
         const onError = (error: Event) => {
-          wsError = error as unknown as Error;
+          wsError = error as Error;
         };
 
         const onClose = () => {
@@ -425,7 +424,7 @@ export class {{class_name}} {
               }
             }
           } catch (error) {
-            wsError = error as unknown as Error;
+            wsError = error as Error;
           }
         };
 

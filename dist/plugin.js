@@ -89,7 +89,7 @@ const CLIENT_TEMPLATE = `/**
  * Generated from protobuf definitions
  * Uses gatewayRequest (authenticatedFetch) instead of standalone Axios
  */
-import { gatewayRequest } from '@/lib/gateway/http';
+import { gatewayRequest } from '{{gw_import}}';
 
 // Import all required models
 {{#each model_imports}}
@@ -99,6 +99,7 @@ import { gatewayRequest } from '@/lib/gateway/http';
 
 export interface ClientConfig {
   baseUrl: string;
+  timeout?: number;
 }
 
 export interface EmptyRequest {}
@@ -191,18 +192,25 @@ export class {{class_name}} {
     // Preprocess request to convert Uint8Array to Base64
     const processedRequest = preprocessRequest(request);
     
+    // Construct full URL from configured baseUrl
+    const fullUrl = new URL(url, this.baseUrl);
+    
     {{#if (isBodyMethod http.method)}}
     // POST/PUT/PATCH: pass data as body
-    return gatewayRequest<{{output_type}}>(url, {
+    return gatewayRequest<{{output_type}}>(fullUrl.href, {
       method: '{{http.method}}',
       body: processedRequest,
       headers,
     });
     {{else}}
     // GET/DELETE/HEAD/OPTIONS: pass params in query string
-    return gatewayRequest<{{output_type}}>(url, {
+    Object.entries(processedRequest).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        fullUrl.searchParams.append(key, String(value));
+      }
+    });
+    return gatewayRequest<{{output_type}}>(fullUrl.href, {
       method: '{{http.method}}',
-      query: processedRequest,
       headers,
     });
     {{/if}}
@@ -388,7 +396,7 @@ export class {{class_name}} {
         };
 
         const onError = (error: Event) => {
-          wsError = error as Error;
+          wsError = error as unknown as Error;
         };
 
         const onClose = () => {
@@ -406,7 +414,7 @@ export class {{class_name}} {
               }
             }
           } catch (error) {
-            wsError = error as Error;
+            wsError = error as unknown as Error;
           }
         };
 
@@ -460,6 +468,7 @@ export class {{class_name}} {
 
 {{/each}}
 {{/each}}
+}
 `;
 // Plugin implementation
 class AxiosClientPlugin {
@@ -490,7 +499,9 @@ class AxiosClientPlugin {
         });
     }
     parseOptions(parameter) {
-        const options = {};
+        const options = {
+            gw_import: '@/lib/gateway/http',
+        };
         if (!parameter) {
             return options;
         }
@@ -507,6 +518,10 @@ class AxiosClientPlugin {
                     case 'axios_out':
                     case 'axiosOut':
                         options.axios_out = value.trim();
+                        break;
+                    case 'gw_import':
+                    case 'gwImport':
+                        options.gw_import = value.trim();
                         break;
                     default:
                     // Ignore unknown options
@@ -1327,7 +1342,8 @@ class AxiosClientPlugin {
             model_imports: modelImports,
             services: services,
             ts_out: this.getModelImportPath(),
-            useWebsoket: useWebsoket
+            useWebsoket: useWebsoket,
+            gw_import: this.options.gw_import || '@/lib/gateway/http',
         };
     }
     processField(field) {
@@ -1376,6 +1392,7 @@ class AxiosClientPlugin {
                 return;
             const context = this.processFile(file, allFiles);
             // Compile and render template
+            context.gw_import = this.options.gw_import || '@/lib/gateway/http';
             const template = Handlebars.compile(CLIENT_TEMPLATE);
             const generatedCode = template(context);
             // Create output file
